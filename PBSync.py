@@ -7,6 +7,7 @@ import _winapi
 import sys
 import datetime
 from shutil import copy
+from shutil import rmtree
 
 # PBSync Imports
 import PBVersion
@@ -54,8 +55,19 @@ def RunPBGet():
     return status
 
 def CleanCache():
-    subprocess.call(["RD", "/S", "/Q", ".\.git\lfs\cache"])
-    subprocess.call(["DEL", "/F", "/Q", ".\.git\lfs\lockcache.db"])
+    cache_dir = ".git\\lfs\\cache"
+    if os.path.isdir(cache_dir):
+        try:
+            rmtree(cache_dir)
+        except:
+            pass
+        
+    lockcache_path = ".git\\lfs\\lockcache.db"
+    if os.path.isfile(lockcache_path):
+        try:
+            os.remove(lockcache_path)
+        except:
+            pass
 
 def SyncFile(file_path):
     return subprocess.call(["git", "checkout", "HEAD", "--", file_path])
