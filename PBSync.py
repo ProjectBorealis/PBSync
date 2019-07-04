@@ -18,7 +18,7 @@ from colorama import Fore, Back, Style
 
 
 ### Globals
-expected_branch_name = "content/main"
+expected_branch_name = "content-main"
 ############################################################################
 
 ### LOGGER
