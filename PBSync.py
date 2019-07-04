@@ -209,6 +209,8 @@ def resolve_conflicts_and_pull():
 ############################################################################
 
 def main():
+    # TODO: Add git mail & username check
+
     if PBTools.CheckGitInstallation() != 0:
         LogError("Git is not installed on the system. Please follow instructions in gitlab wiki to setup your workspace.")
 
