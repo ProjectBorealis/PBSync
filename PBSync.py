@@ -18,9 +18,7 @@ from colorama import Fore, Back, Style
 
 
 ### Globals
-error_state = 0
-warning_state = 0
-expected_branch_name = "PBSync" # "content/main"
+expected_branch_name = "content/main"
 ############################################################################
 
 ### LOGGER
@@ -31,16 +29,12 @@ def LogSuccess(message, prefix = False):
         print(Fore.GREEN + message + Style.RESET_ALL)
 
 def LogWarning(message, prefix = True):
-    global warning_state
-    warning_state = 1
     if prefix:
         print(Fore.YELLOW + "WARNING: " + message + Style.RESET_ALL)
     else:
         print(Fore.YELLOW + message + Style.RESET_ALL)
 
 def LogError(message, prefix = True):
-    global error_state
-    error_state = 1
     if prefix:
         print(Fore.RED +  "ERROR: " + message + Style.RESET_ALL)
     else:
