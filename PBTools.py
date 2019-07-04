@@ -17,7 +17,7 @@ def CheckGitUpdate():
     subprocess.call(["git", "update-git-for-windows"])
 
 def RunUe4Versionator():
-    return subprocess.call(["ue4versionator.exe", "--with-symbols"])
+    return subprocess.call(["ue4versionator.exe"])
 
 def PurgeDestionation(destination):
     if os.path.islink(destination):
