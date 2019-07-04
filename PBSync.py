@@ -20,7 +20,7 @@ from colorama import Fore, Back, Style
 ### Globals
 error_state = 0
 warning_state = 0
-expected_branch_name = "dev" # "content/main"
+expected_branch_name = "PBSync" # "content/main"
 ############################################################################
 
 ### LOGGER
@@ -45,10 +45,23 @@ def LogError(message, prefix = True):
         print(Fore.RED +  "ERROR: " + message + Style.RESET_ALL)
     else:
         print(Fore.RED + message + Style.RESET_ALL)
+    print(Fore.RED + "Do not forget to take screenshot of the error log.\nPress Enter to quit..." + Style.RESET_ALL)
+    input()
     sys.exit(1)
 ############################################################################
 
 ### Automation commands
+
+def RunPBGet():
+    os.chdir("PBGet")
+    subprocess.call(["PBGet.exe", "resetcache"])
+    status = subprocess.call(["PBGet.exe", "pull"])
+    os.chdir("..")
+    return status
+
+def CleanCache():
+    subprocess.call(["RD", "/S", "/Q", ".\.git\lfs\cache"])
+    subprocess.call(["DEL", "/F", "/Q", ".\.git\lfs\lockcache.db"])
 
 def SyncFile(file_path):
     return subprocess.call(["git", "checkout", "HEAD", "--", file_path])
@@ -82,6 +95,7 @@ def resolve_conflicts_and_pull():
     backup_folder = 'Backup/' + datetime.datetime.now().strftime("%I%M%Y%m%d")
 
     if "Automatic merge failed" in str(output):
+        AbortMerge()
         LogWarning("Conflicts found with your non-pushed commits. Another developer made changes on the files listed below, and pushed them into the repository before you:")
         file_list = []
         for file_path in output.splitlines():
@@ -89,56 +103,60 @@ def resolve_conflicts_and_pull():
                 stripped_filename = file_path.strip()
                 file_list.append(stripped_filename)
                 print(stripped_filename)
+        LogError("Please do not forget to push your commits to avoid serious conflicts like this next time. You can request help on #tech-support to resolve conflicts")
         
-        LogWarning("You should decide what to do with conflicted files", False)
-        print("------------------\nGive an option as input to select actions per conflicted file")
-        modified_file_exists = False
-        for file_path in file_list:
-            LogWarning("\nConflicted File: " + file_path)
-            LogWarning("Keeping our version will also change the same file in the repository with ours after a successful push.")
-            action = input("[1] Keep our version and reflect changes to repository\n[2] Keep incoming version and backup our file\n[1/2 ?]: ")
+        # TODO: A git lfs bug avoiding us to automatize conflict resolution:
+        # "Encountered 1 file(s) that should have been pointers, but weren't" after rebase
 
-            if int(action) == 2:
-                file_backup_path = backup_folder + "/" + file_path[0:file_path.rfind("/")]
-                os.makedirs(file_backup_path)
-                copy(file_path, file_backup_path)
-                LogSuccess("Original file copied into: " + file_backup_path)
-                LogSuccess("You can use this file if you want to restore your own version of the file later")
+        # LogWarning("You should decide what to do with conflicted files", False)
+        # print("------------------\nGive an option as input to select actions per conflicted file")
+        # modified_file_exists = False
+        # for file_path in file_list:
+        #     LogWarning("\nConflicted File: " + file_path)
+        #     LogWarning("Keeping our version will also change the same file in the repository with ours after a successful push.")
+        #     action = input("[1] Keep our version and reflect changes to repository\n[2] Keep incoming version and backup our file\n[1/2 ?]: ")
 
-                LogSuccess("Updating the file to newest version...")
-                if CheckoutTheirs(file_path) == 0:
-                    LogSuccess("Conflict resolved for " + file_path + " with their version of the file")
-                else:
-                    AbortMerge()
-                    LogError("Something went wrong while trying to resolve conflicts on " + file_path + ". Aborting merge. Please request help on #tech-support")
+        #     if int(action) == 2:
+        #         file_backup_path = backup_folder + "/" + file_path[0:file_path.rfind("/")]
+        #         os.makedirs(file_backup_path)
+        #         copy(file_path, file_backup_path)
+        #         LogSuccess("Original file copied into: " + file_backup_path)
+        #         LogSuccess("You can use this file if you want to restore your own version of the file later")
+
+        #         LogSuccess("Updating the file to newest version...")
+        #         if CheckoutTheirs(file_path) == 0:
+        #             LogSuccess("Conflict resolved for " + file_path + " with their version of the file")
+        #         else:
+        #             AbortMerge()
+        #             LogError("Something went wrong while trying to resolve conflicts on " + file_path + ". Aborting merge. Please request help on #tech-support")
             
-            elif int(action) == 1:
-                LogSuccess("Keeping our version of the file...")
-                modified_file_exists = True
-                if CheckoutOurs(file_path) == 0:
-                    LogSuccess("Conflict resolved for " + file_path + " with our version of the file.")
-                else:
-                    AbortMerge()
-                    LogError("Something went wrong while trying to resolve conflicts on " + file_path + ". Aborting merge. Please request help on #tech-support")
+        #     elif int(action) == 1:
+        #         LogSuccess("Keeping our version of the file...")
+        #         modified_file_exists = True
+        #         if CheckoutOurs(file_path) == 0:
+        #             LogSuccess("Conflict resolved for " + file_path + " with our version of the file.")
+        #         else:
+        #             AbortMerge()
+        #             LogError("Something went wrong while trying to resolve conflicts on " + file_path + ". Aborting merge. Please request help on #tech-support")
             
-            else:
-                LogError("Incorrect option has given as input. Aborting...")
+        #     else:
+        #         LogError("Incorrect option has given as input. Aborting...")
 
-        LogSuccess("All conflicts are resolved. Trying to add conflicted files...")
-        for file_path in file_list:
-            if subprocess.call(["git", "add", file_path]) != 0:
-                AbortMerge()
-                LogError("Something went wrong while adding " + file_path + ". Aborting merge. Please request help on #tech-support")
-            LogSuccess("Added " + file_path)
+        # LogSuccess("All conflicts are resolved. Trying to add conflicted files...")
+        # for file_path in file_list:
+        #     if subprocess.call(["git", "add", file_path]) != 0:
+        #         AbortMerge()
+        #         LogError("Something went wrong while adding " + file_path + ". Aborting merge. Please request help on #tech-support")
+        #     LogSuccess("Added " + file_path)
         
-        subprocess.call(["git", "merge", "--continue"])
+        # subprocess.call(["git", "merge", "--continue"])
         
-        if not modified_file_exists:
-            subprocess.call(["git", "rebase"])
-        else:
-            subprocess.call(["git", "push"])
+        # if not modified_file_exists:
+        #     subprocess.call(["git", "rebase"])
+        # else:
+        #     subprocess.call(["git", "push"])
 
-        LogSuccess("\nSynchronization successful!")
+        # LogSuccess("\nSynchronization successful!")
     elif "Aborting" in str(output):
         LogWarning("Conflicts found with uncommitted files in your workspace. Another developer made changes on the files listed below, and pushed them into the repository before you:")
         file_list = []
@@ -177,9 +195,9 @@ def resolve_conflicts_and_pull():
         if status == 0:
             LogSuccess("\nSynchronization successful!")
         else:
-            LogError("\nSomething went wrong while trying to pull new  changes on repository. Please request help on #tech-support")
+            LogError("\nSomething went wrong while trying to pull new changes on repository. Please request help on #tech-support")
     else:
-        LogSuccess("Pulled latest changes", True)
+        LogSuccess("Pulled latest changes without any conflict", True)
                     
 
 ############################################################################
@@ -195,52 +213,61 @@ def main():
     if PBTools.CheckRunningProcess("UE4Editor.exe"):
         LogError("Unreal Editor is running. Please close it before running PBSync")
 
-    # LogWarning("\nChecking for Git updates...", False)
-    # PBTools.CheckGitUpdate()
+    LogWarning("\nChecking for Git updates...", False)
+    PBTools.CheckGitUpdate()
 
-    # print("\n------------------\n")
+    print("\n------------------\n")
 
-    # project_version = PBVersion.GetProjectVersion()
-    # engine_version = PBVersion.GetSuffix()
+    project_version = PBVersion.GetProjectVersion()
+    engine_version = PBVersion.GetSuffix()
 
-    # if project_version != "0.0.0":
-    #     LogSuccess("Current project version: " + project_version)
-    # else:
-    #     LogError("Something went wrong while fetching project version. Please request help on #tech-support")
+    if project_version != "0.0.0":
+        LogSuccess("Current project version: " + project_version)
+    else:
+        LogError("Something went wrong while fetching project version. Please request help on #tech-support")
 
-    # if engine_version != "":
-    #     LogSuccess("Current engine build version: " + engine_version)
-    # else:
-    #     LogError("Something went wrong while fetching engine build version. Please request help on #tech-support")
+    if engine_version != "":
+        LogSuccess("Current engine build version: " + engine_version)
+    else:
+        LogError("Something went wrong while fetching engine build version. Please request help on #tech-support")
 
-    # print("\n------------------\n")
+    print("\n------------------\n")
 
-    # LogWarning("Fetching recent changes on the repository...", False)
-    # if subprocess.call(["git", "fetch", "origin"]) != 0:
-    #     LogError("Something went wrong while fetching changes on the repository. Please request help on #tech-support")
+    LogWarning("Fetching recent changes on the repository...", False)
+    if subprocess.call(["git", "fetch", "origin"]) != 0:
+        LogError("Something went wrong while fetching changes on the repository. Please request help on #tech-support")
 
-    # LogWarning("\nChecking for engine updates...", False)
-    # if SyncFile("ProjectBorealis.uproject") != 0:
-    #     LogError("Something went wrong while updating uproject file. Please request help on #tech-support")
+    LogWarning("\nChecking for engine updates...", False)
+    if SyncFile("ProjectBorealis.uproject") != 0:
+        LogError("Something went wrong while updating uproject file. Please request help on #tech-support")
 
-    # new_engine_version = PBVersion.GetSuffix()
+    new_engine_version = PBVersion.GetSuffix()
 
-    # if new_engine_version != engine_version:
-    #     LogWarning("\nCustom engine will be updated from " + engine_version + " to " + new_engine_version)
-    #     if PBTools.RunUe4Versionator() != 0:
-    #         LogError("Something went wrong while updating engine build to " + new_engine_version + ". Please request help on #tech-support")
-    #     else:
-    #         LogSuccess("Custom engine successfully updated & registered as " + new_engine_version)
-    # else:
-    #     LogSuccess("\nNo new engine builds found, trying to register current engine build...")
-    #     if PBTools.RunUe4Versionator() != 0:
-    #         LogError("Something went wrong while registering engine build " + new_engine_version + ". Please request help on #tech-support")
-    #     else:
-    #         LogSuccess("Engine build " + new_engine_version + " successfully registered")
+    if new_engine_version != engine_version:
+        LogWarning("\nCustom engine will be updated from " + engine_version + " to " + new_engine_version)
+        if PBTools.RunUe4Versionator() != 0:
+            LogError("Something went wrong while updating engine build to " + new_engine_version + ". Please request help on #tech-support")
+        else:
+            LogSuccess("Custom engine successfully updated & registered as " + new_engine_version)
+    else:
+        LogSuccess("\nNo new engine builds found, trying to register current engine build...")
+        if PBTools.RunUe4Versionator() != 0:
+            LogError("Something went wrong while registering engine build " + new_engine_version + ". Please request help on #tech-support")
+        else:
+            LogSuccess("Engine build " + new_engine_version + " successfully registered")
 
     print("\n------------------\n")
     
     resolve_conflicts_and_pull()
+
+    CleanCache()
+
+    if RunPBGet() != 0:
+        LogError("An error occured while running PBGet. Please request help on #tech-support")
+
+    os.startfile(os.getcwd() + "\\ProjectBorealis.uproject")
+    sys.exit(0)
+        
 
 if __name__ == '__main__':
     colorama.init()
