@@ -19,7 +19,7 @@ from colorama import Fore, Back, Style
 
 
 ### Globals
-expected_branch_name = "content-main"
+expected_branch_name = "UE4GitPluginTest"
 ############################################################################
 
 ### LOGGER
@@ -69,6 +69,17 @@ def CleanCache():
         except:
             pass
 
+def CheckGitCredentials():
+    output = subprocess.getoutput(["git", "config", "user.name"])
+    if output == "":
+        user_name = input("Please enter your Gitlab username: ")
+        subprocess.call(["git", "config", "--global", "user.name", user_name])
+
+    output = subprocess.getoutput(["git", "config", "user.email"])
+    if output == "":
+        user_mail = input("Please enter your Gitlab e-mail: ")
+        subprocess.call(["git", "config", "--global", "user.email", user_mail])
+
 def SyncFile(file_path):
     return subprocess.call(["git", "checkout", "HEAD", "--", file_path])
 
@@ -109,10 +120,6 @@ def resolve_conflicts_and_pull():
                 stripped_filename = file_path.strip()
                 file_list.append(stripped_filename)
                 print(stripped_filename)
-        LogError("Please do not forget to push your commits to avoid serious conflicts like this next time. You can request help on #tech-support to resolve conflicts")
-        
-        # TODO: A git lfs bug avoiding us to automatize conflict resolution:
-        # "Encountered 1 file(s) that should have been pointers, but weren't" after rebase
 
         # LogWarning("You should decide what to do with conflicted files", False)
         # print("------------------\nGive an option as input to select actions per conflicted file")
@@ -209,8 +216,6 @@ def resolve_conflicts_and_pull():
 ############################################################################
 
 def main():
-    # TODO: Add git mail & username check
-
     if PBTools.CheckGitInstallation() != 0:
         LogError("Git is not installed on the system. Please follow instructions in gitlab wiki to setup your workspace.")
 
@@ -223,6 +228,11 @@ def main():
 
     LogWarning("\nChecking for Git updates...", False)
     PBTools.CheckGitUpdate()
+
+    CheckGitCredentials()
+
+    # Make sure no more pull rebase related mess going on
+    subprocess.call(["git", "config", "pull.rebase", "false"])
 
     print("\n------------------\n")
 
