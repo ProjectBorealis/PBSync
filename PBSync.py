@@ -105,13 +105,12 @@ def GitAddFile(file_path):
 def RemoveFile(file_path):
     try:
         os.remove(file_path)
-    except Exception as e:
-        LogWarning(e)
+    except:
         os.chmod(file_path, stat.S_IRWXU| stat.S_IRWXG| stat.S_IRWXO) # 0777
         try:
             os.remove(file_path)
         except Exception as e:
-            LogWarning(e)
+            print(e)
             pass
     return not os.path.isfile(file_path)
 
