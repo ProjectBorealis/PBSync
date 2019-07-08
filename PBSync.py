@@ -176,7 +176,7 @@ def resolve_conflicts_and_pull():
 
         for file_path in ud_file_list:
             LogWarning("\nConflicted File: " + file_path, False)
-            LogWarning("This file is deleted on the repository, but you did some changes on this file on your local.")
+            LogWarning("This file is deleted on the repository, but you did some changes on this file on your local workspace.")
             action = input("[1] Keep the file deleted, and backup your own version\n[2] Push your version of the file into repository back\n[1/2 ?]: ")
 
             if int(action) == 2:
@@ -230,11 +230,11 @@ def resolve_conflicts_and_pull():
                 copy(file_path, file_backup_path)
                 time.sleep(1)
                 LogSuccess("Original file copied into: " + file_backup_path)
-                LogSuccess("You can use this file if you want to restore your own version of the file later")
+                LogSuccess("You can use this file if you want to restore your own version of later")
 
                 LogSuccess("Updating the file to newest version...")
                 if CheckoutTheirs(file_path) == 0:
-                    LogSuccess("Conflict resolved for " + file_path + " with their version of the file")
+                    LogSuccess("Conflict resolved for " + file_path + " with upcoming version of the file")
                 else:
                     AbortMerge()
                     LogError("Something went wrong while trying to resolve conflicts on " + file_path + ". Aborting merge. Please request help on #tech-support")
@@ -251,7 +251,7 @@ def resolve_conflicts_and_pull():
                 AbortMerge()
                 LogError("Incorrect option has given as input. Aborting...")
 
-        LogSuccess("All conflicts are resolved. Trying to add conflicted files...")
+        LogSuccess("All conflicts are resolved. Trying to add resolved files...")
         for file_path in (uu_file_list + du_file_list + ud_file_list):
             GitAddFile(file_path)
             LogSuccess("Added " + file_path)
@@ -286,12 +286,12 @@ def resolve_conflicts_and_pull():
                 try:
                     os.makedirs(file_backup_path)
                 except:
-                    # Probably a path already exists error, pass
+                    # Probably the directory already exists error, pass
                     pass
                 copy(file_path, file_backup_path)
                 time.sleep(1)
                 LogSuccess("Original file copied into: " + file_backup_path)
-                LogSuccess("You can use this file if you want to restore your own version of the file later")
+                LogSuccess("You can use this file if you want to restore your own version later")
             elif int(action) != 1:
                 LogError("Incorrect option has given as input. Aborting...")
             
@@ -317,7 +317,7 @@ def resolve_conflicts_and_pull():
 
 def main():
     if PBTools.CheckGitInstallation() != 0:
-        LogError("Git is not installed on the system. Please follow instructions in gitlab wiki to setup your workspace.")
+        LogError("Git is not installed on the system. Please follow instructions in gitlab wiki to prepare your workspace.")
 
     # Do not execute if we're not on the expected branch
     CheckCurrentBranchName()
