@@ -21,8 +21,9 @@ from colorama import Fore, Back, Style
 
 
 ### Globals
+pbsync_version = "0.0.1"
 git_user_name = ""
-expected_branch_name = "UE4GitPluginTest"
+expected_branch_name = "content-main"
 ############################################################################
 
 ### LOGGER
@@ -146,6 +147,11 @@ def resolve_conflicts_and_pull():
                 # File is deleted by them, but we did some work on this file
                 stripped_filename = file_path[3:]
                 ud_file_list.append(stripped_filename)
+
+        AbortMerge()
+        LogError("Aborting. Please request help on #tech-support")
+        return
+        # This part needs more testing, do not continue
 
         LogWarning("You should decide what to do with each conflicted file", False)
         print("------------------\nGive an option as input to select actions per conflicted file:")
@@ -316,8 +322,10 @@ def resolve_conflicts_and_pull():
 ############################################################################
 
 def main():
+    print("PBSync v" + pbsync_version + "\n\n")
+
     if PBTools.CheckGitInstallation() != 0:
-        LogError("Git is not installed on the system. Please follow instructions in gitlab wiki to prepare your workspace.")
+        LogError("Git is not installed on the system. Please follow instructions in Gitlab wiki to prepare your workspace.")
 
     # Do not execute if we're not on the expected branch
     CheckCurrentBranchName()
@@ -331,7 +339,7 @@ def main():
 
     CheckGitCredentials()
 
-    # Make sure no more pull rebase related mess going on
+    # Make sure no more pull rebase related mess is going on
     subprocess.call(["git", "config", "pull.rebase", "false"])
 
     print("\n------------------\n")
