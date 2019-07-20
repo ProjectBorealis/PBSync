@@ -1,6 +1,9 @@
 import json
 import glob
 import subprocess
+import re
+from shutil import move
+from os import remove
 
 uproject_path = "ProjectBorealis.uproject"
 uproject_version_key = "EngineAssociation"
@@ -31,6 +34,20 @@ def GetProjectVersion():
                 return ln.replace(defaultgame_version_key, '').rstrip()
     return "0.0.0"
 
+def SetEngineVersion(version_string):
+    temp_path = "tmp.txt"
+    # Create a temp file, do the changes there, and replace it with actual file
+    with open(uproject_path, "r") as uproject_file:
+        with open(temp_path, "wt") as fout:
+            for ln in uproject_file:
+                if uproject_version_key in ln:
+                    fout.write(	"\t\"EngineAssociation\": \"ue4v:" + version_string + "\",\n")
+                else:
+                    fout.write(ln)
+    remove(uproject_path)
+    move(temp_path, uproject_path)
+    return True
+
 def GetSuffix():
     try:
         with open(uproject_path, "r") as uproject_file:  
@@ -44,3 +61,12 @@ def GetSuffix():
     except:
         return ""
     return ""
+
+def GetLatestAvailableEngineVersion(bucket_url):
+    output = subprocess.getoutput(["gsutil", "ls", bucket_url])
+    versions = re.findall("[4].[0-9]{2}-PB-[0-9]{8}", str(output))
+    if len(versions) == 0:
+        return None
+    versions.sort()
+    return str(versions[len(versions) - 1])
+    

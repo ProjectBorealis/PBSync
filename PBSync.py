@@ -10,6 +10,7 @@ import datetime
 from shutil import copy
 import errno, os, stat, shutil
 from shutil import rmtree
+import argparse
 
 # PBSync Imports
 import PBVersion
@@ -322,6 +323,29 @@ def resolve_conflicts_and_pull():
 ############################################################################
 
 def main():
+    parser = argparse.ArgumentParser(description="PBSync v" + pbsync_version)
+
+    parser.add_argument("--syncengine", help="Synchronizes engine version to the latest one, versions are searched in the gcloud bucket URL given by the argument")
+    parser.add_argument("--latestenginever", help="Prints latest available engine version, versions are searched in the gcloud bucket URL given by the argument")
+    args = parser.parse_args()
+
+    # Process parameters
+    if not (args.syncengine is None):
+        engine_version = PBVersion.GetLatestAvailableEngineVersion(str(args.syncengine))
+        if engine_version is None:
+            LogError("Error while trying to fetch latest engine version")
+        if not PBVersion.SetEngineVersion(engine_version):
+            LogError("Error while trying to update engine version in .uproject file")
+        LogSuccess("Successfully changed engine version as " + str(engine_version))
+        sys.exit(0)
+    elif not (args.latestenginever is None):
+        engine_version = PBVersion.GetLatestAvailableEngineVersion(str(args.latestenginever))
+        if engine_version is None:
+            sys.exit(1)
+        print(engine_version, end ="")
+        sys.exit(0)
+
+    # Do standard procedure
     print("PBSync v" + pbsync_version + "\n\n")
 
     if PBTools.CheckGitInstallation() != 0:
