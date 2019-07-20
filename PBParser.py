@@ -35,10 +35,10 @@ def IsVersionatorSymbolsEnabled():
     with open(versionator_config_path, "a+") as config_file:   
         response = input("Do you want to also download debugging symbols for accurate crash logging? [y/n]")
         if response == "y" or response == "Y":
-            config_file.write("Symbols = True")
+            config_file.write("\nSymbols = True")
             return True
         else:
-            config_file.write("Symbols = False")
+            config_file.write("\nSymbols = False")
             return False
 
 
