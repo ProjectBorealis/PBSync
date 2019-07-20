@@ -5,6 +5,16 @@ import psutil
 import shutil
 import subprocess
 
+# PBSync Imports
+import PBParser
+
+def RunPBGet():
+    os.chdir("PBGet")
+    subprocess.call(["PBGet.exe", "resetcache"])
+    status = subprocess.call(["PBGet.exe", "pull"])
+    os.chdir("..")
+    return status
+
 def CheckRunningProcess(process_name):
     if process_name in (p.name() for p in psutil.process_iter()):
         return True
@@ -17,7 +27,10 @@ def CheckGitUpdate():
     subprocess.call(["git", "update-git-for-windows"])
 
 def RunUe4Versionator():
-    return subprocess.call(["ue4versionator.exe"])
+    if PBParser.IsVersionatorSymbolsEnabled():
+        return subprocess.call(["ue4versionator.exe", "--with-symbols"])
+    else:
+        return subprocess.call(["ue4versionator.exe"])
 
 def PurgeDestionation(destination):
     if os.path.islink(destination):

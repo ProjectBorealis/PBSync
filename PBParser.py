@@ -4,6 +4,7 @@ import subprocess
 import re
 from shutil import move
 from os import remove
+from os import path
 
 uproject_path = "ProjectBorealis.uproject"
 uproject_version_key = "EngineAssociation"
@@ -13,7 +14,33 @@ defaultgame_version_key = "ProjectVersion="
 
 uplugin_version_key = "VersionName"
 
+versionator_config_path = ".ue4v-user"
+
 uplugin_ext = ".uplugin"
+
+def IsVersionatorSymbolsEnabled():
+    if not path.isfile(versionator_config_path):
+        # Config file somehow haven't generated yet, return False
+        return False
+
+    with open(versionator_config_path, "r") as config_file:
+        for ln in config_file:
+            if "Symbols" in ln:
+                if "False" in ln or "false" in ln:
+                    return False
+                elif "True" in ln or "true" in ln:
+                    return True
+
+    # Symbols configuration variable is not on the file, let's add it
+    with open(versionator_config_path, "a+") as config_file:   
+        response = input("Do you want to also download debugging symbols for accurate crash logging? [y/n]")
+        if response == "y" or response == "Y":
+            config_file.write("Symbols = True")
+            return True
+        else:
+            config_file.write("Symbols = False")
+            return False
+
 
 def GetPluginVersion(plugin_name):
     plugin_root = "Plugins/" + plugin_name

@@ -13,18 +13,19 @@ from shutil import rmtree
 import argparse
 
 # PBSync Imports
-import PBVersion
+import PBParser
 import PBTools
 
 # Colored Output
 import colorama
 from colorama import Fore, Back, Style
 
-
 ### Globals
-pbsync_version = "0.0.1"
+pbsync_version = "0.0.2"
 git_user_name = ""
 expected_branch_name = "content-main"
+git_hooks_path = "git-hooks"
+shared_hooks_path = "Scripts\\HooksShared.bat"
 ############################################################################
 
 ### LOGGER
@@ -49,15 +50,6 @@ def LogError(message, prefix = True):
     input()
     sys.exit(1)
 ############################################################################
-
-### Automation commands
-
-def RunPBGet():
-    os.chdir("PBGet")
-    subprocess.call(["PBGet.exe", "resetcache"])
-    status = subprocess.call(["PBGet.exe", "pull"])
-    os.chdir("..")
-    return status
 
 def CleanCache():
     cache_dir = ".git\\lfs\\cache"
@@ -94,6 +86,10 @@ def SyncFile(file_path):
 def AbortMerge():
     subprocess.call(["git", "merge", "--abort"])
 
+def SetupGitConfig():
+    subprocess.call(["git", "config", "core.hooksPath", git_hooks_path])
+    subprocess.call([shared_hooks_path])
+
 def CheckoutTheirs(file_path):
     return subprocess.call(["git", "checkout", file_path, "--theirs"])
 
@@ -121,11 +117,16 @@ def CheckCurrentBranchName():
     output = subprocess.getoutput(["git", "rev-parse", "--abbrev-ref", "HEAD"])
 
     if output != expected_branch_name:
-        LogError("Current branch is not set as " + expected_branch_name + ". Please request help on #tech-support")
+        LogWarning("Current branch is not set as " + expected_branch_name + ". Auto synchronization will be disabled")
+        return False
+    
+    return True
 
 def resolve_conflicts_and_pull():
     global git_user_name
-    output = subprocess.getoutput(["git", "pull"])
+    output = subprocess.getoutput(["git", "pull" "--rebase" "--autostash"])
+    print(str(output))
+
     backup_folder = 'Backup/' + datetime.datetime.now().strftime("%I%M%Y%m%d")
     
     if "Automatic merge failed" in str(output):
@@ -150,129 +151,10 @@ def resolve_conflicts_and_pull():
                 ud_file_list.append(stripped_filename)
 
         AbortMerge()
-        LogError("Aborting. Please request help on #tech-support")
+        LogError("Aborting the merge. Please request help on #tech-support")
         return
-        # This part needs more testing, do not continue
 
-        LogWarning("You should decide what to do with each conflicted file", False)
-        print("------------------\nGive an option as input to select actions per conflicted file:")
-        for file_path in du_file_list:
-            LogWarning("\nConflicted File: " + file_path, False)
-            LogWarning("This file is deleted by us, but someone pushed a new version of the same file into repository.")
-            action = input("[1] Keep the file deleted and reflect changes to repository\n[2] Restore the file back\n[1/2 ?]: ")
-
-            if int(action) == 2:
-                LogSuccess("Updating the file to newest version...")
-                if CheckoutTheirs(file_path) == 0:
-                    LogSuccess("Conflict resolved for " + file_path + " with their version of the file")
-                else:
-                    AbortMerge()
-                    LogError("Something went wrong while trying to resolve conflicts on " + file_path + ". Aborting merge. Please request help on #tech-support")
-            
-            elif int(action) == 1:
-                LogSuccess("Keeping the file removed...")
-                if RemoveFile(file_path) == True:
-                    LogSuccess("Conflict resolved for " + file_path + " by keeping the file removed.")
-                else:
-                    AbortMerge()
-                    LogError("Something went wrong while trying to resolve conflicts on " + file_path + ". Aborting merge. Please request help on #tech-support")
-            
-            else:
-                AbortMerge()
-                LogError("Incorrect option has given as input. Aborting...")
-
-        for file_path in ud_file_list:
-            LogWarning("\nConflicted File: " + file_path, False)
-            LogWarning("This file is deleted on the repository, but you did some changes on this file on your local workspace.")
-            action = input("[1] Keep the file deleted, and backup your own version\n[2] Push your version of the file into repository back\n[1/2 ?]: ")
-
-            if int(action) == 2:
-                LogSuccess("Keeping our version of the file...")
-                if CheckoutOurs(file_path) == 0:
-                    LogSuccess("Conflict resolved for " + file_path + " with our version of the file")
-                else:
-                    AbortMerge()
-                    LogError("Something went wrong while trying to resolve conflicts on " + file_path + ". Aborting merge. Please request help on #tech-support")
-            
-            elif int(action) == 1:
-                LogSuccess("Keeping the file as removed...")
-
-                file_backup_path = backup_folder + "/" + file_path[0:file_path.rfind("/")]
-                try:
-                    os.makedirs(file_backup_path)
-                except:
-                    pass
-                copy(file_path, file_backup_path)
-                time.sleep(1)
-                LogSuccess("Original file copied into: " + file_backup_path)
-                LogSuccess("You can use this file if you want to restore your own version of the file later")
-
-                if RemoveFile(file_path) == True:
-                    LogSuccess("Conflict resolved for " + file_path + " by keeping the file removed.")
-                else:
-                    AbortMerge()
-                    LogError("Something went wrong while trying to resolve conflicts on " + file_path + ". Aborting merge. Please request help on #tech-support")
-            
-            else:
-                AbortMerge()
-                LogError("Incorrect option has given as input. Aborting...")
-        
-        for file_path in uu_file_list:
-            LogWarning("\nConflicted File: " + file_path, False)
-            LogWarning("This file is modified by us, but someone pushed a new version of the same file into repository.")
-            action = input("[1] Keep our version and reflect changes to repository\n[2] Overwrite our file with the incoming version, and backup the original file\n[1/2 ?]: ")
-
-            if int(action) == 2:
-                if CheckoutOurs(file_path) == True:
-                    LogSuccess("Temporarily restored back our version for backup.")
-                else:
-                    AbortMerge()
-                    LogError("Something went wrong while trying to temporarily restore back our version of " + file_path + " for backup. Aborting merge. Please request help on #tech-support")
-                    
-                file_backup_path = backup_folder + "/" + file_path[0:file_path.rfind("/")]
-                try:
-                    os.makedirs(file_backup_path)
-                except:
-                    pass
-                copy(file_path, file_backup_path)
-                time.sleep(1)
-                LogSuccess("Original file copied into: " + file_backup_path)
-                LogSuccess("You can use this file if you want to restore your own version of later")
-
-                LogSuccess("Updating the file to newest version...")
-                if CheckoutTheirs(file_path) == 0:
-                    LogSuccess("Conflict resolved for " + file_path + " with upcoming version of the file")
-                else:
-                    AbortMerge()
-                    LogError("Something went wrong while trying to resolve conflicts on " + file_path + ". Aborting merge. Please request help on #tech-support")
-            
-            elif int(action) == 1:
-                LogSuccess("Keeping our version of the file...")
-                if CheckoutOurs(file_path) == True:
-                    LogSuccess("Conflict resolved for " + file_path + " with our version of the file.")
-                else:
-                    AbortMerge()
-                    LogError("Something went wrong while trying to resolve conflicts on " + file_path + ". Aborting merge. Please request help on #tech-support")
-            
-            else:
-                AbortMerge()
-                LogError("Incorrect option has given as input. Aborting...")
-
-        LogSuccess("All conflicts are resolved. Trying to add resolved files...")
-        for file_path in (uu_file_list + du_file_list + ud_file_list):
-            GitAddFile(file_path)
-            LogSuccess("Added " + file_path)
-        
-        response = input("You're about to push the resulting commit into the repository, are you sure? [y/n]")
-        if response == "y" or response == "Y":
-            subprocess.call(["git", "commit", "-m", "Resolving merge conflict on " + git_user_name + "'s workspace"])
-            subprocess.call(["git", "push"])
-        else:
-            AbortMerge()
-            LogError("Merge aborted, changes are reverted. You need to fix your workspace before beginning working with Unreal Engine. Please request help on #tech-support")
-
-        LogSuccess("\nSynchronization successful, changes are reflected into repository!")
-    elif "Aborting" in str(output):
+    if "Aborting" in str(output):
         LogWarning("Conflicts found with uncommitted files in your workspace. Another developer made changes on the files listed below, and pushed them into the repository before you:")
         file_list = []
         for file_path in output.splitlines():
@@ -326,97 +208,100 @@ def main():
     parser = argparse.ArgumentParser(description="PBSync v" + pbsync_version)
 
     parser.add_argument("--syncengine", help="Synchronizes engine version to the latest one, versions are searched in the gcloud bucket URL given by the argument")
+    parser.add_argument("--sync", help="Main command for the PBSync, synchronizes the project with latest changes in repo, and does some housekeeping")
     parser.add_argument("--latestenginever", help="Prints latest available engine version, versions are searched in the gcloud bucket URL given by the argument")
     args = parser.parse_args()
 
-    # Process parameters
+    # Process arguments
     if not (args.syncengine is None):
-        engine_version = PBVersion.GetLatestAvailableEngineVersion(str(args.syncengine))
+        engine_version = PBParser.GetLatestAvailableEngineVersion(str(args.syncengine))
         if engine_version is None:
             LogError("Error while trying to fetch latest engine version")
-        if not PBVersion.SetEngineVersion(engine_version):
+        if not PBParser.SetEngineVersion(engine_version):
             LogError("Error while trying to update engine version in .uproject file")
         LogSuccess("Successfully changed engine version as " + str(engine_version))
         sys.exit(0)
+
     elif not (args.latestenginever is None):
-        engine_version = PBVersion.GetLatestAvailableEngineVersion(str(args.latestenginever))
+        engine_version = PBParser.GetLatestAvailableEngineVersion(str(args.latestenginever))
         if engine_version is None:
             sys.exit(1)
         print(engine_version, end ="")
         sys.exit(0)
 
-    # Do standard procedure
-    print("PBSync v" + pbsync_version + "\n\n")
+    elif not (args.sync is None):
+        # Do Overall Project Synchronization for Creatives
+        print("PBSync v" + pbsync_version + "\n\n")
 
-    if PBTools.CheckGitInstallation() != 0:
-        LogError("Git is not installed on the system. Please follow instructions in Gitlab wiki to prepare your workspace.")
+        if PBTools.CheckGitInstallation() != 0:
+            LogError("Git is not installed on the system. Please follow instructions in Gitlab wiki to prepare your workspace.")
 
-    # Do not execute if we're not on the expected branch
-    CheckCurrentBranchName()
+        # Do not execute if Unreal Editor is running
+        if PBTools.CheckRunningProcess("UE4Editor.exe"):
+            LogError("Unreal Editor is running. Please close it before running PBSync")
 
-    # Do not execute if Unreal Editor is running
-    if PBTools.CheckRunningProcess("UE4Editor.exe"):
-        LogError("Unreal Editor is running. Please close it before running PBSync")
+        LogWarning("\nChecking for Git updates...", False)
+        PBTools.CheckGitUpdate()
 
-    LogWarning("\nChecking for Git updates...", False)
-    PBTools.CheckGitUpdate()
+        # Do some housekeeping for git configuration
+        SetupGitConfig()
 
-    CheckGitCredentials()
+        # Check if we have correct credentials
+        CheckGitCredentials()
 
-    # Make sure no more pull rebase related mess is going on
-    subprocess.call(["git", "config", "pull.rebase", "false"])
+        print("\n------------------\n")
 
-    print("\n------------------\n")
+        project_version = PBParser.GetProjectVersion()
+        engine_version = PBParser.GetSuffix()
 
-    project_version = PBVersion.GetProjectVersion()
-    engine_version = PBVersion.GetSuffix()
-
-    if project_version != "0.0.0":
-        LogSuccess("Current project version: " + project_version)
-    else:
-        LogError("Something went wrong while fetching project version. Please request help on #tech-support")
-
-    if engine_version != "":
-        LogSuccess("Current engine build version: " + engine_version)
-    else:
-        LogError("Something went wrong while fetching engine build version. Please request help on #tech-support")
-
-    print("\n------------------\n")
-
-    LogWarning("Fetching recent changes on the repository...", False)
-    if subprocess.call(["git", "fetch", "origin"]) != 0:
-        LogError("Something went wrong while fetching changes on the repository. Please request help on #tech-support")
-
-    LogWarning("\nChecking for engine updates...", False)
-    if SyncFile("ProjectBorealis.uproject") != 0:
-        LogError("Something went wrong while updating uproject file. Please request help on #tech-support")
-
-    new_engine_version = PBVersion.GetSuffix()
-
-    if new_engine_version != engine_version:
-        LogWarning("\nCustom engine will be updated from " + engine_version + " to " + new_engine_version)
-        if PBTools.RunUe4Versionator() != 0:
-            LogError("Something went wrong while updating engine build to " + new_engine_version + ". Please request help on #tech-support")
+        if project_version != "0.0.0":
+            LogSuccess("Current project version: " + project_version)
         else:
-            LogSuccess("Custom engine successfully updated & registered as " + new_engine_version)
-    else:
-        LogSuccess("\nNo new engine builds found, trying to register current engine build...")
-        if PBTools.RunUe4Versionator() != 0:
-            LogError("Something went wrong while registering engine build " + new_engine_version + ". Please request help on #tech-support")
+            LogError("Something went wrong while fetching project version. Please request help on #tech-support")
+
+        if engine_version != "":
+            LogSuccess("Current engine build version: " + engine_version)
         else:
-            LogSuccess("Engine build " + new_engine_version + " successfully registered")
+            LogError("Something went wrong while fetching engine build version. Please request help on #tech-support")
 
-    print("\n------------------\n")
-    
-    resolve_conflicts_and_pull()
+        print("\n------------------\n")
 
-    CleanCache()
+        LogWarning("Fetching recent changes on the repository...", False)
+        if subprocess.call(["git", "fetch", "origin"]) != 0:
+            LogError("Something went wrong while fetching changes on the repository. Please request help on #tech-support")
 
-    if RunPBGet() != 0:
-        LogError("An error occured while running PBGet. Please request help on #tech-support")
+        LogWarning("\nChecking for engine updates...", False)
+        if SyncFile("ProjectBorealis.uproject") != 0:
+            LogError("Something went wrong while updating uproject file. Please request help on #tech-support")
 
-    os.startfile(os.getcwd() + "\\ProjectBorealis.uproject")
-    sys.exit(0)
+        new_engine_version = PBParser.GetSuffix()
+
+        if new_engine_version != engine_version:
+            LogWarning("\nCustom engine will be updated from " + engine_version + " to " + new_engine_version)
+            if PBTools.RunUe4Versionator() != 0:
+                LogError("Something went wrong while updating engine build to " + new_engine_version + ". Please request help on #tech-support")
+            else:
+                LogSuccess("Custom engine successfully updated & registered as " + new_engine_version)
+        else:
+            LogSuccess("\nNo new engine builds found, trying to register current engine build...")
+            if PBTools.RunUe4Versionator() != 0:
+                LogError("Something went wrong while registering engine build " + new_engine_version + ". Please request help on #tech-support")
+            else:
+                LogSuccess("Engine build " + new_engine_version + " successfully registered")
+
+        print("\n------------------\n")
+        
+        # Only execute synchronization part of script if we're on the expected branch
+        if CheckCurrentBranchName():
+            resolve_conflicts_and_pull()
+            CleanCache()
+            if PBTools.RunPBGet() != 0:
+                LogError("An error occured while running PBGet. Please request help on #tech-support")
+
+        os.startfile(os.getcwd() + "\\ProjectBorealis.uproject")
+        sys.exit(0)
+    else:
+        LogError("Please start PBSync from SyncProject.bat, or pass proper arguments to the executable!")
         
 
 if __name__ == '__main__':
