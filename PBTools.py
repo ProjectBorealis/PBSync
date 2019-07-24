@@ -8,57 +8,26 @@ import subprocess
 # PBSync Imports
 import PBParser
 
-def RunPBGet():
+def run_pbget():
     os.chdir("PBGet")
     subprocess.call(["PBGet.exe", "resetcache"])
     status = subprocess.call(["PBGet.exe", "pull"])
     os.chdir("..")
     return status
 
-def CheckRunningProcess(process_name):
+def check_running_process(process_name):
     if process_name in (p.name() for p in psutil.process_iter()):
         return True
     return False
 
-def CheckGitInstallation():
+def check_git_installation():
     return subprocess.call(["git", "--version"])
 
-def CheckGitUpdate():
+def check_git_update():
     subprocess.call(["git", "update-git-for-windows"])
 
-def RunUe4Versionator():
-    if PBParser.IsVersionatorSymbolsEnabled():
+def run_ue4versionator():
+    if PBParser.is_versionator_symbols_enabled():
         return subprocess.call(["ue4versionator.exe", "--with-symbols"])
     else:
         return subprocess.call(["ue4versionator.exe"])
-
-def PurgeDestionation(destination):
-    if os.path.islink(destination):
-        try:
-            os.unlink(destination)
-        except:
-            return False
-
-    elif os.path.isdir(destination):
-        is_junction = False
-
-        try:
-            shutil.rmtree(destination)
-        except:
-            is_junction = True
-
-        if is_junction:
-            try:
-                os.remove(destination)
-            except:
-                return False
-            
-
-    elif os.path.isfile(destination):
-        # Somehow it's a file, remove it
-        try:
-            os.remove(destination)
-        except:
-            return False
-
-    return True
