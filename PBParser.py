@@ -91,13 +91,13 @@ def project_version_increase(increase_type):
         # Incorrect versioning
         return False
 
-    if increase_type is "minor":
+    if increase_type == "minor":
         new_version = version_split[0] + "." + version_split[1] + "." + str(int(version_split[2]) + 1)
     
-    elif increase_type is "major":
+    elif increase_type == "major":
         new_version = version_split[0] + "." + str(int(version_split[1]) + 1) + ".0"
 
-    elif increase_type is "release":
+    elif increase_type == "release":
         new_version = str(int(version_split[2]) + 1) + ".0.0"
 
     else:

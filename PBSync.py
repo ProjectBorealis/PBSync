@@ -219,7 +219,7 @@ def main():
     args = parser.parse_args()
 
     # Process arguments
-    if args.sync is "all":
+    if args.sync == "all":
         print("PBSync v" + pbsync_version + "\n\n")
 
         if PBTools.check_git_installation() != 0:
@@ -291,7 +291,7 @@ def main():
         os.startfile(os.getcwd() + "\\ProjectBorealis.uproject")
         sys.exit(0)
 
-    elif args.sync is "engine":
+    elif args.sync == "engine":
         if args.repository is None:
             log_error("--repository <URL> argument should be provided with --sync engine command")
         engine_version = PBParser.get_latest_available_engine_version(str(args.repository))
@@ -302,7 +302,7 @@ def main():
         log_success("Successfully changed engine version as " + str(engine_version))
         sys.exit(0)
 
-    elif args.print is "latest-engine":
+    elif args.print == "latest-engine":
         if args.repository is None:
             log_error("--repository <URL> argument should be provided with --print latest-engine command")
         engine_version = PBParser.get_latest_available_engine_version(str(args.repository))
@@ -311,14 +311,14 @@ def main():
         print(engine_version, end ="")
         sys.exit(0)
     
-    elif args.print is "current-engine":
+    elif args.print == "current-engine":
         engine_version = PBParser.get_engine_version()
         if engine_version is None:
             sys.exit(1)
         print(engine_version, end ="")
         sys.exit(0)
     
-    elif args.print is "project":
+    elif args.print == "project":
         project_version = PBParser.get_project_version()
         if project_version is None:
             sys.exit(1)
