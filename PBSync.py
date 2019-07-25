@@ -320,7 +320,7 @@ def main():
     
     elif args.print is "project":
         project_version = PBParser.get_project_version()
-        if engine_version is None:
+        if project_version is None:
             sys.exit(1)
         print(project_version, end ="")
         sys.exit(0)

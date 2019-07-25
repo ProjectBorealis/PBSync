@@ -126,6 +126,8 @@ def get_latest_available_engine_version(bucket_url):
     versions = re.findall("[4].[0-9]{2}-PB-[0-9]{8}", str(output))
     if len(versions) == 0:
         return None
+        
+    # Find the latest version by sorting
     versions.sort()
     return str(versions[len(versions) - 1])
     
