@@ -16,8 +16,12 @@ versionator_config_path = ".ue4v-user"
 
 def is_versionator_symbols_enabled():
     if not path.isfile(versionator_config_path):
-        # Config file somehow haven't generated yet, return False
-        return False
+        # Config file somehow isn't generated yet, only get a response, but do not set anything
+        response = input("Do you want to also download debugging symbols for accurate crash logging? You can change that choice later in .ue4v-user config file [y/n]")
+        if response == "y" or response == "Y":
+            return True
+        else:
+            return False
 
     with open(versionator_config_path, "r") as config_file:
         for ln in config_file:
@@ -29,7 +33,7 @@ def is_versionator_symbols_enabled():
 
     # Symbols configuration variable is not on the file, let's add it
     with open(versionator_config_path, "a+") as config_file:   
-        response = input("Do you want to also download debugging symbols for accurate crash logging? [y/n]")
+        response = input("Do you want to also download debugging symbols for accurate crash logging? You can change that choice later in .ue4v-user config file [y/n]")
         if response == "y" or response == "Y":
             config_file.write("\nSymbols = True")
             return True

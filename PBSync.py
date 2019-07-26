@@ -223,13 +223,17 @@ def main():
 
     # Process arguments
     if args.sync == "all":
-        print("PBSync v" + pbsync_version + "\n\n")
+        print("Executing sync --all command for PBSync v" + pbsync_version + "\n")
 
         if not (supported_git_version in PBTools.check_git_installation()):
             log_error("Git is not installed in your system or it's not updated to the latest version " + supported_git_version + ". Please install/update Git.")
+        else:
+            log_success("Current Git version: " + supported_git_version)
 
         if not (supported_lfs_version in PBTools.check_lfs_installation()):
             log_error("Git LFS is not installed in your system or it's not updated to the latest version " + supported_lfs_version + ". Please install/update Git LFS.")
+        else:
+            log_success("Current Git LFS version: " + supported_lfs_version)
 
         # Do not execute if Unreal Editor is running
         if PBTools.check_running_process("UE4Editor.exe"):
