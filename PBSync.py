@@ -88,8 +88,9 @@ def sync_file(file_path):
     return subprocess.call(["git", "checkout", "HEAD", "--", file_path])
 
 def abort_merge():
-    subprocess.call(["git", "merge", "--abort"])
-    subprocess.call(["git", "rebase", "--abort"])
+    out = subprocess.getoutput(["git", "merge", "--abort"])
+    out = subprocess.getoutput(["git", "rebase", "--abort"])
+    out = subprocess.getoutput(["git", "am", "--abort"])
 
 def rebase_switch(switch_val):
     if switch_val:
@@ -152,11 +153,11 @@ def resolve_conflicts_and_pull():
     if 'Merge made by the \'recursive\' strategy' in str(output):
         if subprocess.call(["git", "rebase"]) != 0:
             abort_merge()
-            log_error("Aborting the merge. Please request help on #tech-support to solve problems in your workspace")
+            log_error("Aborting the merge. You probably have unstaged changes in your workspace, and they're preventing your workspace to get synced. Please request help on #tech-support to solve problems in your workspace")
 
         if subprocess.call(["git", "push"]) != 0:
             abort_merge()
-            log_error("Aborting the merge. Please request help on #tech-support to solve problems in your workspace")
+            log_error("Aborting the merge. Unable to push your non-pushed commits into origin. Please request help on #tech-support to solve problems in your workspace")
 
         log_success("\nSynchronization successful, and your previous commits are pushed into repository")
 
