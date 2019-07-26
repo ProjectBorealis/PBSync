@@ -108,7 +108,7 @@ def project_version_increase(increase_type):
         return False
     
     print("Trying to increase project version to " + new_version)
-    return set_engine_version(new_version)
+    return set_project_version(new_version)
 
 def get_engine_version():
     try:

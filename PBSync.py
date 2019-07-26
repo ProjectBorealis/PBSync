@@ -215,14 +215,14 @@ def resolve_conflicts_and_pull():
 def main():
     parser = argparse.ArgumentParser(description="PBSync v" + pbsync_version)
 
-    parser.add_argument("--sync", help="[all, engine] Main command for the PBSync, synchronizes the project with latest changes in repo, and does some housekeeping")
+    parser.add_argument("--sync", help="[force-all, all, engine] Main command for the PBSync, synchronizes the project with latest changes in repo, and does some housekeeping")
     parser.add_argument("--print", help="[current-engine, latest-engine, project] Prints requested version information into console. latest-engine command needs --repository parameter")
     parser.add_argument("--repository", help="<URL> Required repository url for --print latest-engine and --sync engine commands")
     parser.add_argument("--autoversion", help="[minor, major, release] Automatic version update for project version")
     args = parser.parse_args()
 
     # Process arguments
-    if args.sync == "all":
+    if args.sync == "all" or args.sync == "force-all":
         print("Executing sync --all command for PBSync v" + pbsync_version + "\n")
 
         if not (supported_git_version in PBTools.check_git_installation()):
@@ -289,7 +289,7 @@ def main():
         print("\n------------------\n")
         
         # Only execute synchronization part of script if we're on the expected branch
-        if check_current_branch_name():
+        if check_current_branch_name() or args.sync == "force-all":
             resolve_conflicts_and_pull()
             clean_cache()
             if PBTools.run_pbget() != 0:
@@ -319,10 +319,10 @@ def main():
         sys.exit(0)
     
     elif args.print == "current-engine":
-        engine_version = PBParser.get_engine_version()
-        if engine_version is None:
+        project_version = PBParser.get_project_version()
+        if project_version is None:
             sys.exit(1)
-        print(engine_version, end ="")
+        print(project_version, end ="")
         sys.exit(0)
     
     elif args.print == "project":
