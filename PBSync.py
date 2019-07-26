@@ -21,7 +21,10 @@ import colorama
 from colorama import Fore, Back, Style
 
 ### Globals
-pbsync_version = "0.0.3"
+pbsync_version = "0.0.4"
+supported_git_version = "2.22"
+supported_lfs_version = "2.8.0"
+
 git_user_name = ""
 expected_branch_name = "content-main"
 git_hooks_path = "git-hooks"
@@ -42,6 +45,7 @@ def log_warning(message, prefix = True):
         print(Fore.YELLOW + message + Style.RESET_ALL)
 
 def log_error(message, prefix = True):
+    rebase_switch(True)
     if prefix:
         print(Fore.RED +  "ERROR: " + message + Style.RESET_ALL)
     else:
@@ -85,7 +89,15 @@ def sync_file(file_path):
 
 def abort_merge():
     subprocess.call(["git", "merge", "--abort"])
-    subprocess.call(["git", "am", "--abort"])
+    subprocess.call(["git", "rebase", "--abort"])
+
+def rebase_switch(switch_val):
+    if switch_val:
+        subprocess.call(["git", "config", "pull.rebase", "true"])
+        subprocess.call(["git", "config", "rebase.autoStash", "true"])
+    else:
+        subprocess.call(["git", "config", "pull.rebase", "false"])
+        subprocess.call(["git", "config", "rebase.autoStash", "false"])
 
 def setup_git_config():
     subprocess.call(["git", "config", "core.hooksPath", git_hooks_path])
@@ -129,37 +141,34 @@ def resolve_conflicts_and_pull():
     # Abort if any merge or am request is going on at the moment
     abort_merge()
 
-    output = subprocess.getoutput(["git", "pull" "--rebase" "--autostash"])
+    # Turn off rebase pull & autostash for now
+    rebase_switch(False)
+
+    output = subprocess.getoutput(["git", "pull"])
     print(str(output))
 
     backup_folder = 'Backup/' + datetime.datetime.now().strftime("%I%M%Y%m%d")
     
+    if 'Merge made by the \'recursive\' strategy' in str(output):
+        if subprocess.call(["git", "rebase"]) != 0:
+            abort_merge()
+            log_error("Aborting the merge. Please request help on #tech-support to solve problems in your workspace")
+
+        if subprocess.call(["git", "push"]) != 0:
+            abort_merge()
+            log_error("Aborting the merge. Please request help on #tech-support to solve problems in your workspace")
+
+        log_success("\nSynchronization successful, and your previous commits are pushed into repository")
+
     if "Automatic merge failed" in str(output):
         output = subprocess.getoutput(["git", "status", "--porcelain"])
         log_warning("Conflicts found with your non-pushed commits. Another developer made changes on the files listed below, and pushed them into the repository before you:")
-        print(output + "\n\n")
-        du_file_list = [] # Deleted by us files
-        ud_file_list = [] # Deleted by them files
-        uu_file_list = [] # both modified files
-        for file_path in output.splitlines():
-            if file_path[0:2] == "DU":
-                # File is deleted by us, but someone pushed a new commit for this file
-                stripped_filename = file_path[3:]
-                du_file_list.append(stripped_filename)
-            elif file_path[0:2] == "UU":
-                # Both modified
-                stripped_filename = file_path[3:]
-                uu_file_list.append(stripped_filename)
-            elif file_path[0:2] == "UD":
-                # File is deleted by them, but we did some work on this file
-                stripped_filename = file_path[3:]
-                ud_file_list.append(stripped_filename)
+        print(output + "\n")
 
         abort_merge()
-        log_error("Aborting the merge. Please request help on #tech-support")
-        return
+        log_error("Aborting the merge. Please request help on #tech-support to solve problems in your workspace")
 
-    if "Aborting" in str(output):
+    if "Please commit your changes or stash them before you merge" in str(output):
         log_warning("Conflicts found with uncommitted files in your workspace. Another developer made changes on the files listed below, and pushed them into the repository before you:")
         file_list = []
         for file_path in output.splitlines():
@@ -168,31 +177,24 @@ def resolve_conflicts_and_pull():
                 file_list.append(stripped_filename)
                 print(stripped_filename)
 
-        log_warning("You need to decide which files should be backed up", False)
-       
-        print("------------------\nGive an option as input to select actions per conflicted file:")
         for file_path in file_list:
-            log_warning("\nConflicted File: " + file_path)
-            action = input("[1] Overwrite the file without backup\n[2] Overwrite the file with getting a backup of the current version\n[1/2 ?]: ")
+            log_warning("\nYour conflicted File: " + file_path + " will backed up and overwritten by the changed version in the repository")
 
-            if int(action) == 2:
-                file_backup_path = backup_folder + "/" + file_path[0:file_path.rfind("/")]
-                try:
-                    os.makedirs(file_backup_path)
-                except:
-                    # Probably the directory already exists error, pass
-                    pass
-                copy(file_path, file_backup_path)
-                time.sleep(1)
-                log_success("Original file copied into: " + file_backup_path)
-                log_success("You can use this file if you want to restore your own version later")
-            elif int(action) != 1:
-                log_error("Incorrect option has given as input. Aborting...")
+            file_backup_path = backup_folder + "/" + file_path[0:file_path.rfind("/")]
+            try:
+                os.makedirs(file_backup_path)
+            except:
+                # Probably the directory already exists error, pass
+                pass
+            copy(file_path, file_backup_path)
+            time.sleep(1)
+            log_success("Original file copied into: " + file_backup_path)
+            log_success("You can use this file if you want to restore your own version later")
             
             if sync_file(file_path) != 0:
-                    log_warning("Something went wrong while reverting the file. Trying to remove it from the workspace...")
-                    if remove_file(file_path) == False:
-                        log_error("Something went wrong while trying to resolve conflicts on " + file_path + ". Please request help on #tech-support")
+                log_warning("Something went wrong while reverting the file. Trying to remove it from the workspace...")
+                if remove_file(file_path) == False:
+                    log_error("Something went wrong while trying to resolve conflicts on " + file_path + ". Please request help on #tech-support")
 
             log_success("Conflict resolved for " + file_path)
         
@@ -205,8 +207,9 @@ def resolve_conflicts_and_pull():
             log_error("\nSomething went wrong while trying to pull new changes on repository. Please request help on #tech-support")
     else:
         log_success("Pulled latest changes without any conflict", True)
-                    
 
+    # Revert rebase config back
+    rebase_switch(True)
 ############################################################################
 
 def main():
@@ -222,15 +225,15 @@ def main():
     if args.sync == "all":
         print("PBSync v" + pbsync_version + "\n\n")
 
-        if PBTools.check_git_installation() != 0:
-            log_error("Git is not installed on the system. Please follow instructions in Gitlab wiki to prepare your workspace.")
+        if not (supported_git_version in PBTools.check_git_installation()):
+            log_error("Git is not installed in your system or it's not updated to the latest version " + supported_git_version + ". Please install/update Git.")
+
+        if not (supported_lfs_version in PBTools.check_lfs_installation()):
+            log_error("Git LFS is not installed in your system or it's not updated to the latest version " + supported_lfs_version + ". Please install/update Git LFS.")
 
         # Do not execute if Unreal Editor is running
         if PBTools.check_running_process("UE4Editor.exe"):
             log_error("Unreal Editor is running. Please close it before running PBSync")
-
-        log_warning("\nChecking for Git updates...", False)
-        PBTools.check_git_update()
 
         # Do some housekeeping for git configuration
         setup_git_config()

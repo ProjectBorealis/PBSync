@@ -21,10 +21,10 @@ def check_running_process(process_name):
     return False
 
 def check_git_installation():
-    return subprocess.call(["git", "--version"])
+    return subprocess.getoutput(["git", "--version"])
 
-def check_git_update():
-    subprocess.call(["git", "update-git-for-windows"])
+def check_lfs_installation():
+    return subprocess.getoutput(["git-lfs", "--version"])
 
 def run_ue4versionator():
     if PBParser.is_versionator_symbols_enabled():
