@@ -88,11 +88,11 @@ def project_version_increase(increase_type):
     if project_version is None:
         return False
 
-    # Get release, major and minor versions as split
+    # Split release, major and minor versions into an array
     version_split = project_version.split('.')
 
     if len(version_split) != 3:
-        # Incorrect versioning
+        print("Incorrect project version style detected")
         return False
 
     if increase_type == "minor":
@@ -107,7 +107,7 @@ def project_version_increase(increase_type):
     else:
         return False
     
-    print("Trying to increase project version to " + new_version)
+    print("Project version will be increased to " + new_version)
     return set_project_version(new_version)
 
 def get_engine_version():

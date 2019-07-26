@@ -224,21 +224,29 @@ def main():
 
     # Process arguments
     if args.sync == "all" or args.sync == "force-all":
-        print("Executing sync --all command for PBSync v" + pbsync_version + "\n")
-
-        if not (supported_git_version in PBTools.check_git_installation()):
-            log_error("Git is not installed in your system or it's not updated to the latest version " + supported_git_version + ". Please install/update Git.")
+        print("Executing " + str(args.sync) + " command for PBSync v" + pbsync_version + "\n")
+        
+        current_git_version = PBTools.check_git_installation()
+        if not (supported_git_version in current_git_version):
+            log_error("Git is not updated to the latest version in your system\n" +
+                "Required Git Version: " + supported_git_version + "\n" +
+                "Current Git Version: " + current_git_version + "\n" +
+                "Please install Git from https://git-scm.com/download/win")
         else:
-            log_success("Current Git version: " + supported_git_version)
+            log_success("Current Git version: " + current_git_version)
 
-        if not (supported_lfs_version in PBTools.check_lfs_installation()):
-            log_error("Git LFS is not installed in your system or it's not updated to the latest version " + supported_lfs_version + ". Please install/update Git LFS.")
+        current_lfs_version = PBTools.check_lfs_installation()
+        if not (supported_lfs_version in current_lfs_version):
+            log_error("Git LFS is not installed correctly in your system or it's not updated to the latest version \n" + 
+                "Required Git LFS Version: " + supported_lfs_version + "\n" +
+                "Current Git LFS Version: " + current_lfs_version + "\n" +
+                "Please install Git LFS from https://git-lfs.github.com")
         else:
-            log_success("Current Git LFS version: " + supported_lfs_version)
+            log_success("Current Git LFS version: " + current_lfs_version)
 
         # Do not execute if Unreal Editor is running
         if PBTools.check_running_process("UE4Editor.exe"):
-            log_error("Unreal Editor is running. Please close it before running PBSync")
+            log_error("Unreal Editor is currently running. Please close it before running PBSync")
 
         # Do some housekeeping for git configuration
         setup_git_config()
@@ -289,7 +297,7 @@ def main():
 
         print("\n------------------\n")
         
-        # Only execute synchronization part of script if we're on the expected branch
+        # Only execute synchronization part of script if we're on the expected branch, or if we want to force sync
         if check_current_branch_name() or args.sync == "force-all":
             resolve_conflicts_and_pull()
             clean_cache()
