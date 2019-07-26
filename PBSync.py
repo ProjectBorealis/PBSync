@@ -128,7 +128,8 @@ def remove_file(file_path):
 
 def check_current_branch_name():
     global expected_branch_name
-    output = subprocess.getoutput(["git", "rev-parse", "--abbrev-ref", "HEAD"])
+    # "git branch --show-current" is a new feature in git 2.22
+    output = subprocess.getoutput(["git", "branch", "--show-current"])
 
     if output != expected_branch_name:
         log_warning("Current branch is not set as " + expected_branch_name + ". Auto synchronization will be disabled")
