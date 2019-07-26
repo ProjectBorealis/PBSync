@@ -319,10 +319,10 @@ def main():
         sys.exit(0)
     
     elif args.print == "current-engine":
-        project_version = PBParser.get_project_version()
-        if project_version is None:
+        engine_version = PBParser.get_engine_version()
+        if engine_version is None:
             sys.exit(1)
-        print(project_version, end ="")
+        print(engine_version, end ="")
         sys.exit(0)
     
     elif args.print == "project":
