@@ -21,9 +21,10 @@ import colorama
 from colorama import Fore, Back, Style
 
 ### Globals
-pbsync_version = "0.0.4"
+pbsync_version = "0.0.5"
 supported_git_version = "2.22"
 supported_lfs_version = "2.8.0"
+engine_base_version = "4.23"
 
 git_user_name = ""
 expected_branch_name = "content-main"
@@ -135,6 +136,9 @@ def check_current_branch_name():
         log_warning("Current branch is not set as " + expected_branch_name + ". Auto synchronization will be disabled")
         return False
     
+    # In any case, always set upstream to track same branch
+    subprocess.call(["git", "branch", "--set-upstream-to=origin/" + str(output), str(output)])
+
     return True
 
 def resolve_conflicts_and_pull():
@@ -151,7 +155,11 @@ def resolve_conflicts_and_pull():
 
     backup_folder = 'Backup/' + datetime.datetime.now().strftime("%I%M%Y%m%d")
     
-    if 'Merge made by the \'recursive\' strategy' in str(output):
+    if "There is no tracking information for the current branch" in str(output):
+        abort_merge()
+        log_error("Aborting the merge. Your local branch is not tracked by remote anymore. Please request help on #tech-support to solve the problem")
+
+    elif "Merge made by the \'recursive\' strategy" in str(output):
         if subprocess.call(["git", "rebase"]) != 0:
             abort_merge()
             log_error("Aborting the merge. You probably have unstaged changes in your workspace, and they're preventing your workspace to get synced. Please request help on #tech-support to solve problems in your workspace")
@@ -162,7 +170,7 @@ def resolve_conflicts_and_pull():
 
         log_success("\nSynchronization successful, and your previous commits are pushed into repository")
 
-    if "Automatic merge failed" in str(output):
+    elif "Automatic merge failed" in str(output):
         output = subprocess.getoutput(["git", "status", "--porcelain"])
         log_warning("Conflicts found with your non-pushed commits. Another developer made changes on the files listed below, and pushed them into the repository before you:")
         print(output + "\n")
@@ -170,7 +178,7 @@ def resolve_conflicts_and_pull():
         abort_merge()
         log_error("Aborting the merge. Please request help on #tech-support to solve problems in your workspace")
 
-    if "Please commit your changes or stash them before you merge" in str(output):
+    elif "Please commit your changes or stash them before you merge" in str(output):
         log_warning("Conflicts found with uncommitted files in your workspace. Another developer made changes on the files listed below, and pushed them into the repository before you:")
         file_list = []
         for file_path in output.splitlines():
@@ -227,6 +235,8 @@ def main():
     if args.sync == "all" or args.sync == "force-all":
         print("Executing " + str(args.sync) + " command for PBSync v" + pbsync_version + "\n")
         
+        print("\n------------------\n")
+
         current_git_version = PBTools.check_git_installation()
         if not (supported_git_version in current_git_version):
             log_error("Git is not updated to the latest version in your system\n" +
@@ -244,6 +254,8 @@ def main():
                 "Please install Git LFS from https://git-lfs.github.com")
         else:
             log_success("Current Git LFS version: " + current_lfs_version)
+
+        print("\n------------------\n")
 
         # Do not execute if Unreal Editor is running
         if PBTools.check_running_process("UE4Editor.exe"):
@@ -267,7 +279,7 @@ def main():
         engine_version = PBParser.get_engine_version()
 
         if engine_version != None:
-            log_success("Current engine build version: " + engine_version)
+            log_success("Current engine build version: " + engine_base_version + "-PB-" + engine_version)
         else:
             log_error("Something went wrong while fetching engine build version. Please request help on #tech-support")
 
@@ -299,8 +311,9 @@ def main():
         print("\n------------------\n")
         
         # Only execute synchronization part of script if we're on the expected branch, or if we want to force sync
-        if check_current_branch_name() or args.sync == "force-all":
+        if args.sync == "force-all" or check_current_branch_name():
             resolve_conflicts_and_pull()
+            print("\n------------------\n")
             clean_cache()
             if PBTools.run_pbget() != 0:
                 log_error("An error occured while running PBGet. Please request help on #tech-support")
