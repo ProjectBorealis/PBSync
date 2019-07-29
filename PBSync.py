@@ -1,14 +1,11 @@
 import subprocess
-import glob
 import os.path
 import os
-import xml.etree.ElementTree as ET
-import _winapi
 import time
 import sys
 import datetime
 from shutil import copy
-import errno, os, stat, shutil
+import stat
 from shutil import rmtree
 import argparse
 
@@ -26,7 +23,6 @@ supported_git_version = "2.22"
 supported_lfs_version = "2.8.0"
 engine_base_version = "4.23"
 
-git_user_name = ""
 expected_branch_name = "content-main"
 git_hooks_path = "git-hooks"
 shared_hooks_path = "Scripts\\HooksShared.bat"
@@ -72,23 +68,21 @@ def clean_cache():
             pass
 
 def check_git_credentials():
-    global git_user_name
     output = subprocess.getoutput(["git", "config", "user.name"])
-    if output == "":
+    if output == "" or output == None:
         user_name = input("Please enter your Gitlab username: ")
-        subprocess.call(["git", "config", "--global", "user.name", user_name])
-    else:
-        git_user_name = output
+        subprocess.call(["git", "config", "user.name", user_name])
 
     output = subprocess.getoutput(["git", "config", "user.email"])
-    if output == "":
+    if output == "" or output == None:
         user_mail = input("Please enter your Gitlab e-mail: ")
-        subprocess.call(["git", "config", "--global", "user.email", user_mail])
+        subprocess.call(["git", "config", "user.email", user_mail])
 
 def sync_file(file_path):
     return subprocess.call(["git", "checkout", "HEAD", "--", file_path])
 
 def abort_merge():
+    # Abort everything
     out = subprocess.getoutput(["git", "merge", "--abort"])
     out = subprocess.getoutput(["git", "rebase", "--abort"])
     out = subprocess.getoutput(["git", "am", "--abort"])
@@ -104,16 +98,6 @@ def rebase_switch(switch_val):
 def setup_git_config():
     subprocess.call(["git", "config", "core.hooksPath", git_hooks_path])
     subprocess.call([shared_hooks_path])
-
-def checkout_theirs(file_path):
-    return subprocess.call(["git", "checkout", file_path, "--theirs"])
-
-def checkout_ours(file_path):
-    subprocess.call(["git", "checkout", file_path, "--ours"])
-    return True
-
-def git_add_file(file_path):
-    subprocess.call(["git", "add", file_path])
 
 def remove_file(file_path):
     try:
@@ -142,9 +126,7 @@ def check_current_branch_name():
     return True
 
 def resolve_conflicts_and_pull():
-    global git_user_name
-
-    # Abort if any merge or am request is going on at the moment
+    # Abort if any merge, rebase or am request is going on at the moment
     abort_merge()
 
     # Turn off rebase pull & autostash for now
@@ -168,7 +150,7 @@ def resolve_conflicts_and_pull():
             abort_merge()
             log_error("Aborting the merge. Unable to push your non-pushed commits into origin. Please request help on #tech-support to solve problems in your workspace")
 
-        log_success("\nSynchronization successful, and your previous commits are pushed into repository")
+        log_success("\nSynchronization successful and your previous commits are pushed into repository")
 
     elif "Automatic merge failed" in str(output):
         output = subprocess.getoutput(["git", "status", "--porcelain"])
@@ -233,7 +215,7 @@ def main():
 
     # Process arguments
     if args.sync == "all" or args.sync == "force-all":
-        print("Executing " + str(args.sync) + " command for PBSync v" + pbsync_version + "\n")
+        print("Executing " + str(args.sync) + " sync command for PBSync v" + pbsync_version + "\n")
         
         print("\n------------------\n")
 
@@ -242,7 +224,7 @@ def main():
             log_error("Git is not updated to the latest version in your system\n" +
                 "Required Git Version: " + supported_git_version + "\n" +
                 "Current Git Version: " + current_git_version + "\n" +
-                "Please install Git from https://git-scm.com/download/win")
+                "Please install latest Git from https://git-scm.com/download/win")
         else:
             log_success("Current Git version: " + current_git_version)
 
@@ -251,7 +233,7 @@ def main():
             log_error("Git LFS is not installed correctly in your system or it's not updated to the latest version \n" + 
                 "Required Git LFS Version: " + supported_lfs_version + "\n" +
                 "Current Git LFS Version: " + current_lfs_version + "\n" +
-                "Please install Git LFS from https://git-lfs.github.com")
+                "Please install latest Git LFS from https://git-lfs.github.com")
         else:
             log_success("Current Git LFS version: " + current_lfs_version)
 
@@ -286,12 +268,11 @@ def main():
         print("\n------------------\n")
 
         log_warning("Fetching recent changes on the repository...", False)
-        if subprocess.call(["git", "fetch", "origin"]) != 0:
-            log_error("Something went wrong while fetching changes on the repository. Please request help on #tech-support")
+        subprocess.call(["git", "fetch", "origin"])
 
         log_warning("\nChecking for engine updates...", False)
         if sync_file("ProjectBorealis.uproject") != 0:
-            log_error("Something went wrong while updating uproject file. Please request help on #tech-support")
+            log_error("Something went wrong while updating .uproject file. Please request help on #tech-support")
 
         new_engine_version =  PBParser.get_engine_version()
 
@@ -310,16 +291,15 @@ def main():
 
         print("\n------------------\n")
         
-        # Only execute synchronization part of script if we're on the expected branch, or if we want to force sync
+        # Execute synchronization part of script if we're on the expected branch, force sync is enabled
         if args.sync == "force-all" or check_current_branch_name():
             resolve_conflicts_and_pull()
             print("\n------------------\n")
             clean_cache()
             if PBTools.run_pbget() != 0:
-                log_error("An error occured while running PBGet. Please request help on #tech-support")
+                log_error("An error occured while running PBGet. It's likely binary files for this release are not pushed yet. Please request help on #tech-support")
 
         os.startfile(os.getcwd() + "\\ProjectBorealis.uproject")
-        sys.exit(0)
 
     elif args.sync == "engine":
         if args.repository is None:
@@ -330,7 +310,6 @@ def main():
         if not PBParser.set_engine_version(engine_version):
             log_error("Error while trying to update engine version in .uproject file")
         log_success("Successfully changed engine version as " + str(engine_version))
-        sys.exit(0)
 
     elif args.print == "latest-engine":
         if args.repository is None:
@@ -339,28 +318,24 @@ def main():
         if engine_version is None:
             sys.exit(1)
         print(engine_version, end ="")
-        sys.exit(0)
     
     elif args.print == "current-engine":
         engine_version = PBParser.get_engine_version()
         if engine_version is None:
             sys.exit(1)
         print(engine_version, end ="")
-        sys.exit(0)
     
     elif args.print == "project":
         project_version = PBParser.get_project_version()
         if project_version is None:
             sys.exit(1)
         print(project_version, end ="")
-        sys.exit(0)
     
     elif not (args.autoversion is None):
         if PBParser.project_version_increase(args.autoversion):
             log_success("Successfully increased project version")
         else:
             log_error("Error occured while trying to increase project version")
-        sys.exit(0)
 
     else:
         log_error("Please start PBSync from SyncProject.bat, or pass proper argument set to the executable")

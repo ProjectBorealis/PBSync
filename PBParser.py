@@ -1,11 +1,10 @@
-import json
-import glob
 import subprocess
 import re
 from shutil import move
 from os import remove
 from os import path
 
+### Globals
 uproject_path = "ProjectBorealis.uproject"
 uproject_version_key = "EngineAssociation"
 
@@ -13,10 +12,11 @@ defaultgame_path = "Config/DefaultGame.ini"
 defaultgame_version_key = "ProjectVersion="
 
 versionator_config_path = ".ue4v-user"
+############################################################################
 
 def is_versionator_symbols_enabled():
     if not path.isfile(versionator_config_path):
-        # Config file somehow isn't generated yet, only get a response, but do not set anything
+        # Config file somehow isn't generated yet, only get a response, but do not write anything into config
         response = input("Do you want to also download debugging symbols for accurate crash logging? You can change that choice later in .ue4v-user config file [y/n]")
         if response == "y" or response == "Y":
             return True
@@ -30,6 +30,9 @@ def is_versionator_symbols_enabled():
                     return False
                 elif "True" in ln or "true" in ln:
                     return True
+                else:
+                    # Incorrect config
+                    return False
 
     # Symbols configuration variable is not on the file, let's add it
     with open(versionator_config_path, "a+") as config_file:   
@@ -92,7 +95,7 @@ def project_version_increase(increase_type):
     version_split = project_version.split('.')
 
     if len(version_split) != 3:
-        print("Incorrect project version style detected")
+        print("Incorrect project version detected")
         return False
 
     if increase_type == "minor":
