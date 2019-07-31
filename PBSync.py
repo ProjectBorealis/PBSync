@@ -136,12 +136,12 @@ def resolve_conflicts_and_pull():
     # Abort if any merge, rebase or am request is going on at the moment
     abort_merge()
 
-    # In any case watchman is updated via commits, kill it
-    os.system("taskkill /f /im " + "watchman.exe")
-
     # Turn off rebase pull & autostash for now
     rebase_switch(False)
 
+    # In any case watchman is updated via commits, kill it
+    os.system("taskkill /f /im " + "watchman.exe")
+    
     output = subprocess.getoutput(["git", "pull"])
     print(str(output))
 
