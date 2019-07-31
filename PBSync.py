@@ -29,24 +29,24 @@ shared_hooks_path = "Scripts\\HooksShared.bat"
 ############################################################################
 
 ### LOGGER
-def log_success(message, prefix = False):
+def log_success(msg, prefix = False):
     if prefix:
-        print(Fore.GREEN + "SUCCESS: " + message + Style.RESET_ALL)
+        print(Fore.GREEN + "SUCCESS: " + msg + Style.RESET_ALL)
     else:
-        print(Fore.GREEN + message + Style.RESET_ALL)
+        print(Fore.GREEN + msg + Style.RESET_ALL)
 
-def log_warning(message, prefix = True):
+def log_warning(msg, prefix = True):
     if prefix:
-        print(Fore.YELLOW + "WARNING: " + message + Style.RESET_ALL)
+        print(Fore.YELLOW + "WARNING: " + msg + Style.RESET_ALL)
     else:
-        print(Fore.YELLOW + message + Style.RESET_ALL)
+        print(Fore.YELLOW + msg + Style.RESET_ALL)
 
-def log_error(message, prefix = True):
+def log_error(msg, prefix = True):
     rebase_switch(True)
     if prefix:
-        print(Fore.RED +  "ERROR: " + message + Style.RESET_ALL)
+        print(Fore.RED +  "ERROR: " + msg + Style.RESET_ALL)
     else:
-        print(Fore.RED + message + Style.RESET_ALL)
+        print(Fore.RED + msg + Style.RESET_ALL)
     print(Fore.RED + "Do not forget to take screenshot of the error log.\nPress Enter to quit..." + Style.RESET_ALL)
     input()
     sys.exit(1)
@@ -68,18 +68,19 @@ def clean_cache():
             pass
 
 def check_git_credentials():
-    output = subprocess.getoutput(["git", "config", "user.name"])
+    output = str(subprocess.getoutput(["git", "config", "user.name"]))
     if output == "" or output == None:
         user_name = input("Please enter your Gitlab username: ")
         subprocess.call(["git", "config", "user.name", user_name])
 
-    output = subprocess.getoutput(["git", "config", "user.email"])
+    output = str(subprocess.getoutput(["git", "config", "user.email"]))
     if output == "" or output == None:
         user_mail = input("Please enter your Gitlab e-mail: ")
         subprocess.call(["git", "config", "user.email", user_mail])
 
 def sync_file(file_path):
-    return subprocess.call(["git", "checkout", "HEAD", "--", file_path])
+    sync_head = "origin/" + get_current_branch_name()
+    return subprocess.call(["git", "checkout", sync_head, "--", file_path])
 
 def abort_merge():
     # Abort everything
@@ -96,6 +97,9 @@ def rebase_switch(switch_val):
         subprocess.call(["git", "config", "rebase.autoStash", "false"])
 
 def setup_git_config():
+    # Keep those files always in sync with origin
+    sync_file(shared_hooks_path)
+    sync_file(git_hooks_path)
     subprocess.call(["git", "config", "core.hooksPath", git_hooks_path])
     subprocess.call([shared_hooks_path])
 
@@ -111,10 +115,13 @@ def remove_file(file_path):
             pass
     return not os.path.isfile(file_path)
 
+def get_current_branch_name():
+    return str(subprocess.getoutput(["git", "branch", "--show-current"]))
+
 def check_current_branch_name():
     global expected_branch_name
     # "git branch --show-current" is a new feature in git 2.22
-    output = subprocess.getoutput(["git", "branch", "--show-current"])
+    output = get_current_branch_name()
 
     if output != expected_branch_name:
         log_warning("Current branch is not set as " + expected_branch_name + ". Auto synchronization will be disabled")
@@ -243,6 +250,9 @@ def main():
         if PBTools.check_running_process("UE4Editor.exe"):
             log_error("Unreal Editor is currently running. Please close it before running PBSync")
 
+        log_warning("Fetching recent changes on the repository...", False)
+        subprocess.call(["git", "fetch", "origin"])
+
         # Do some housekeeping for git configuration
         setup_git_config()
 
@@ -266,9 +276,6 @@ def main():
             log_error("Something went wrong while fetching engine build version. Please request help on #tech-support")
 
         print("\n------------------\n")
-
-        log_warning("Fetching recent changes on the repository...", False)
-        subprocess.call(["git", "fetch", "origin"])
 
         log_warning("\nChecking for engine updates...", False)
         if sync_file("ProjectBorealis.uproject") != 0:
