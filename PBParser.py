@@ -3,6 +3,7 @@ import re
 from shutil import move
 from os import remove
 from os import path
+import json
 
 ### Globals
 uproject_path = "ProjectBorealis.uproject"
