@@ -363,7 +363,7 @@ def main():
             log_error("Error occured while trying to increase project version")
 
     else:
-        log_error("Please start PBSync from SyncProject.bat, or pass proper argument set to the executable")
+        log_error("Please start PBSync from StartProject.bat, or pass proper argument set to the executable")
         
 
 if __name__ == '__main__':
