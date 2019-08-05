@@ -19,7 +19,7 @@ from colorama import Fore, Back, Style
 
 ### Globals
 pbsync_version = "0.0.6"
-supported_git_version = "2.22"
+supported_git_version = "2.22.0"
 supported_lfs_version = "2.8.0"
 engine_base_version = "4.23"
 
@@ -96,8 +96,9 @@ def rebase_switch(switch_val):
         subprocess.call(["git", "config", "rebase.autoStash", "false"])
 
 def disable_watchman():
-    subprocess.call(["git", "config", "core.fsmonitor", ""])
-    os.system("taskkill /f /im " + "watchman.exe")
+    subprocess.call(["git", "config", "--unset", "core.fsmonitor"])
+    if PBTools.check_running_process(watchman_executable_name):
+        os.system("taskkill /f /im " + watchman_executable_name)
 
 def enable_watchman():
     subprocess.call(["git", "config", "core.fsmonitor", "git-watchman/query-watchman"])
@@ -219,6 +220,30 @@ def resolve_conflicts_and_pull():
             log_success("\nSynchronization successful!")
         else:
             log_error("\nSomething went wrong while trying to pull new changes on repository. Please request help on #tech-support")
+    elif "The following untracked working tree files would be overwritten by merge" in str(output):
+        file_list = []
+        for file_path in output.splitlines():
+            if file_path[0] == '\t':
+                stripped_filename = file_path.strip()
+                file_list.append(stripped_filename)
+                print(stripped_filename)
+        
+        response = input("Untracked files listed above will be overwritten with new versions, do you confirm? (This can't be reverted) [y/N] ")
+
+        if response == "y" or response == "Y":
+            for file_path in file_list:
+                remove_file(file_path)
+                log_warning("Removed untracked file: " + str(file_path))
+            log_success("Running synchronization command again...")
+            # Run the whole function again, we have resolved the overwritten untracked file problem
+            resolve_conflicts_and_pull()
+            return
+        else:
+            log_error("Aborting...")
+            abort_merge()
+            log_error("\nSomething went wrong while trying to pull new changes on repository. Please request help on #tech-support")
+    elif "Aborting" in str(output):
+        log_error("\nSomething went wrong while trying to pull new changes on repository. Please request help on #tech-support")
     else:
         log_success("Pulled latest changes without any conflict", True)
 
@@ -241,23 +266,43 @@ def main():
         
         print("\n------------------\n")
 
-        current_git_version = PBTools.check_git_installation()
-        if not (supported_git_version in current_git_version):
-            log_error("Git is not updated to the latest version in your system\n" +
-                "Required Git Version: " + supported_git_version + "\n" +
-                "Current Git Version: " + current_git_version + "\n" +
+        git_version_result = PBParser.compare_git_version(supported_git_version)
+        if git_version_result == -2:
+            # Handle parse error first, in case of possibility of getting expection in following get_git_version() calls
+            log_error("Git is not installed correctly on your system. \n"+
                 "Please install latest Git from https://git-scm.com/download/win")
+        elif git_version_result == 0:
+            log_success("Current Git version: " + PBParser.get_git_version())
+        elif git_version_result == -1:
+            log_error("Git is not updated to the latest version in your system\n" +
+                "Supported Git Version: " + supported_git_version + "\n" +
+                "Current Git Version: " + PBParser.get_git_version() + "\n" +
+                "Please install latest Git from https://git-scm.com/download/win")
+        elif git_version_result == 1:
+            log_warning("Current Git version is newer than supported one: " + PBParser.get_git_version())
+            log_warning("Supported Git version: " + supported_git_version)
         else:
-            log_success("Current Git version: " + current_git_version)
+            log_error("Git is not installed correctly on your system. \n"+
+                "Please install latest Git from https://git-scm.com/download/win")
 
-        current_lfs_version = PBTools.check_lfs_installation()
-        if not (supported_lfs_version in current_lfs_version):
-            log_error("Git LFS is not installed correctly in your system or it's not updated to the latest version \n" + 
-                "Required Git LFS Version: " + supported_lfs_version + "\n" +
-                "Current Git LFS Version: " + current_lfs_version + "\n" +
+        lfs_version_result = PBParser.compare_lfs_version(supported_lfs_version)
+        if lfs_version_result == -2:
+            # Handle parse error first, in case of possibility of getting expection in following get_git_version() calls
+            log_error("Git LFS is not installed correctly on your system. \n"+
                 "Please install latest Git LFS from https://git-lfs.github.com")
+        elif lfs_version_result == 0:
+            log_success("Current Git LFS version: " + PBParser.get_lfs_version())
+        elif lfs_version_result == -1:
+            log_error("Git LFS is not updated to the latest version in your system\n" +
+                "Supported Git LFS Version: " + supported_lfs_version + "\n" +
+                "Current Git LFS Version: " + PBParser.get_lfs_version() + "\n" +
+                "Please install latest Git LFS from https://git-lfs.github.com")
+        elif lfs_version_result == 1:
+            log_warning("Current Git LFS version is newer than supported one: " + PBParser.get_lfs_version())
+            log_warning("Supported Git LFS version: " + supported_lfs_version)
         else:
-            log_success("Current Git LFS version: " + current_lfs_version)
+            log_error("Git LFS is not installed correctly on your system. \n"+
+                "Please install latest Git LFS from https://git-lfs.github.com")
 
         print("\n------------------\n")
 

@@ -15,6 +15,95 @@ defaultgame_version_key = "ProjectVersion="
 versionator_config_path = ".ue4v-user"
 ############################################################################
 
+def get_git_version():
+    installed_version = subprocess.getoutput(["git", "--version"])
+    installed_version_parsed = re.findall("[0-9].[0-9]{2}.[0-9]", str(installed_version))
+    if len(installed_version_parsed) == 0 or len(installed_version_parsed[0]) == 0:
+        return ""
+
+    return installed_version_parsed[0]
+
+def get_lfs_version():
+    installed_version = subprocess.getoutput(["git-lfs", "--version"])
+    installed_version_parsed = re.findall("[0-9].[0-9].[0-9]", str(installed_version))
+    if len(installed_version_parsed) == 0 or len(installed_version_parsed[0]) == 0:
+        return ""
+
+    # Index 0 is lfs version, other matched version is Go compiler version
+    return installed_version_parsed[0]
+
+# -2: Parse error
+# -1: Old version
+# 0: Expected version
+# 1: Newer version
+def compare_git_version(compared_version):
+    installed_version = str(get_git_version()).split(".")
+    if len(installed_version) != 3:
+        return -2
+
+    expected_version = str(compared_version).split(".")
+    if len(expected_version) != 3:
+        return -2
+    
+    if (int(installed_version[0]) == int(expected_version[0])) and (int(installed_version[1]) == int(expected_version[1])) and (int(installed_version[2]) == int(expected_version[2])):
+        # Same version
+        return 0
+    
+    # Not same version:
+    if int(installed_version[0]) < int(expected_version[0]):
+        return -1
+    elif int(installed_version[1]) < int(expected_version[1]):
+        return -1
+    elif int(installed_version[2]) < int(expected_version[2]):
+        return -1
+    
+    # Not older version:
+    if int(installed_version[0]) > int(expected_version[0]):
+        return 1
+    elif int(installed_version[1]) > int(expected_version[1]):
+        return 1
+    elif int(installed_version[2]) > int(expected_version[2]):
+        return 1
+
+    # Something went wrong, return parse error
+    return -2
+
+# -2: Parse error
+# -1: Old version
+# 0: Expected version
+# 1: Newer version
+def compare_lfs_version(compared_version):
+    installed_version = str(get_lfs_version()).split(".")
+    if len(installed_version) != 3:
+        return -2
+    
+    expected_version = str(compared_version).split(".")
+    if len(installed_version) != 3:
+        return -2
+    
+    if (int(installed_version[0]) == int(expected_version[0])) and (int(installed_version[1]) == int(expected_version[1])) and (int(installed_version[2]) == int(expected_version[2])):
+        # Same version
+        return 0
+    
+    # Not same version:
+    if int(installed_version[0]) < int(expected_version[0]):
+        return -1
+    elif int(installed_version[1]) < int(expected_version[1]):
+        return -1
+    elif int(installed_version[2]) < int(expected_version[2]):
+        return -1
+    
+    # Not older version:
+    if int(installed_version[0]) > int(expected_version[0]):
+        return 1
+    elif int(installed_version[1]) > int(expected_version[1]):
+        return 1
+    elif int(installed_version[2]) > int(expected_version[2]):
+        return 1
+
+    # Something went wrong, return parse error
+    return -2
+
 def is_versionator_symbols_enabled():
     if not path.isfile(versionator_config_path):
         # Config file somehow isn't generated yet, only get a response, but do not write anything into config
