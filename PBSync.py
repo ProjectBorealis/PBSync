@@ -46,9 +46,32 @@ def log_error(msg, prefix = True):
         print(Fore.RED +  "ERROR: " + msg + Style.RESET_ALL)
     else:
         print(Fore.RED + msg + Style.RESET_ALL)
-    print(Fore.RED + "Do not forget to take screenshot of the error log.\nPress Enter to quit..." + Style.RESET_ALL)
+    stop_transcript()
+    print(Fore.RED + "Error logs are recorded in pbsync_log.txt file.\nPress Enter to quit..." + Style.RESET_ALL)
     input()
-    sys.exit(1)
+    sys.exit(1) 
+
+class Transcript(object):
+    def __init__(self, filename):
+        self.terminal = sys.stdout
+        self.logfile = open(filename, "w")
+
+    def write(self, message):
+        self.terminal.write(message)
+        self.logfile.write(message)
+
+    def flush(self):
+        # this flush method is needed for python 3 compatibility.
+        # this handles the flush command by doing nothing.
+        # you might want to specify some extra behavior here.
+        pass
+
+def stop_transcript():
+    sys.stdout.logfile.close()
+    sys.stdout = sys.stdout.terminal
+
+def start_transcript(filename):
+    sys.stdout = Transcript(filename)
 ############################################################################
 
 def clean_cache():
@@ -369,6 +392,7 @@ def main():
         # Run watchman in any case it's disabled
         enable_watchman()
 
+        stop_transcript()
         os.startfile(os.getcwd() + "\\ProjectBorealis.uproject")
 
     elif args.sync == "engine":
@@ -410,7 +434,8 @@ def main():
     else:
         log_error("Please start PBSync from StartProject.bat, or pass proper argument set to the executable")
         
-
 if __name__ == '__main__':
     colorama.init()
+    start_transcript("pbsync_log.txt")
     main()
+    stop_transcript()
