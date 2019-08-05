@@ -373,7 +373,7 @@ def main():
             else:
                 log_success("Custom engine successfully updated & registered as " + new_engine_version)
         else:
-            log_success("\nNo new engine builds found, trying to register current engine build...")
+            log_success("\nTrying to register current engine build if it exists. Otherwise, required build will be downloaded...")
             if PBTools.run_ue4versionator() != 0:
                 log_error("Something went wrong while registering engine build " + new_engine_version + ". Please request help on #tech-support")
             else:
