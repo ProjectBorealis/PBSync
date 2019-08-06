@@ -128,6 +128,23 @@ def enable_watchman():
     # Trigger
     out = subprocess.getoutput(["git", "status"])
 
+def wipe_workspace():
+    current_branch = get_current_branch_name()
+    response = input("This command will wipe your workspace and get latest changes from " + current_branch + ". Are you sure? [y/N]")
+    
+    if response != "y" and response != "Y":
+        return False
+
+    abort_merge()
+    disable_watchman()
+    rebase_switch(False)
+    subprocess.call(["git", "fetch", "origin", str(current_branch)])
+    subprocess.call(["git", "clean", "-fd"])
+    result = subprocess.call(["git", "reset", "--hard", "origin/" + str(current_branch)])
+    enable_watchman()
+    rebase_switch(True)
+    return result == 0
+
 def setup_git_config():
     # Keep those files always in sync with origin
     sync_file(git_hooks_path)
@@ -277,14 +294,15 @@ def resolve_conflicts_and_pull():
 def main():
     parser = argparse.ArgumentParser(description="PBSync v" + pbsync_version)
 
-    parser.add_argument("--sync", help="[force-all, all, engine] Main command for the PBSync, synchronizes the project with latest changes in repo, and does some housekeeping")
+    parser.add_argument("--sync", help="[force, all, engine] Main command for the PBSync, synchronizes the project with latest changes in repo, and does some housekeeping")
     parser.add_argument("--print", help="[current-engine, latest-engine, project] Prints requested version information into console. latest-engine command needs --repository parameter")
     parser.add_argument("--repository", help="<URL> Required repository url for --print latest-engine and --sync engine commands")
     parser.add_argument("--autoversion", help="[minor, major, release] Automatic version update for project version")
+    parser.add_argument("--wipe", help="[latest] Wipe the workspace and get latest changes from current branch (Not revertable)")
     args = parser.parse_args()
 
     # Process arguments
-    if args.sync == "all" or args.sync == "force-all":
+    if args.sync == "all" or args.sync == "force":
         print("Executing " + str(args.sync) + " sync command for PBSync v" + pbsync_version + "\n")
         
         print("\n------------------\n")
@@ -382,7 +400,7 @@ def main():
         print("\n------------------\n")
         
         # Execute synchronization part of script if we're on the expected branch, force sync is enabled
-        if args.sync == "force-all" or check_current_branch_name():
+        if args.sync == "force" or check_current_branch_name():
             resolve_conflicts_and_pull()
             print("\n------------------\n")
             clean_cache()
@@ -431,10 +449,18 @@ def main():
         else:
             log_error("Error occured while trying to increase project version")
 
+    elif not (args.wipe is None):
+        if wipe_workspace():
+            log_success("Workspace wipe successful")
+        else:
+            log_error("Something went wrong while wiping the workspace")
+
     else:
         log_error("Please start PBSync from StartProject.bat, or pass proper argument set to the executable")
         
 if __name__ == '__main__':
+    if "PBSyncTemp" in os.getcwd():
+        os.chdir("..")
     colorama.init()
     start_transcript("pbsync_log.txt")
     main()
