@@ -303,6 +303,7 @@ def main():
 
     # Process arguments
     if args.sync == "all" or args.sync == "force":
+        start_transcript("pbsync_log.txt")
         print("Executing " + str(args.sync) + " sync command for PBSync v" + pbsync_version + "\n")
         
         print("\n------------------\n")
@@ -462,6 +463,5 @@ if __name__ == '__main__':
     if "PBSyncTemp" in os.getcwd():
         os.chdir("..")
     colorama.init()
-    start_transcript("pbsync_log.txt")
     main()
     stop_transcript()
