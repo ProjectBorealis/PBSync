@@ -67,8 +67,9 @@ class Transcript(object):
         pass
 
 def stop_transcript():
-    sys.stdout.logfile.close()
-    sys.stdout = sys.stdout.terminal
+    if hasattr(sys.stdout, "logfile"):
+        sys.stdout.logfile.close()
+        sys.stdout = sys.stdout.terminal
 
 def start_transcript(filename):
     sys.stdout = Transcript(filename)
@@ -138,9 +139,10 @@ def wipe_workspace():
     abort_merge()
     disable_watchman()
     rebase_switch(False)
-    subprocess.call(["git", "fetch", "origin", str(current_branch)])
     subprocess.call(["git", "clean", "-fd"])
-    result = subprocess.call(["git", "reset", "--hard", "origin/" + str(current_branch)])
+    subprocess.call(["git", "fetch", "origin", str(current_branch)])
+    result = subprocess.call(["git", "reset", "--hard", "FETCH_HEAD"])
+    subprocess.call(["git", "clean", "-fd"])
     enable_watchman()
     rebase_switch(True)
     return result == 0
