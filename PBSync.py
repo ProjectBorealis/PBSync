@@ -455,16 +455,19 @@ def main():
     elif not (args.wipe is None):
         if wipe_workspace():
             log_success("Workspace wipe successful")
+            input("Press enter to quit...")
         else:
             log_error("Something went wrong while wiping the workspace")
 
     else:
         log_error("Please start PBSync from StartProject.bat, or pass proper argument set to the executable")
         
+
 if __name__ == '__main__':
-    # Exception for scripts running PBSync from Scripts folder
     if "Scripts" in os.getcwd():
+        # Exception for scripts running PBSync from Scripts folder
         os.chdir("..")
+
     colorama.init()
     main()
     stop_transcript()
