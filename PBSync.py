@@ -462,7 +462,8 @@ def main():
         log_error("Please start PBSync from StartProject.bat, or pass proper argument set to the executable")
         
 if __name__ == '__main__':
-    if "PBSyncTemp" in os.getcwd():
+    # Exception for scripts running PBSync from Scripts folder
+    if "Scripts" in os.getcwd():
         os.chdir("..")
     colorama.init()
     main()
