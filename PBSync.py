@@ -18,7 +18,7 @@ import colorama
 from colorama import Fore, Back, Style
 
 ### Globals
-pbsync_version = "0.0.7"
+pbsync_version = "0.0.8"
 supported_git_version = "2.23.0"
 supported_lfs_version = "2.8.0"
 engine_base_version = "4.23"
@@ -137,9 +137,8 @@ def wipe_workspace():
         return False
 
     abort_merge()
-    disable_watchman()
     rebase_switch(False)
-    subprocess.call(["git", "clean", "-fd"])
+    disable_watchman()
     subprocess.call(["git", "fetch", "origin", str(current_branch)])
     result = subprocess.call(["git", "reset", "--hard", "FETCH_HEAD"])
     subprocess.call(["git", "clean", "-fd"])
