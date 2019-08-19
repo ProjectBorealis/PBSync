@@ -232,10 +232,12 @@ def resolve_conflicts_and_pull():
                 stripped_filename = file_path.strip()
                 file_list.append(stripped_filename)
                 print(stripped_filename)
+        
+        response = input("Files listed above will be overwritten by incoming versions from repository and your work will be backed up in Backup folder. Do you want to continue? [y/N]")
+        if(response != "y" and response != "Y"):
+            log_error("Please request help on #tech-support to resolve your conflicts")
 
         for file_path in file_list:
-            log_warning("\nYour conflicted File: " + file_path + " will backed up and overwritten by the changed version in the repository")
-
             file_backup_path = backup_folder + "/" + file_path[0:file_path.rfind("/")]
             try:
                 os.makedirs(file_backup_path)
