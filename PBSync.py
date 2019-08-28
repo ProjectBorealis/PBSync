@@ -25,7 +25,6 @@ engine_base_version = "4.23"
 
 expected_branch_name = "content-main"
 git_hooks_path = "git-hooks"
-shared_hooks_path = "Scripts\\HooksShared.bat"
 ############################################################################
 
 ### LOGGER
@@ -96,12 +95,25 @@ def rebase_switch(switch_val):
         subprocess.call(["git", "config", "pull.rebase", "false"])
         subprocess.call(["git", "config", "rebase.autoStash", "false"])
 
+def disable_watchman():
+    subprocess.call(["git", "config", "core.fsmonitor", ""])
+    os.system("taskkill /f /im " + "watchman.exe")
+
+def enable_watchman():
+    subprocess.call(["git", "config", "core.fsmonitor", "git-watchman/query-watchman"])
+    # Trigger
+    out = subprocess.getoutput(["git", "status"])
+
 def setup_git_config():
     # Keep those files always in sync with origin
-    sync_file(shared_hooks_path)
     sync_file(git_hooks_path)
     subprocess.call(["git", "config", "core.hooksPath", git_hooks_path])
-    subprocess.call([shared_hooks_path])
+    subprocess.call(["git", "config", "core.autocrlf", "true"])
+    subprocess.call(["git", "config", "help.autocorrect", "true"])
+    subprocess.call(["git", "config", "commit.template", "git-hooks/gitmessage.txt"])
+    subprocess.call(["git", "config", "merge.conflictstyle", "diff3"])
+    subprocess.call(["git", "config", "push.default", "current"])
+    subprocess.call(["git", "show-ref", "-s", "|", "git", "commit-graph write", "--stdin-commits"])
 
 def remove_file(file_path):
     try:
@@ -138,10 +150,10 @@ def resolve_conflicts_and_pull():
 
     # Turn off rebase pull & autostash for now
     rebase_switch(False)
-
-    # In any case watchman is updated via commits, kill it
-    os.system("taskkill /f /im " + "watchman.exe")
     
+    # Disable watchman for now
+    disable_watchman()
+
     output = subprocess.getoutput(["git", "pull"])
     print(str(output))
 
@@ -212,9 +224,6 @@ def resolve_conflicts_and_pull():
 
     # Revert rebase config back
     rebase_switch(True)
-
-    # Trigger git-watchman
-    out = subprocess.getoutput(["git", "status"])
 ############################################################################
 
 def main():
@@ -311,6 +320,9 @@ def main():
             clean_cache()
             if PBTools.run_pbget() != 0:
                 log_error("An error occured while running PBGet. It's likely binary files for this release are not pushed yet. Please request help on #tech-support")
+        
+        # Run watchman in any case it's disabled
+        enable_watchman()
 
         os.startfile(os.getcwd() + "\\ProjectBorealis.uproject")
 
