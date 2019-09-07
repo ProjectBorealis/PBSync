@@ -18,7 +18,7 @@ import colorama
 from colorama import Fore, Back, Style
 
 ### Globals
-pbsync_version = "0.0.8"
+pbsync_version = "0.0.9"
 supported_git_version = "2.23.0"
 supported_lfs_version = "2.8.0"
 engine_base_version = "4.23"
