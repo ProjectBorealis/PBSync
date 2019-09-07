@@ -197,99 +197,93 @@ def resolve_conflicts_and_pull():
     # Disable watchman for now
     disable_watchman()
 
-    output = subprocess.getoutput(["git", "pull"])
-    print(str(output))
+    output = subprocess.getoutput(["git", "status"])
 
-    backup_folder = 'Backup/' + datetime.datetime.now().strftime("%I%M%Y%m%d")
-    
-    if "There is no tracking information for the current branch" in str(output):
+    if "Your branch is ahead of" in str(output):
         abort_merge()
-        log_error("Aborting the merge. Your local branch is not tracked by remote anymore. Please request help on #tech-support to solve the problem")
+        log_error("You have non-pushed commits. Please push them first to process further. If you're not sure about how to do that, request help from #tech-support")
 
-    elif "Merge made by the \'recursive\' strategy" in str(output):
-        if subprocess.call(["git", "rebase"]) != 0:
-            abort_merge()
-            log_error("Aborting the merge. You probably have unstaged changes in your workspace, and they're preventing your workspace to get synced. Please request help on #tech-support to solve problems in your workspace")
+    elif "nothing to commit, working tree clean" in str(output):
+        log_success("Resetting your local workspace to latest FETCH_HEAD...")
+        subprocess.call("git", "fetch", "origin", get_current_branch_name())
+        subprocess.call("git", "reset", "--hard", "FETCH_HEAD")
+        log_success("Pulled changes without any conflict", True)
 
-        if subprocess.call(["git", "push"]) != 0:
-            abort_merge()
-            log_error("Aborting the merge. Unable to push your non-pushed commits into origin. Please request help on #tech-support to solve problems in your workspace")
-
-        log_success("\nSynchronization successful and your previous commits are pushed into repository")
-
-    elif "Automatic merge failed" in str(output):
-        output = subprocess.getoutput(["git", "status", "--porcelain"])
-        log_warning("Conflicts found with your non-pushed commits. Another developer made changes on the files listed below, and pushed them into the repository before you:")
-        print(output + "\n")
-
-        abort_merge()
-        log_error("Aborting the merge. Please request help on #tech-support to solve problems in your workspace")
-
-    elif "Please commit your changes or stash them before you merge" in str(output):
-        log_warning("Conflicts found with uncommitted files in your workspace. Another developer made changes on the files listed below, and pushed them into the repository before you:")
-        file_list = []
-        for file_path in output.splitlines():
-            if file_path[0] == '\t':
-                stripped_filename = file_path.strip()
-                file_list.append(stripped_filename)
-                print(stripped_filename)
-        
-        response = input("Files listed above will be overwritten by incoming versions from repository and your work will be backed up in Backup folder. Do you want to continue? [y/N]")
-        if(response != "y" and response != "Y"):
-            log_error("Please request help on #tech-support to resolve your conflicts")
-
-        for file_path in file_list:
-            file_backup_path = backup_folder + "/" + file_path[0:file_path.rfind("/")]
-            try:
-                os.makedirs(file_backup_path)
-            except:
-                # Probably the directory already exists error, pass
-                pass
-            copy(file_path, file_backup_path)
-            time.sleep(1)
-            log_success("Original file copied into: " + file_backup_path)
-            log_success("You can use this file if you want to restore your own version later")
-            
-            if sync_file(file_path) != 0:
-                log_warning("Something went wrong while reverting the file. Trying to remove it from the workspace...")
-                if remove_file(file_path) == False:
-                    log_error("Something went wrong while trying to resolve conflicts on " + file_path + ". Please request help on #tech-support")
-
-            log_success("Conflict resolved for " + file_path)
-        
-        log_success("All conflicts are resolved. Trying to pull changes one more time...")
-        status = subprocess.call(["git", "pull"])
-
-        if status == 0:
-            log_success("\nSynchronization successful!")
-        else:
-            log_error("\nSomething went wrong while trying to pull new changes on repository. Please request help on #tech-support")
-    elif "The following untracked working tree files would be overwritten by merge" in str(output):
-        file_list = []
-        for file_path in output.splitlines():
-            if file_path[0] == '\t':
-                stripped_filename = file_path.strip()
-                file_list.append(stripped_filename)
-                print(stripped_filename)
-        
-        response = input("Untracked files listed above will be overwritten with new versions, do you confirm? (This can't be reverted) [y/N] ")
-
-        if response == "y" or response == "Y":
-            for file_path in file_list:
-                remove_file(file_path)
-                log_warning("Removed untracked file: " + str(file_path))
-            log_success("Running synchronization command again...")
-            # Run the whole function again, we have resolved the overwritten untracked file problem
-            resolve_conflicts_and_pull()
-            return
-        else:
-            log_error("Aborting...")
-            abort_merge()
-            log_error("\nSomething went wrong while trying to pull new changes on repository. Please request help on #tech-support")
-    elif "Aborting" in str(output):
-        log_error("\nSomething went wrong while trying to pull new changes on repository. Please request help on #tech-support")
     else:
-        log_success("Pulled latest changes without any conflict", True)
+        output = subprocess.getoutput(["git", "pull"])
+        print(str(output))
+
+        backup_folder = 'Backup/' + datetime.datetime.now().strftime("%I%M%Y%m%d")
+        
+        if "There is no tracking information for the current branch" in str(output):
+            abort_merge()
+            log_error("Aborting the merge. Your local branch is not tracked by remote anymore. Please request help on #tech-support to solve the problem")
+
+        elif "Please commit your changes or stash them before you merge" in str(output):
+            log_warning("Conflicts found with uncommitted files in your workspace. Another developer made changes on the files listed below, and pushed them into the repository before you:")
+            file_list = []
+            for file_path in output.splitlines():
+                if file_path[0] == '\t':
+                    stripped_filename = file_path.strip()
+                    file_list.append(stripped_filename)
+                    print(stripped_filename)
+            
+            response = input("Files listed above will be overwritten by incoming versions from repository and your work will be backed up in Backup folder. Do you want to continue? [y/N]")
+            if(response != "y" and response != "Y"):
+                log_error("Please request help on #tech-support to resolve your conflicts")
+
+            for file_path in file_list:
+                file_backup_path = backup_folder + "/" + file_path[0:file_path.rfind("/")]
+                try:
+                    os.makedirs(file_backup_path)
+                except:
+                    # Probably the directory already exists error, pass
+                    pass
+                copy(file_path, file_backup_path)
+                time.sleep(1)
+
+                if sync_file(file_path) != 0:
+                    log_warning("Something went wrong while reverting the file. Trying to remove it from the workspace...")
+                    if remove_file(file_path) == False:
+                        log_error("Something went wrong while trying to resolve conflicts on " + file_path + ". Please request help on #tech-support")
+
+                log_success("Conflict resolved for " + file_path)
+                log_success("File backed up in " + file_backup_path)
+            
+            log_success("All conflicts are resolved. Trying to pull changes one more time...")
+            status = subprocess.call(["git", "pull"])
+
+            if status == 0:
+                log_success("\nSynchronization successful!")
+            else:
+                log_error("\nSomething went wrong while trying to pull new changes on repository. Please request help on #tech-support")
+        
+        elif "The following untracked working tree files would be overwritten by merge" in str(output):
+            file_list = []
+            for file_path in output.splitlines():
+                if file_path[0] == '\t':
+                    stripped_filename = file_path.strip()
+                    file_list.append(stripped_filename)
+                    print(stripped_filename)
+            
+            response = input("Untracked files listed above will be overwritten with new versions, do you confirm? (This can't be reverted) [y/N] ")
+
+            if response == "y" or response == "Y":
+                for file_path in file_list:
+                    remove_file(file_path)
+                    log_warning("Removed untracked file: " + str(file_path))
+                log_success("Running synchronization command again...")
+                # Run the whole function again, we have resolved the overwritten untracked file problem
+                resolve_conflicts_and_pull()
+                return
+            else:
+                log_error("Aborting...")
+                abort_merge()
+                log_error("\nSomething went wrong while trying to pull new changes on repository. Please request help on #tech-support")
+        elif "Aborting" in str(output):
+            log_error("\nSomething went wrong while trying to pull new changes on repository. Please request help on #tech-support")
+        else:
+            log_success("Pulled latest changes without any conflict", True)
 
     # Revert rebase config back
     rebase_switch(True)
