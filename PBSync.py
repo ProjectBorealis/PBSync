@@ -156,7 +156,7 @@ def setup_git_config():
     subprocess.call(["git", "config", "commit.template", "git-hooks/gitmessage.txt"])
     subprocess.call(["git", "config", "merge.conflictstyle", "diff3"])
     subprocess.call(["git", "config", "push.default", "current"])
-    subprocess.call(["git", "show-ref", "-s", "|", "git", "commit-graph write", "--stdin-commits"])
+    # subprocess.call(["git", "show-ref", "-s", "|", "git", "commit-graph write", "--stdin-commits"]) # Broken in git 2.23
 
 def remove_file(file_path):
     try:

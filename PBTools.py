@@ -8,7 +8,7 @@ import PBParser
 def run_pbget():
     os.chdir("PBGet")
     subprocess.call(["PBGet.exe", "resetcache"])
-    status = subprocess.call(["PBGet.exe", "pull" "--threading" "false"])
+    status = subprocess.call(["PBGet.exe", "pull", "--threading", "false"])
     os.chdir("..")
     return status
 
