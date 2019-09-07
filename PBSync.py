@@ -25,6 +25,7 @@ engine_base_version = "4.23"
 
 expected_branch_name = "content-main"
 git_hooks_path = "git-hooks"
+watchman_executable_name = "watchman.exe"
 ############################################################################
 
 ### LOGGER
