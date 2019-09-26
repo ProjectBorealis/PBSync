@@ -199,6 +199,8 @@ def resolve_conflicts_and_pull():
 
     output = subprocess.getoutput(["git", "status"])
 
+    log_success("Please wait while getting latest changes on the repository. It may take a while...")
+
     if "Your branch is ahead of" in str(output):
         abort_merge()
         log_error("You have non-pushed commits. Please push them first to process further. If you're not sure about how to do that, request help from #tech-support")
