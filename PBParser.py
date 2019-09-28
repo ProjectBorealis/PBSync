@@ -113,32 +113,41 @@ def is_versionator_symbols_enabled():
         else:
             return False
 
-    with open(versionator_config_path, "r") as config_file:
-        for ln in config_file:
-            if "Symbols" in ln:
-                if "False" in ln or "false" in ln:
-                    return False
-                elif "True" in ln or "true" in ln:
-                    return True
-                else:
-                    # Incorrect config
-                    return False
+    try:
+        with open(versionator_config_path, "r") as config_file:
+            for ln in config_file:
+                if "Symbols" in ln:
+                    if "False" in ln or "false" in ln:
+                        return False
+                    elif "True" in ln or "true" in ln:
+                        return True
+                    else:
+                        # Incorrect config
+                        return False
+    except:
+        return False
 
     # Symbols configuration variable is not on the file, let's add it
-    with open(versionator_config_path, "a+") as config_file:   
-        response = input("Do you want to also download debugging symbols for accurate crash logging? You can change that choice later in .ue4v-user config file [y/n]")
-        if response == "y" or response == "Y":
-            config_file.write("\nSymbols = True")
-            return True
-        else:
-            config_file.write("\nSymbols = False")
-            return False
+    try:
+        with open(versionator_config_path, "a+") as config_file:   
+            response = input("Do you want to also download debugging symbols for accurate crash logging? You can change that choice later in .ue4v-user config file [y/n]")
+            if response == "y" or response == "Y":
+                config_file.write("\nSymbols = True")
+                return True
+            else:
+                config_file.write("\nSymbols = False")
+                return False
+    except:
+        return False
 
 def get_project_version():
-    with open(defaultgame_path, "r") as ini_file:
-        for ln in ini_file:
-            if ln.startswith(defaultgame_version_key):
-                return ln.replace(defaultgame_version_key, '').rstrip()
+    try:
+        with open(defaultgame_path, "r") as ini_file:
+            for ln in ini_file:
+                if ln.startswith(defaultgame_version_key):
+                    return ln.replace(defaultgame_version_key, '').rstrip()
+    except:
+        return None
     return None
 
 def set_project_version(version_string):
