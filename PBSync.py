@@ -18,7 +18,7 @@ import colorama
 from colorama import Fore, Back, Style
 
 ### Globals
-pbsync_version = "0.0.10"
+pbsync_version = "0.0.11"
 supported_git_version = "2.23.0"
 supported_lfs_version = "2.8.0"
 engine_base_version = "4.23"
@@ -207,9 +207,8 @@ def resolve_conflicts_and_pull():
 
     elif "nothing to commit, working tree clean" in str(output):
         log_success("Resetting your local workspace to latest FETCH_HEAD...")
-        curr_branch_name = get_current_branch_name()
-        subprocess.call("git", "fetch", "origin", curr_branch_name)
-        subprocess.call("git", "reset", "--hard", "FETCH_HEAD")
+        subprocess.call(["git", "fetch", "origin", get_current_branch_name()])
+        subprocess.call(["git", "reset", "--hard", "FETCH_HEAD"])
         log_success("Pulled changes without any conflict", True)
 
     else:
