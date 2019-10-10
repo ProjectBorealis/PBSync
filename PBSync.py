@@ -8,17 +8,14 @@ from shutil import copy
 import stat
 from shutil import rmtree
 import argparse
+import logging
 
 # PBSync Imports
 import PBParser
 import PBTools
 
-# Colored Output
-import colorama
-from colorama import Fore, Back, Style
-
 ### Globals
-pbsync_version = "0.0.12"
+pbsync_version = "0.1.0"
 supported_git_version = "2.23.0"
 supported_lfs_version = "2.8.0"
 engine_base_version = "4.23"
@@ -26,54 +23,6 @@ engine_base_version = "4.23"
 expected_branch_name = "content-main"
 git_hooks_path = "git-hooks"
 watchman_executable_name = "watchman.exe"
-############################################################################
-
-### LOGGER
-def log_success(msg, prefix = False):
-    if prefix:
-        print(Fore.GREEN + "SUCCESS: " + msg + Style.RESET_ALL)
-    else:
-        print(Fore.GREEN + msg + Style.RESET_ALL)
-
-def log_warning(msg, prefix = True):
-    if prefix:
-        print(Fore.YELLOW + "WARNING: " + msg + Style.RESET_ALL)
-    else:
-        print(Fore.YELLOW + msg + Style.RESET_ALL)
-
-def log_error(msg, prefix = True):
-    rebase_switch(True)
-    if prefix:
-        print(Fore.RED +  "ERROR: " + msg + Style.RESET_ALL)
-    else:
-        print(Fore.RED + msg + Style.RESET_ALL)
-    stop_transcript()
-    print(Fore.RED + "Error logs are recorded in pbsync_log.txt file.\nPress Enter to quit..." + Style.RESET_ALL)
-    input()
-    sys.exit(1) 
-
-class Transcript(object):
-    def __init__(self, filename):
-        self.terminal = sys.stdout
-        self.logfile = open(filename, "w")
-
-    def write(self, message):
-        self.terminal.write(message)
-        self.logfile.write(message)
-
-    def flush(self):
-        # this flush method is needed for python 3 compatibility.
-        # this handles the flush command by doing nothing.
-        # you might want to specify some extra behavior here.
-        pass
-
-def stop_transcript():
-    if hasattr(sys.stdout, "logfile"):
-        sys.stdout.logfile.close()
-        sys.stdout = sys.stdout.terminal
-
-def start_transcript(filename):
-    sys.stdout = Transcript(filename)
 ############################################################################
 
 def clean_cache():
@@ -166,7 +115,7 @@ def remove_file(file_path):
         try:
             os.remove(file_path)
         except Exception as e:
-            print(e)
+            logging.exception(str(e))
             pass
     return not os.path.isfile(file_path)
 
@@ -198,40 +147,43 @@ def resolve_conflicts_and_pull():
 
     output = subprocess.getoutput(["git", "status"])
 
-    log_success("Please wait while getting latest changes on the repository. It may take a while...")
+    logging.info("Please wait while getting latest changes on the repository. It may take a while...")
 
     if "Your branch is ahead of" in str(output):
         abort_merge()
-        log_error("You have non-pushed commits. Please push them first to process further. If you're not sure about how to do that, request help from #tech-support")
+        logging.error("You have non-pushed commits. Please push them first to process further. If you're not sure about how to do that, request help from #tech-support")
+        exit(1)
 
     elif "nothing to commit, working tree clean" in str(output):
-        log_success("Resetting your local workspace to latest FETCH_HEAD...")
+        logging.info("Resetting your local workspace to latest FETCH_HEAD...")
         subprocess.call(["git", "fetch", "origin", get_current_branch_name()])
         subprocess.call(["git", "reset", "--hard", "FETCH_HEAD"])
-        log_success("Pulled changes without any conflict", True)
+        logging.info("Pulled changes without any conflict")
 
     else:
         output = subprocess.getoutput(["git", "pull"])
-        print(str(output))
+        logging.info(str(output))
 
         backup_folder = 'Backup/' + datetime.datetime.now().strftime("%I%M%Y%m%d")
         
         if "There is no tracking information for the current branch" in str(output):
             abort_merge()
-            log_error("Aborting the merge. Your local branch is not tracked by remote anymore. Please request help on #tech-support to solve the problem")
+            logging.error("Aborting the merge. Your local branch is not tracked by remote anymore. Please request help on #tech-support to solve the problem")
+            exit(1)
 
         elif "Please commit your changes or stash them before you merge" in str(output):
-            log_warning("Conflicts found with uncommitted files in your workspace. Another developer made changes on the files listed below, and pushed them into the repository before you:")
+            logging.warning("Conflicts found with uncommitted files in your workspace. Another developer made changes on the files listed below, and pushed them into the repository before you:")
             file_list = []
             for file_path in output.splitlines():
                 if file_path[0] == '\t':
                     stripped_filename = file_path.strip()
                     file_list.append(stripped_filename)
-                    print(stripped_filename)
+                    logging.info(stripped_filename)
             
             response = input("Files listed above will be overwritten by incoming versions from repository and your work will be backed up in Backup folder. Do you want to continue? [y/N]")
             if(response != "y" and response != "Y"):
-                log_error("Please request help on #tech-support to resolve your conflicts")
+                logging.error("Please request help on #tech-support to resolve your conflicts")
+                exit(1)
 
             for file_path in file_list:
                 file_backup_path = backup_folder + "/" + file_path[0:file_path.rfind("/")]
@@ -244,20 +196,22 @@ def resolve_conflicts_and_pull():
                 time.sleep(1)
 
                 if sync_file(file_path) != 0:
-                    log_warning("Something went wrong while reverting the file. Trying to remove it from the workspace...")
+                    logging.warning("Something went wrong while reverting the file. Trying to remove it from the workspace...")
                     if remove_file(file_path) == False:
-                        log_error("Something went wrong while trying to resolve conflicts on " + file_path + ". Please request help on #tech-support")
+                        logging.error("Something went wrong while trying to resolve conflicts on " + file_path + ". Please request help on #tech-support")
+                        exit(1)
 
-                log_success("Conflict resolved for " + file_path)
-                log_success("File backed up in " + file_backup_path)
+                logging.info("Conflict resolved for " + file_path)
+                logging.info("File backed up in " + file_backup_path)
             
-            log_success("All conflicts are resolved. Trying to pull changes one more time...")
+            logging.info("All conflicts are resolved. Trying to pull changes one more time...")
             status = subprocess.call(["git", "pull"])
 
             if status == 0:
-                log_success("\nSynchronization successful!")
+                logging.info("Synchronization successful!")
             else:
-                log_error("\nSomething went wrong while trying to pull new changes on repository. Please request help on #tech-support")
+                logging.error("Something went wrong while trying to pull new changes on repository. Please request help on #tech-support")
+                exit(1)
         
         elif "The following untracked working tree files would be overwritten by merge" in str(output):
             file_list = []
@@ -265,26 +219,28 @@ def resolve_conflicts_and_pull():
                 if file_path[0] == '\t':
                     stripped_filename = file_path.strip()
                     file_list.append(stripped_filename)
-                    print(stripped_filename)
+                    logging.info(stripped_filename)
             
             response = input("Untracked files listed above will be overwritten with new versions, do you confirm? (This can't be reverted) [y/N] ")
 
             if response == "y" or response == "Y":
                 for file_path in file_list:
                     remove_file(file_path)
-                    log_warning("Removed untracked file: " + str(file_path))
-                log_success("Running synchronization command again...")
+                    logging.warning("Removed untracked file: " + str(file_path))
+                logging.info("Running synchronization command again...")
                 # Run the whole function again, we have resolved the overwritten untracked file problem
                 resolve_conflicts_and_pull()
                 return
             else:
-                log_error("Aborting...")
+                logging.error("Aborting...")
                 abort_merge()
-                log_error("\nSomething went wrong while trying to pull new changes on repository. Please request help on #tech-support")
+                logging.error("Something went wrong while trying to pull new changes on repository. Please request help on #tech-support")
+                exit(1)
         elif "Aborting" in str(output):
-            log_error("\nSomething went wrong while trying to pull new changes on repository. Please request help on #tech-support")
+            logging.error("Something went wrong while trying to pull new changes on repository. Please request help on #tech-support")
+            exit(1)
         else:
-            log_success("Pulled latest changes without any conflict", True)
+            logging.info("Pulled latest changes without any conflict")
 
     # Revert rebase config back
     rebase_switch(True)
@@ -303,56 +259,61 @@ def main():
 
     # Process arguments
     if args.sync == "all" or args.sync == "force":
-        start_transcript("pbsync_log.txt")
-        print("Executing " + str(args.sync) + " sync command for PBSync v" + pbsync_version + "\n")
+        logging.info("Executing " + str(args.sync) + " sync command for PBSync v" + pbsync_version)
         
-        print("\n------------------\n")
+        logging.info("------------------")
 
         git_version_result = PBParser.compare_git_version(supported_git_version)
         if git_version_result == -2:
             # Handle parse error first, in case of possibility of getting expection in following get_git_version() calls
-            log_error("Git is not installed correctly on your system. \n"+
-                "Please install latest Git from https://git-scm.com/download/win")
+            logging.error("Git is not installed correctly on your system.")
+            logging.error("Please install latest Git from https://git-scm.com/download/win")
+            exit(1)
         elif git_version_result == 0:
-            log_success("Current Git version: " + PBParser.get_git_version())
+            logging.info("Current Git version: " + PBParser.get_git_version())
         elif git_version_result == -1:
-            log_error("Git is not updated to the latest version in your system\n" +
-                "Supported Git Version: " + supported_git_version + "\n" +
-                "Current Git Version: " + PBParser.get_git_version() + "\n" +
-                "Please install latest Git from https://git-scm.com/download/win")
+            logging.error("Git is not updated to the latest version in your system")
+            logging.error("Supported Git Version: " + supported_git_version)
+            logging.error("Current Git Version: " + PBParser.get_git_version())
+            logging.error("Please install latest Git from https://git-scm.com/download/win")
+            exit(1)
         elif git_version_result == 1:
-            log_warning("Current Git version is newer than supported one: " + PBParser.get_git_version())
-            log_warning("Supported Git version: " + supported_git_version)
+            logging.warning("Current Git version is newer than supported one: " + PBParser.get_git_version())
+            logging.warning("Supported Git version: " + supported_git_version)
         else:
-            log_error("Git is not installed correctly on your system. \n"+
-                "Please install latest Git from https://git-scm.com/download/win")
-
+            logging.error("Git is not installed correctly on your system.")
+            logging.error("Please install latest Git from https://git-scm.com/download/win")
+            exit(1)
         lfs_version_result = PBParser.compare_lfs_version(supported_lfs_version)
         if lfs_version_result == -2:
             # Handle parse error first, in case of possibility of getting expection in following get_git_version() calls
-            log_error("Git LFS is not installed correctly on your system. \n"+
-                "Please install latest Git LFS from https://git-lfs.github.com")
+            logging.error("Git LFS is not installed correctly on your system.")
+            logging.error("Please install latest Git LFS from https://git-lfs.github.com")
+            exit(1)
         elif lfs_version_result == 0:
-            log_success("Current Git LFS version: " + PBParser.get_lfs_version())
+            logging.info("Current Git LFS version: " + PBParser.get_lfs_version())
         elif lfs_version_result == -1:
-            log_error("Git LFS is not updated to the latest version in your system\n" +
-                "Supported Git LFS Version: " + supported_lfs_version + "\n" +
-                "Current Git LFS Version: " + PBParser.get_lfs_version() + "\n" +
-                "Please install latest Git LFS from https://git-lfs.github.com")
+            logging.error("Git LFS is not updated to the latest version in your system")
+            logging.error("Supported Git LFS Version: " + supported_lfs_version)
+            logging.error("Current Git LFS Version: " + PBParser.get_lfs_version())
+            logging.error("Please install latest Git LFS from https://git-lfs.github.com")
+            exit(1)
         elif lfs_version_result == 1:
-            log_warning("Current Git LFS version is newer than supported one: " + PBParser.get_lfs_version())
-            log_warning("Supported Git LFS version: " + supported_lfs_version)
+            logging.warning("Current Git LFS version is newer than supported one: " + PBParser.get_lfs_version())
+            logging.warning("Supported Git LFS version: " + supported_lfs_version)
         else:
-            log_error("Git LFS is not installed correctly on your system. \n"+
-                "Please install latest Git LFS from https://git-lfs.github.com")
+            logging.error("Git LFS is not installed correctly on your system")
+            logging.error("Please install latest Git LFS from https://git-lfs.github.com")
+            exit(1)
 
-        print("\n------------------\n")
+        logging.info("------------------")
 
         # Do not execute if Unreal Editor is running
         if PBTools.check_running_process("UE4Editor.exe"):
-            log_error("Unreal Editor is currently running. Please close it before running PBSync")
+            logging.error("Unreal Editor is currently running. Please close it before running PBSync")
+            exit(1)
 
-        log_warning("Fetching recent changes on the repository...", False)
+        logging.info("Fetching recent changes on the repository...")
         subprocess.call(["git", "fetch", "origin"])
 
         # Do some housekeeping for git configuration
@@ -361,89 +322,111 @@ def main():
         # Check if we have correct credentials
         check_git_credentials()
 
-        print("\n------------------\n")
+        logging.info("------------------")
 
         project_version = PBParser.get_project_version()
 
         if project_version != None:
-            log_success("Current project version: " + project_version)
+            logging.info("Current project version: " + project_version)
         else:
-            log_error("Something went wrong while fetching project version. Please request help on #tech-support")
+            logging.error("Something went wrong while fetching project version. Please request help on #tech-support")
+            exit(1)
         
         engine_version = PBParser.get_engine_version()
 
         if engine_version != None:
-            log_success("Current engine build version: " + engine_base_version + "-PB-" + engine_version)
+            logging.info("Current engine build version: " + engine_base_version + "-PB-" + engine_version)
         else:
-            log_error("Something went wrong while fetching engine build version. Please request help on #tech-support")
+            logging.error("Something went wrong while fetching engine build version. Please request help on #tech-support")
+            exit(1)
 
-        print("\n------------------\n")
+        logging.info("------------------")
 
-        log_warning("\nChecking for engine updates...", False)
+        logging.info("Checking for engine updates...")
         if sync_file("ProjectBorealis.uproject") != 0:
-            log_error("Something went wrong while updating .uproject file. Please request help on #tech-support")
+            logging.error("Something went wrong while updating .uproject file. Please request help on #tech-support")
+            exit(1)
 
         new_engine_version =  PBParser.get_engine_version()
 
         if new_engine_version != engine_version:
-            log_warning("\nCustom engine will be updated from " + engine_version + " to " + new_engine_version)
+            logging.warning("Custom engine will be updated from " + engine_version + " to " + new_engine_version)
             if PBTools.run_ue4versionator() != 0:
-                log_error("Something went wrong while updating engine build to " + new_engine_version + ". Please request help on #tech-support")
+                logging.error("Something went wrong while updating engine build to " + new_engine_version + ". Please request help on #tech-support")
+                exit(1)
             else:
-                log_success("Custom engine successfully updated & registered as " + new_engine_version)
+                logging.info("Custom engine successfully updated & registered as " + new_engine_version)
         else:
-            log_success("\nTrying to register current engine build if it exists. Otherwise, required build will be downloaded...")
+            logging.info("Trying to register current engine build if it exists. Otherwise, required build will be downloaded...")
             if PBTools.run_ue4versionator() != 0:
-                log_error("Something went wrong while registering engine build " + new_engine_version + ". Please request help on #tech-support")
+                logging.error("Something went wrong while registering engine build " + new_engine_version + ". Please request help on #tech-support")
+                exit(1)
             else:
-                log_success("Engine build " + new_engine_version + " successfully registered")
+                logging.info("Engine build " + new_engine_version + " successfully registered")
 
         # Clean old engine installations, do that only in expected branch
         if is_expected_branch():
             if PBTools.clean_old_engine_installations():
-                log_success("Old engine installations are successfully cleaned")
+                logging.info("Old engine installations are successfully cleaned")
             else:
-                log_warning("Something went wrong while cleaning old engine installations. You may clean them manually.")
+                logging.warning("Something went wrong while cleaning old engine installations. You may clean them manually.")
 
-        print("\n------------------\n")
+        logging.info("------------------")
         
         # Execute synchronization part of script if we're on the expected branch, force sync is enabled
         if args.sync == "force" or is_expected_branch():
             resolve_conflicts_and_pull()
-            print("\n------------------\n")
+            logging.info("------------------")
             clean_cache()
+            
             if PBTools.run_pbget() != 0:
-                log_error("An error occured while running PBGet. It's likely binary files for this release are not pushed yet. Please request help on #tech-support")
+                logging.error("An error occured while running PBGet. It's likely binary files for this release are not pushed yet. Please request help on #tech-support")
+                exit(1)
             
             # Generate DDC data
-            PBTools.generate_ddc_data()
+            if PBParser.ddc_needs_regeneration():
+                logging.info("DDC generation is required for this project workspace...")
+                logging.info("Generating DDC data, please wait... (This may take up to one hour only for the initial run)")
+                if PBTools.generate_ddc_data() == True:
+                    logging.info("DDC successfully generated!")
+                else:
+                    logging.error("Something went wrong while generating DDC. Please get support from #tech-support")
+                    exit(1)
         else:
             global expected_branch_name
-            log_warning("Current branch is not set as " + expected_branch_name + ". Auto synchronization will be disabled")
+            logging.warning("Current branch is not set as " + expected_branch_name + ". Auto synchronization will be disabled")
         
         # Run watchman in any case it's disabled
         enable_watchman()
 
-        stop_transcript()
         os.startfile(os.getcwd() + "\\ProjectBorealis.uproject")
 
     elif args.sync == "engine":
         if args.repository is None:
-            log_error("--repository <URL> argument should be provided with --sync engine command")
+            logging.error("--repository <URL> argument should be provided with --sync engine command")
+            exit(1)
         engine_version = PBParser.get_latest_available_engine_version(str(args.repository))
         if engine_version is None:
-            log_error("Error while trying to fetch latest engine version")
+            logging.error("Error while trying to fetch latest engine version")
+            exit(1)
         if not PBParser.set_engine_version(engine_version):
-            log_error("Error while trying to update engine version in .uproject file")
-        log_success("Successfully changed engine version as " + str(engine_version))
+            logging.error("Error while trying to update engine version in .uproject file")
+            exit(1)
+        logging.info("Successfully changed engine version as " + str(engine_version))
 
     elif args.sync == "ddc" or args.sync == "DDC":
         # Generate DDC data
-        PBTools.generate_ddc_data()
+        logging.info("Generating DDC data, please wait... (This may take up to one hour only for the initial run)")
+        if PBTools.generate_ddc_data() == True:
+            logging.info("DDC successfully generated!")
+        else:
+            logging.error("Something went wrong while generating DDC. Please get support from #tech-support")
+            exit(1)
 
     elif args.print == "latest-engine":
         if args.repository is None:
-            log_error("--repository <URL> argument should be provided with --print latest-engine command")
+            logging.error("--repository <URL> argument should be provided with --print latest-engine command")
+            exit(1)
         engine_version = PBParser.get_latest_available_engine_version(str(args.repository))
         if engine_version is None:
             sys.exit(1)
@@ -463,29 +446,42 @@ def main():
     
     elif not (args.autoversion is None):
         if PBParser.project_version_increase(args.autoversion):
-            log_success("Successfully increased project version")
+            logging.info("Successfully increased project version")
         else:
-            log_error("Error occured while trying to increase project version")
+            logging.error("Error occured while trying to increase project version")
+            exit(1)
 
     elif not (args.wipe is None):
         if wipe_workspace():
-            log_success("Workspace wipe successful")
+            logging.info("Workspace wipe successful")
             input("Press enter to quit...")
         else:
-            log_error("Something went wrong while wiping the workspace")
+            logging.error("Something went wrong while wiping the workspace")
+            exit(1)
     
     elif args.clean == "engine":
         if not PBTools.clean_old_engine_installations():
-            log_error("Something went wrong on engine installation root folder clean process")
+            logging.error("Something went wrong on engine installation root folder clean process")
+            exit(1)
     else:
-        log_error("Please start PBSync from StartProject.bat, or pass proper argument set to the executable")
+        logging.error("Please start PBSync from StartProject.bat, or pass proper argument set to the executable")
+        exit(1)
         
 
 if __name__ == '__main__':
+    logFormatter = logging.Formatter("%(asctime)s [%(levelname)-5.5s]  %(message)s", datefmt='%d-%b-%y %H:%M:%S')
+
+    fileHandler = logging.FileHandler("pbsync_log.txt")
+    fileHandler.setFormatter(logFormatter)
+    logging.getLogger().addHandler(fileHandler)
+
+    consoleHandler = logging.StreamHandler()
+    consoleHandler.setFormatter(logFormatter)
+    logging.getLogger().addHandler(consoleHandler)
+
+    logging.getLogger().setLevel(logging.DEBUG)
     if "Scripts" in os.getcwd():
         # Exception for scripts running PBSync from Scripts folder
         os.chdir("..")
 
-    colorama.init()
     main()
-    stop_transcript()

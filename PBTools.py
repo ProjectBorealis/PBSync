@@ -35,7 +35,7 @@ def clean_old_engine_installations():
             for dir in dirs:
                 if dir != current_version:
                     full_path = os.path.join(engine_install_root, dir)
-                    print("Removing old engine installation: " + str(full_path))
+                    print("Removing old engine installation: " + str(full_path) + "...")
                     try:
                         shutil.rmtree(full_path)
                         print("Removal was successful!")
@@ -47,6 +47,7 @@ def clean_old_engine_installations():
 
 def generate_ddc_data():
     current_version = PBParser.get_engine_version_with_prefix()
+    
     if current_version != None:
         engine_install_root = PBParser.get_engine_install_root()
         installation_dir = os.path.join(engine_install_root, current_version)
@@ -54,7 +55,6 @@ def generate_ddc_data():
             ue_editor_executable = os.path.join(installation_dir, "Engine/Binaries/Win64/UE4Editor.exe")
             if os.path.isfile(ue_editor_executable):
                 subprocess.call([str(ue_editor_executable), os.path.join(os.getcwd(), "ProjectBorealis.uproject"), "-run=DerivedDataCache", "-fill"])
-                time.sleep(10)
-                while check_running_process("UE4Editor.exe"):
-                    print("Waiting for DDC generator... This might take up to an hour for initial run.")
-                    time.sleep(15)
+                return PBParser.ddc_update_version()
+    
+    return False

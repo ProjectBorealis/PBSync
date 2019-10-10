@@ -1,5 +1,6 @@
 import subprocess
 import re
+import time
 from shutil import move
 from os import remove
 from os import path
@@ -13,6 +14,9 @@ defaultgame_path = "Config/DefaultGame.ini"
 defaultgame_version_key = "ProjectVersion="
 
 versionator_config_path = ".ue4v-user"
+
+ddc_version_path = "DerivedDataCache/.ddc_version"
+ddc_version = 1
 
 engine_version_prefix = "4.23-PB-"
 ############################################################################
@@ -256,3 +260,26 @@ def get_latest_available_engine_version(bucket_url):
     # Find the latest version by sorting
     versions.sort()
     return str(versions[len(versions) - 1])
+
+def ddc_needs_regeneration():
+    if path.isfile(ddc_version_path):
+        try:
+            with open(ddc_version_path, 'r') as ddc_version_file:
+                current_version = ddc_version_file.readline(1)
+                if int(current_version) < ddc_version:
+                    return True
+                else:
+                    return False
+        except:
+            return True
+    else:
+        # DDC is not runned yet on this system, or it's removed
+        return True
+        
+def ddc_update_version():
+    try:
+        with open(ddc_version_path, 'w') as ddc_version_file:
+            ddc_version_file.write(str(ddc_version))
+            return True
+    except:
+        return False
