@@ -18,7 +18,7 @@ import colorama
 from colorama import Fore, Back, Style
 
 ### Globals
-pbsync_version = "0.0.11"
+pbsync_version = "0.0.12"
 supported_git_version = "2.23.0"
 supported_lfs_version = "2.8.0"
 engine_base_version = "4.23"
@@ -173,18 +173,17 @@ def remove_file(file_path):
 def get_current_branch_name():
     return str(subprocess.getoutput(["git", "branch", "--show-current"]))
 
-def check_current_branch_name():
+def is_expected_branch():
     global expected_branch_name
-    # "git branch --show-current" is a new feature in git 2.22
+
+     # "git branch --show-current" is a new feature in git 2.22
     output = get_current_branch_name()
-
-    if output != expected_branch_name:
-        log_warning("Current branch is not set as " + expected_branch_name + ". Auto synchronization will be disabled")
-        return False
     
-    # In any case, always set upstream to track same branch
-    subprocess.call(["git", "branch", "--set-upstream-to=origin/" + str(output), str(output)])
+    if output != expected_branch_name:
+        return False
 
+    # In any case, always set upstream to track same branch (only if we're on expected branch)
+    subprocess.call(["git", "branch", "--set-upstream-to=origin/" + str(output), str(output)])
     return True
 
 def resolve_conflicts_and_pull():
@@ -299,6 +298,7 @@ def main():
     parser.add_argument("--repository", help="<URL> Required repository url for --print latest-engine and --sync engine commands")
     parser.add_argument("--autoversion", help="[minor, major, release] Automatic version update for project version")
     parser.add_argument("--wipe", help="[latest] Wipe the workspace and get latest changes from current branch (Not revertable)")
+    parser.add_argument("--clean", help="[engine] Do cleanup according to specified argument")
     args = parser.parse_args()
 
     # Process arguments
@@ -398,15 +398,25 @@ def main():
             else:
                 log_success("Engine build " + new_engine_version + " successfully registered")
 
+        # Clean old engine installations, do that only in expected branch
+        if is_expected_branch():
+            if PBTools.clean_old_engine_installations():
+                log_success("Old engine installations are successfully cleaned")
+            else:
+                log_warning("Something went wrong while cleaning old engine installations. You may clean them manually.")
+
         print("\n------------------\n")
         
         # Execute synchronization part of script if we're on the expected branch, force sync is enabled
-        if args.sync == "force" or check_current_branch_name():
+        if args.sync == "force" or is_expected_branch():
             resolve_conflicts_and_pull()
             print("\n------------------\n")
             clean_cache()
             if PBTools.run_pbget() != 0:
                 log_error("An error occured while running PBGet. It's likely binary files for this release are not pushed yet. Please request help on #tech-support")
+        else:
+            global expected_branch_name
+            log_warning("Current branch is not set as " + expected_branch_name + ". Auto synchronization will be disabled")
         
         # Run watchman in any case it's disabled
         enable_watchman()
@@ -456,7 +466,10 @@ def main():
             input("Press enter to quit...")
         else:
             log_error("Something went wrong while wiping the workspace")
-
+    
+    elif args.clean == "engine":
+        if not PBTools.clean_old_engine_installations():
+            log_error("Something went wrong on engine installation root folder clean process")
     else:
         log_error("Please start PBSync from StartProject.bat, or pass proper argument set to the executable")
         
