@@ -13,6 +13,8 @@ defaultgame_path = "Config/DefaultGame.ini"
 defaultgame_version_key = "ProjectVersion="
 
 versionator_config_path = ".ue4v-user"
+
+engine_version_prefix = "4.23-PB-"
 ############################################################################
 
 def get_git_version():
@@ -227,6 +229,24 @@ def get_engine_version():
         return None
     return None
 
+def get_engine_version_with_prefix():
+    engine_ver_number = get_engine_version()
+    if engine_ver_number != None:
+        return engine_version_prefix + engine_ver_number
+
+    return None
+
+def get_engine_install_root():
+    try:
+        with open(versionator_config_path, "r") as config_file:
+            for ln in config_file:
+                if "download_dir" in ln:
+                    split_str = ln.split("=")
+                    if len(split_str) == 2:
+                        return split_str[1].strip()
+    except:
+        return None
+
 def get_latest_available_engine_version(bucket_url):
     output = subprocess.getoutput(["gsutil", "ls", bucket_url])
     versions = re.findall("[4].[0-9]{2}-PB-[0-9]{8}", str(output))
@@ -236,4 +256,3 @@ def get_latest_available_engine_version(bucket_url):
     # Find the latest version by sorting
     versions.sort()
     return str(versions[len(versions) - 1])
-    
