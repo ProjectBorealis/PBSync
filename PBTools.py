@@ -3,6 +3,7 @@ import os.path
 import psutil
 import subprocess
 import shutil
+import time
 
 # PBSync Imports
 import PBParser
@@ -43,3 +44,17 @@ def clean_old_engine_installations():
             return True
 
     return False
+
+def generate_ddc_data():
+    current_version = PBParser.get_engine_version_with_prefix()
+    if current_version != None:
+        engine_install_root = PBParser.get_engine_install_root()
+        installation_dir = os.path.join(engine_install_root, current_version)
+        if os.path.isdir(installation_dir):
+            ue_editor_executable = os.path.join(installation_dir, "Engine/Binaries/Win64/UE4Editor.exe")
+            if os.path.isfile(ue_editor_executable):
+                subprocess.call([str(ue_editor_executable), os.path.join(os.getcwd(), "ProjectBorealis.uproject"), "-run=DerivedDataCache", "-fill"])
+                time.sleep(10)
+                while check_running_process("UE4Editor.exe"):
+                    print("Waiting for DDC generator... This might take up to an hour for initial run.")
+                    time.sleep(15)

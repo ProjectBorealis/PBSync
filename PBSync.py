@@ -293,7 +293,7 @@ def resolve_conflicts_and_pull():
 def main():
     parser = argparse.ArgumentParser(description="PBSync v" + pbsync_version)
 
-    parser.add_argument("--sync", help="[force, all, engine] Main command for the PBSync, synchronizes the project with latest changes in repo, and does some housekeeping")
+    parser.add_argument("--sync", help="[force, all, engine, ddc] Main command for the PBSync, synchronizes the project with latest changes in repo, and does some housekeeping")
     parser.add_argument("--print", help="[current-engine, latest-engine, project] Prints requested version information into console. latest-engine command needs --repository parameter")
     parser.add_argument("--repository", help="<URL> Required repository url for --print latest-engine and --sync engine commands")
     parser.add_argument("--autoversion", help="[minor, major, release] Automatic version update for project version")
@@ -414,6 +414,9 @@ def main():
             clean_cache()
             if PBTools.run_pbget() != 0:
                 log_error("An error occured while running PBGet. It's likely binary files for this release are not pushed yet. Please request help on #tech-support")
+            
+            # Generate DDC data
+            PBTools.generate_ddc_data()
         else:
             global expected_branch_name
             log_warning("Current branch is not set as " + expected_branch_name + ". Auto synchronization will be disabled")
@@ -433,6 +436,10 @@ def main():
         if not PBParser.set_engine_version(engine_version):
             log_error("Error while trying to update engine version in .uproject file")
         log_success("Successfully changed engine version as " + str(engine_version))
+
+    elif args.sync == "ddc" or args.sync == "DDC":
+        # Generate DDC data
+        PBTools.generate_ddc_data()
 
     elif args.print == "latest-engine":
         if args.repository is None:
