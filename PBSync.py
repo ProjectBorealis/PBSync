@@ -120,7 +120,7 @@ def is_expected_branch():
         return False
 
     # In any case, always set upstream to track same branch (only if we're on expected branch)
-    subprocess.call(["git", "branch", "--set-upstream-to=origin/" + str(output), str(output)])
+    out = subprocess.getoutput(["git", "branch", "--set-upstream-to=origin/" + str(output), str(output)])
     return True
 
 def resolve_conflicts_and_pull():
@@ -251,7 +251,7 @@ def main():
     args = parser.parse_args()
 
     # Workaround for old repositories. they need the xml file
-    subprocess.call(["git", "fetch", "origin"])
+    out = subprocess.getoutput(["git", "fetch", "origin"])
     sync_file("PBSync.xml")
     ##########################################################
 
@@ -278,10 +278,12 @@ def main():
         sys.exit(1)
 
     # Workaround for old repositories. Revert that checked out specific file back
-    subprocess.call(["DEL", "PBSync.xml", "/s"])
-    subprocess.call(["git", "add", "PBSync.xml"])
+    remove_file("PBSync.xml")
+    out = subprocess.getoutput(["git", "reset", "--", "PBSync.xml"])
+    out = subprocess.getoutput(["git", "add", "PBSync.xml"])
+    out = subprocess.getoutput(["git", "reset", "--", "PBSync.xml"])
     # Try checkout, in case of file already exists in current state of the branch
-    subprocess.call(["git", "checkout", "PBSync.xml"])
+    out = subprocess.getoutput(["git", "checkout", "PBSync.xml"])
     ##########################################################
 
     # Process arguments
