@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+    <enginebaseversion></enginebaseversion>
+    <git>
+        <version></version>
+        <lfsversion></lfsversion>
+        <expectedbranch></expectedbranch>
+        <hooksfoldername></hooksfoldername>
+        <watchmanexecname></watchmanexecname>
+    </git>
+    <log>
+        <file></file>
+        <maximumsize></maximumsize>
+    </log>
+    <ddc>
+        <versionfilepath></versionfilepath>
+        <version></version>
+    </ddc>
+    <project>
+        <uprojectname></uprojectname>
+        <uprojectversionkey></uprojectversionkey>
+        <engineversionprefix></engineversionprefix>
+        <defaultgameinipath></defaultgameinipath>
+        <projectversionkey></projectversionkey>
+        <versionatorconfigpath></versionatorconfigpath>
+    </project>
+</config>
