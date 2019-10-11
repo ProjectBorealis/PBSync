@@ -98,7 +98,7 @@ def compare_lfs_version(compared_version):
     return -2
 
 def is_versionator_symbols_enabled():
-    if not path.isfile(PBConfig.get_config().versionator_config_path):
+    if not path.isfile(PBConfig.get('versionator_config_path')):
         # Config file somehow isn't generated yet, only get a response, but do not write anything into config
         response = input("Do you want to also download debugging symbols for accurate crash logging? You can change that choice later in .ue4v-user config file [y/n]")
         if response == "y" or response == "Y":
@@ -107,7 +107,7 @@ def is_versionator_symbols_enabled():
             return False
 
     try:
-        with open(PBConfig.get_config().versionator_config_path, "r") as config_file:
+        with open(PBConfig.get('versionator_config_path'), "r") as config_file:
             for ln in config_file:
                 if "Symbols" in ln:
                     if "False" in ln or "false" in ln:
@@ -122,7 +122,7 @@ def is_versionator_symbols_enabled():
 
     # Symbols configuration variable is not on the file, let's add it
     try:
-        with open(PBConfig.get_config().versionator_config_path, "a+") as config_file:   
+        with open(PBConfig.get('versionator_config_path'), "a+") as config_file:   
             response = input("Do you want to also download debugging symbols for accurate crash logging? You can change that choice later in .ue4v-user config file [y/n]")
             if response == "y" or response == "Y":
                 config_file.write("\nSymbols = True")
@@ -135,10 +135,10 @@ def is_versionator_symbols_enabled():
 
 def get_project_version():
     try:
-        with open(PBConfig.get_config().defaultgame_path, "r") as ini_file:
+        with open(PBConfig.get('defaultgame_path'), "r") as ini_file:
             for ln in ini_file:
-                if ln.startswith(PBConfig.get_config().defaultgame_version_key):
-                    return ln.replace(PBConfig.get_config().defaultgame_version_key, '').rstrip()
+                if ln.startswith(PBConfig.get('defaultgame_version_key')):
+                    return ln.replace(PBConfig.get('defaultgame_version_key'), '').rstrip()
     except:
         return None
     return None
@@ -147,15 +147,15 @@ def set_project_version(version_string):
     temp_path = "tmpProj.txt"
     # Create a temp file, do the changes there, and replace it with actual file
     try:
-        with open(PBConfig.get_config().defaultgame_path, "r") as ini_file:
+        with open(PBConfig.get('defaultgame_path'), "r") as ini_file:
             with open(temp_path, "wt") as fout:
                 for ln in ini_file:
-                    if PBConfig.get_config().defaultgame_version_key in ln:
+                    if PBConfig.get('defaultgame_version_key') in ln:
                         fout.write(	"ProjectVersion=" + version_string + "\n")
                     else:
                         fout.write(ln)
-        remove(PBConfig.get_config().defaultgame_path)
-        move(temp_path, PBConfig.get_config().defaultgame_path)
+        remove(PBConfig.get('defaultgame_path'))
+        move(temp_path, PBConfig.get('defaultgame_path'))
     except:
         return False
     return True
@@ -164,15 +164,15 @@ def set_engine_version(version_string):
     temp_path = "tmpEng.txt"
     try:
         # Create a temp file, do the changes there, and replace it with actual file
-        with open(PBConfig.get_config().uproject_path, "r") as uproject_file:
+        with open(PBConfig.get('uproject_path'), "r") as uproject_file:
             with open(temp_path, "wt") as fout:
                 for ln in uproject_file:
-                    if PBConfig.get_config().uproject_version_key in ln:
+                    if PBConfig.get('uproject_version_key') in ln:
                         fout.write(	"\t\"EngineAssociation\": \"ue4v:" + version_string + "\",\n")
                     else:
                         fout.write(ln)
-        remove(PBConfig.get_config().uproject_path)
-        move(temp_path, PBConfig.get_config().uproject_path)
+        remove(PBConfig.get('uproject_path'))
+        move(temp_path, PBConfig.get('uproject_path'))
     except:
         return False
     return True
@@ -207,9 +207,9 @@ def project_version_increase(increase_type):
 
 def get_engine_version():
     try:
-        with open(PBConfig.get_config().uproject_path, "r") as uproject_file:  
+        with open(PBConfig.get('uproject_path'), "r") as uproject_file:  
             data = json.load(uproject_file)
-            engine_association = data[PBConfig.get_config().uproject_version_key]
+            engine_association = data[PBConfig.get('uproject_version_key')]
             build_version = engine_association[-8:]
             
             if "}" in build_version:
@@ -223,13 +223,13 @@ def get_engine_version():
 def get_engine_version_with_prefix():
     engine_ver_number = get_engine_version()
     if engine_ver_number != None:
-        return PBConfig.get_config().engine_version_prefix + engine_ver_number
+        return PBConfig.get('engine_version_prefix') + engine_ver_number
 
     return None
 
 def get_engine_install_root():
     try:
-        with open(PBConfig.get_config().versionator_config_path, "r") as config_file:
+        with open(PBConfig.get('versionator_config_path'), "r") as config_file:
             for ln in config_file:
                 if "download_dir" in ln:
                     split_str = ln.split("=")
@@ -249,11 +249,11 @@ def get_latest_available_engine_version(bucket_url):
     return str(versions[len(versions) - 1])
 
 def ddc_needs_regeneration():
-    if path.isfile(PBConfig.get_config().ddc_version_path):
+    if path.isfile(PBConfig.get('ddc_version_path')):
         try:
-            with open(PBConfig.get_config().ddc_version_path, 'r') as ddc_version_file:
+            with open(PBConfig.get('ddc_version_path'), 'r') as ddc_version_file:
                 current_version = ddc_version_file.readline(1)
-                if int(current_version) < PBConfig.get_config().ddc_version:
+                if int(current_version) < PBConfig.get('ddc_version'):
                     return True
                 else:
                     return False
@@ -265,8 +265,8 @@ def ddc_needs_regeneration():
         
 def ddc_update_version():
     try:
-        with open(PBConfig.get_config().ddc_version_path, 'w') as ddc_version_file:
-            ddc_version_file.write(str(PBConfig.get_config().ddc_version))
+        with open(PBConfig.get('ddc_version_path'), 'w') as ddc_version_file:
+            ddc_version_file.write(str(PBConfig.get('ddc_version')))
             return True
     except:
         return False

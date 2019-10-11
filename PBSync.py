@@ -61,8 +61,8 @@ def rebase_switch(switch_val):
 
 def disable_watchman():
     subprocess.call(["git", "config", "--unset", "core.fsmonitor"])
-    if PBTools.check_running_process(PBConfig.get_config().watchman_executable_name):
-        os.system("taskkill /f /im " + PBConfig.get_config().watchman_executable_name)
+    if PBTools.check_running_process(PBConfig.get('watchman_executable_name')):
+        os.system("taskkill /f /im " + PBConfig.get('watchman_executable_name'))
 
 def enable_watchman():
     subprocess.call(["git", "config", "core.fsmonitor", "git-watchman/query-watchman"])
@@ -88,8 +88,8 @@ def wipe_workspace():
 
 def setup_git_config():
     # Keep those files always in sync with origin
-    sync_file(PBConfig.get_config().git_hooks_path)
-    subprocess.call(["git", "config", "core.hooksPath", PBConfig.get_config().git_hooks_path])
+    sync_file(PBConfig.get('git_hooks_path'))
+    subprocess.call(["git", "config", "core.hooksPath", PBConfig.get('git_hooks_path')])
     subprocess.call(["git", "config", "core.autocrlf", "true"])
     subprocess.call(["git", "config", "help.autocorrect", "true"])
     subprocess.call(["git", "config", "commit.template", "git-hooks/gitmessage.txt"])
@@ -116,7 +116,7 @@ def is_expected_branch():
      # "git branch --show-current" is a new feature in git 2.22
     output = get_current_branch_name()
     
-    if output != PBConfig.get_config().expected_branch_name:
+    if output != PBConfig.get('expected_branch_name'):
         return False
 
     # In any case, always set upstream to track same branch (only if we're on expected branch)
@@ -246,33 +246,31 @@ def main():
     parser.add_argument("--config", help="Path of config XML file")
     args = parser.parse_args()
 
-    if PBConfig.get_config(args.config) != None:
+    if PBConfig.generate_config(args.config):
         # If log file is big enough, remove it
-        if os.path.isfile(PBConfig.get_config().log_file_path) and os.path.getsize(PBConfig.get_config().log_file_path) >= PBConfig.get_config().max_log_size:
-            remove_file(PBConfig.get_config().log_file_path)
+        if os.path.isfile(PBConfig.get('log_file_path')) and os.path.getsize(PBConfig.get('log_file_path')) >= PBConfig.get('max_log_size'):
+            remove_file(PBConfig.get('log_file_path'))
 
         # Setup logger
         logFormatter = logging.Formatter("%(asctime)s [%(levelname)-5.5s]  %(message)s", datefmt='%d-%b-%y %H:%M:%S')
-        fileHandler = logging.FileHandler(PBConfig.get_config().log_file_path)
+        fileHandler = logging.FileHandler(PBConfig.get('log_file_path'))
         fileHandler.setFormatter(logFormatter)
         logging.getLogger().addHandler(fileHandler)
         consoleHandler = logging.StreamHandler()
         consoleHandler.setFormatter(logFormatter)
         logging.getLogger().addHandler(consoleHandler)
         logging.getLogger().setLevel(logging.DEBUG)
-
-        logging.info("Config file " + args.config + " is successfully parsed")
     else:
         print("A valid config file should be provided with --config argument")
         sys.exit(1)
 
     # Process arguments
     if args.sync == "all" or args.sync == "force":
-        logging.info("Executing " + str(args.sync) + " sync command for PBSync v" + PBConfig.get_config().pbsync_version)
+        logging.info("Executing " + str(args.sync) + " sync command for PBSync v" + PBConfig.get('pbsync_version'))
         
         logging.info("------------------")
 
-        git_version_result = PBParser.compare_git_version(PBConfig.get_config().supported_git_version)
+        git_version_result = PBParser.compare_git_version(PBConfig.get('supported_git_version'))
         if git_version_result == -2:
             # Handle parse error first, in case of possibility of getting expection in following get_git_version() calls
             logging.error("Git is not installed correctly on your system.")
@@ -282,18 +280,18 @@ def main():
             logging.info("Current Git version: " + PBParser.get_git_version())
         elif git_version_result == -1:
             logging.error("Git is not updated to the latest version in your system")
-            logging.error("Supported Git Version: " + PBConfig.get_config().supported_git_version)
+            logging.error("Supported Git Version: " + PBConfig.get('supported_git_version'))
             logging.error("Current Git Version: " + PBParser.get_git_version())
             logging.error("Please install latest Git from https://git-scm.com/download/win")
             sys.exit(1)
         elif git_version_result == 1:
             logging.warning("Current Git version is newer than supported one: " + PBParser.get_git_version())
-            logging.warning("Supported Git version: " + PBConfig.get_config().supported_git_version)
+            logging.warning("Supported Git version: " + PBConfig.get('supported_git_version'))
         else:
             logging.error("Git is not installed correctly on your system.")
             logging.error("Please install latest Git from https://git-scm.com/download/win")
             sys.exit(1)
-        lfs_version_result = PBParser.compare_lfs_version(PBConfig.get_config().supported_lfs_version)
+        lfs_version_result = PBParser.compare_lfs_version(PBConfig.get('supported_lfs_version'))
         if lfs_version_result == -2:
             # Handle parse error first, in case of possibility of getting expection in following get_git_version() calls
             logging.error("Git LFS is not installed correctly on your system.")
@@ -303,13 +301,13 @@ def main():
             logging.info("Current Git LFS version: " + PBParser.get_lfs_version())
         elif lfs_version_result == -1:
             logging.error("Git LFS is not updated to the latest version in your system")
-            logging.error("Supported Git LFS Version: " + PBConfig.get_config().supported_lfs_version)
+            logging.error("Supported Git LFS Version: " + PBConfig.get('supported_lfs_version'))
             logging.error("Current Git LFS Version: " + PBParser.get_lfs_version())
             logging.error("Please install latest Git LFS from https://git-lfs.github.com")
             sys.exit(1)
         elif lfs_version_result == 1:
             logging.warning("Current Git LFS version is newer than supported one: " + PBParser.get_lfs_version())
-            logging.warning("Supported Git LFS version: " + PBConfig.get_config().supported_lfs_version)
+            logging.warning("Supported Git LFS version: " + PBConfig.get('supported_lfs_version'))
         else:
             logging.error("Git LFS is not installed correctly on your system")
             logging.error("Please install latest Git LFS from https://git-lfs.github.com")
@@ -344,7 +342,7 @@ def main():
         engine_version = PBParser.get_engine_version()
 
         if engine_version != None:
-            logging.info("Current engine build version: " + PBConfig.get_config().engine_base_version + "-PB-" + engine_version)
+            logging.info("Current engine build version: " + PBConfig.get('engine_base_version') + "-PB-" + engine_version)
         else:
             logging.error("Something went wrong while fetching engine build version. Please request help on #tech-support")
             sys.exit(1)
@@ -402,7 +400,7 @@ def main():
                     logging.error("Something went wrong while generating DDC. Please get support from #tech-support")
                     sys.exit(1)
         else:
-            logging.warning("Current branch is not set as " + PBConfig.get_config().expected_branch_name + ". Auto synchronization will be disabled")
+            logging.warning("Current branch is not set as " + PBConfig.get('expected_branch_name') + ". Auto synchronization will be disabled")
         
         # Run watchman in any case it's disabled
         enable_watchman()
