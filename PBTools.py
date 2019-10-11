@@ -7,6 +7,7 @@ import time
 
 # PBSync Imports
 import PBParser
+import PBConfig
 
 def run_pbget():
     os.chdir("PBGet")
@@ -54,7 +55,7 @@ def generate_ddc_data():
         if os.path.isdir(installation_dir):
             ue_editor_executable = os.path.join(installation_dir, "Engine/Binaries/Win64/UE4Editor.exe")
             if os.path.isfile(ue_editor_executable):
-                subprocess.call([str(ue_editor_executable), os.path.join(os.getcwd(), "ProjectBorealis.uproject"), "-run=DerivedDataCache", "-fill"])
+                subprocess.call([str(ue_editor_executable), os.path.join(os.getcwd(), PBConfig.get_config().uproject_path), "-run=DerivedDataCache", "-fill"])
                 return PBParser.ddc_update_version()
     
     return False
