@@ -389,19 +389,19 @@ def main():
             if PBTools.run_pbget() != 0:
                 logging.error("An error occured while running PBGet. It's likely binary files for this release are not pushed yet. Please request help on #tech-support")
                 sys.exit(1)
-            
-            # Generate DDC data
-            if PBParser.ddc_needs_regeneration():
-                logging.info("DDC generation is required for this project workspace...")
-                logging.info("Generating DDC data, please wait... (This may take up to one hour only for the initial run)")
-                if PBTools.generate_ddc_data() == True:
-                    logging.info("DDC successfully generated!")
-                else:
-                    logging.error("Something went wrong while generating DDC. Please get support from #tech-support")
-                    sys.exit(1)
         else:
             logging.warning("Current branch is not set as " + PBConfig.get('expected_branch_name') + ". Auto synchronization will be disabled")
         
+        # Generate DDC data
+        if PBParser.ddc_needs_regeneration():
+            logging.info("DDC generation is required for this project workspace. Initial DDC data generation is highly recommended to prevent possible crashes & slowdowns in editor.")
+            logging.info("Generating DDC data, please wait... (This may take up to one hour only for the initial run)")
+            if PBTools.generate_ddc_data() == True:
+                logging.info("DDC successfully generated!")
+            else:
+                logging.error("Something went wrong while generating DDC. Please get support from #tech-support")
+                sys.exit(1)
+
         # Run watchman in any case it's disabled
         enable_watchman()
 
