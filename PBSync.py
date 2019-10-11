@@ -243,8 +243,17 @@ def main():
     parser.add_argument("--autoversion", help="[minor, major, release] Automatic version update for project version")
     parser.add_argument("--wipe", help="[latest] Wipe the workspace and get latest changes from current branch (Not revertable)")
     parser.add_argument("--clean", help="[engine] Do cleanup according to specified argument")
-    parser.add_argument("--config", help="Path of config XML file")
+    parser.add_argument("--config", help="Path of config XML file. If not provided, ./PBSync.xml is used as default")
     args = parser.parse_args()
+
+    # Workaround for old repositories. they need the xml file
+    subprocess.call(["git", "fetch", "origin"])
+    sync_file("PBSync.xml")
+    ##########################################################
+
+    # If config parameter is not passed, default to PBSync.xml
+    if args.config == None:
+        args.config = "PBSync.xml"
 
     if PBConfig.generate_config(args.config):
         # If log file is big enough, remove it
@@ -478,5 +487,4 @@ if __name__ == '__main__':
     if "Scripts" in os.getcwd():
         # Exception for scripts running PBSync from Scripts folder
         os.chdir("..")
-
     main()
