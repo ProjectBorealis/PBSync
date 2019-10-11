@@ -109,7 +109,7 @@ def is_versionator_symbols_enabled():
     try:
         with open(PBConfig.get('versionator_config_path'), "r") as config_file:
             for ln in config_file:
-                if "Symbols" in ln:
+                if "Symbols" in ln or "symbols" in ln:
                     if "False" in ln or "false" in ln:
                         return False
                     elif "True" in ln or "true" in ln:
@@ -125,10 +125,10 @@ def is_versionator_symbols_enabled():
         with open(PBConfig.get('versionator_config_path'), "a+") as config_file:   
             response = input("Do you want to also download debugging symbols for accurate crash logging? You can change that choice later in .ue4v-user config file [y/n]")
             if response == "y" or response == "Y":
-                config_file.write("\nSymbols = True")
+                config_file.write("\nsymbols = true")
                 return True
             else:
-                config_file.write("\nSymbols = False")
+                config_file.write("\nsymbols = false")
                 return False
     except:
         return False
