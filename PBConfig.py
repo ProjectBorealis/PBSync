@@ -2,6 +2,7 @@ import os
 import sys
 import xml.etree.ElementTree as ET
 
+# Singleton Config
 config = None
 
 def get(key):
@@ -13,7 +14,7 @@ def get(key):
 
 def generate_config(config_path):
     global config
-    pbsync_version = "0.1.1"
+    pbsync_version = "0.1.2"
 
     if config_path != None and os.path.isfile(config_path):
         tree = ET.parse(config_path)
@@ -24,25 +25,28 @@ def generate_config(config_path):
             return False
 
         # Read config xml
-        config = {
-            'pbsync_version': pbsync_version,
-            'engine_base_version': root.find('enginebaseversion').text,
-            'supported_git_version': root.find('git/version').text,
-            'supported_lfs_version': root.find('git/lfsversion').text,
-            'expected_branch_name': root.find('git/expectedbranch').text,
-            'git_hooks_path': root.find('git/hooksfoldername').text,
-            'watchman_executable_name': root.find('git/watchmanexecname').text,
-            'log_file_path': root.find('log/file').text,
-            'max_log_size': int(root.find('log/maximumsize').text),
-            'ddc_version_path': root.find('ddc/versionfilepath').text,
-            'ddc_version': int(root.find('ddc/version').text),
-            'uproject_path': root.find('project/uprojectname').text,
-            'uproject_version_key': root.find('project/uprojectversionkey').text,
-            'engine_version_prefix': root.find('project/engineversionprefix').text,
-            'defaultgame_path': root.find('project/defaultgameinipath').text,
-            'defaultgame_version_key': root.find('project/projectversionkey').text,
-            'versionator_config_path': root.find('project/versionatorconfigpath').text
-        }
+        try:
+            config = {
+                'pbsync_version': pbsync_version,
+                'engine_base_version': root.find('enginebaseversion').text,
+                'supported_git_version': root.find('git/version').text,
+                'supported_lfs_version': root.find('git/lfsversion').text,
+                'expected_branch_name': root.find('git/expectedbranch').text,
+                'git_hooks_path': root.find('git/hooksfoldername').text,
+                'watchman_executable_name': root.find('git/watchmanexecname').text,
+                'log_file_path': root.find('log/file').text,
+                'max_log_size': int(root.find('log/maximumsize').text),
+                'ddc_version_path': root.find('ddc/versionfilepath').text,
+                'ddc_version': int(root.find('ddc/version').text),
+                'uproject_path': root.find('project/uprojectname').text,
+                'uproject_version_key': root.find('project/uprojectversionkey').text,
+                'engine_version_prefix': root.find('project/engineversionprefix').text,
+                'defaultgame_path': root.find('project/defaultgameinipath').text,
+                'defaultgame_version_key': root.find('project/projectversionkey').text,
+                'versionator_config_path': root.find('project/versionatorconfigpath').text
+            }
+        except:
+            return False
 
         return True
         

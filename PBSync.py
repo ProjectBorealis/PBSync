@@ -43,7 +43,7 @@ def check_git_credentials():
 
 def sync_file(file_path):
     sync_head = "origin/" + get_current_branch_name()
-    return subprocess.call(["git", "checkout", sync_head, "--", file_path])
+    return subprocess.call(["git", "checkout", "-f", sync_head, "--", file_path])
 
 def abort_merge():
     # Abort everything
@@ -224,6 +224,10 @@ def resolve_conflicts_and_pull():
                 abort_merge()
                 logging.error("Something went wrong while trying to pull new changes on repository. Please request help on #tech-support")
                 sys.exit(1)
+        elif "Your local changes to the following files would be overwritten by merge" in str(output):
+            # That was mostly caused by checked out ProjectBorealis.uproject file, it's probably fixed after latest changes on that part
+            logging.error("Upcoming files will overwrite your local changes. Please request help on #tech-support to solve possible conflicts on your repository.")
+            sys.exit(1)
         elif "Aborting" in str(output):
             logging.error("Something went wrong while trying to pull new changes on repository. Please request help on #tech-support")
             sys.exit(1)
@@ -272,6 +276,13 @@ def main():
     else:
         print("A valid config file should be provided with --config argument")
         sys.exit(1)
+
+    # Workaround for old repositories. Revert that checked out specific file back
+    subprocess.call(["DEL", "PBSync.xml", "/s"])
+    subprocess.call(["git", "add", "PBSync.xml"])
+    # Try checkout, in case of file already exists in current state of the branch
+    subprocess.call(["git", "checkout", "PBSync.xml"])
+    ##########################################################
 
     # Process arguments
     if args.sync == "all" or args.sync == "force":
@@ -340,55 +351,6 @@ def main():
 
         logging.info("------------------")
 
-        project_version = PBParser.get_project_version()
-
-        if project_version != None:
-            logging.info("Current project version: " + project_version)
-        else:
-            logging.error("Something went wrong while fetching project version. Please request help on #tech-support")
-            sys.exit(1)
-        
-        engine_version = PBParser.get_engine_version()
-
-        if engine_version != None:
-            logging.info("Current engine build version: " + PBConfig.get('engine_base_version') + "-PB-" + engine_version)
-        else:
-            logging.error("Something went wrong while fetching engine build version. Please request help on #tech-support")
-            sys.exit(1)
-
-        logging.info("------------------")
-
-        logging.info("Checking for engine updates...")
-        if sync_file("ProjectBorealis.uproject") != 0:
-            logging.error("Something went wrong while updating .uproject file. Please request help on #tech-support")
-            sys.exit(1)
-
-        new_engine_version =  PBParser.get_engine_version()
-
-        if new_engine_version != engine_version:
-            logging.warning("Custom engine will be updated from " + engine_version + " to " + new_engine_version)
-            if PBTools.run_ue4versionator() != 0:
-                logging.error("Something went wrong while updating engine build to " + new_engine_version + ". Please request help on #tech-support")
-                sys.exit(1)
-            else:
-                logging.info("Custom engine successfully updated & registered as " + new_engine_version)
-        else:
-            logging.info("Trying to register current engine build if it exists. Otherwise, required build will be downloaded...")
-            if PBTools.run_ue4versionator() != 0:
-                logging.error("Something went wrong while registering engine build " + new_engine_version + ". Please request help on #tech-support")
-                sys.exit(1)
-            else:
-                logging.info("Engine build " + new_engine_version + " successfully registered")
-
-        # Clean old engine installations, do that only in expected branch
-        if is_expected_branch():
-            if PBTools.clean_old_engine_installations():
-                logging.info("Old engine installations are successfully cleaned")
-            else:
-                logging.warning("Something went wrong while cleaning old engine installations. You may clean them manually.")
-
-        logging.info("------------------")
-        
         # Execute synchronization part of script if we're on the expected branch, force sync is enabled
         if args.sync == "force" or is_expected_branch():
             resolve_conflicts_and_pull()
@@ -400,6 +362,41 @@ def main():
                 sys.exit(1)
         else:
             logging.warning("Current branch is not set as " + PBConfig.get('expected_branch_name') + ". Auto synchronization will be disabled")
+
+        logging.info("------------------")
+
+        project_version = PBParser.get_project_version()
+
+        if project_version != None:
+            logging.info("Current project version: " + project_version)
+        else:
+            logging.error("Something went wrong while fetching project version. Please request help on #tech-support")
+            sys.exit(1)
+        
+        logging.info("------------------")
+
+        logging.info("Checking for engine updates...")
+        if sync_file("ProjectBorealis.uproject") != 0:
+            logging.error("Something went wrong while updating .uproject file. Please request help on #tech-support")
+            sys.exit(1)
+
+        engine_version =  PBParser.get_engine_version()
+
+        logging.info("Trying to register current engine build if it exists. Otherwise, required build will be downloaded...")
+        if PBTools.run_ue4versionator() != 0:
+            logging.error("Something went wrong while registering engine build " + engine_version + ". Please request help on #tech-support")
+            sys.exit(1)
+        else:
+            logging.info("Engine build " + engine_version + " successfully registered")
+            
+        # Clean old engine installations, do that only in expected branch
+        if is_expected_branch():
+            if PBTools.clean_old_engine_installations():
+                logging.info("Old engine installations are successfully cleaned")
+            else:
+                logging.warning("Something went wrong while cleaning old engine installations. You may clean them manually.")
+
+        logging.info("------------------")
         
         # Generate DDC data
         if PBParser.ddc_needs_regeneration():
@@ -444,19 +441,19 @@ def main():
             sys.exit(1)
         engine_version = PBParser.get_latest_available_engine_version(str(args.repository))
         if engine_version is None:
-            sys.sys.exit(1)
+            sys.exit(1)
         print(engine_version, end ="")
     
     elif args.print == "current-engine":
         engine_version = PBParser.get_engine_version()
         if engine_version is None:
-            sys.sys.exit(1)
+            sys.exit(1)
         print(engine_version, end ="")
     
     elif args.print == "project":
         project_version = PBParser.get_project_version()
         if project_version is None:
-            sys.sys.exit(1)
+            sys.exit(1)
         print(project_version, end ="")
     
     elif not (args.autoversion is None):
