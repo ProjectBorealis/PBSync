@@ -38,6 +38,7 @@ def generate_config(config_path):
                 'max_log_size': int(root.find('log/maximumsize').text),
                 'ddc_version_path': root.find('ddc/versionfilepath').text,
                 'ddc_version': int(root.find('ddc/version').text),
+                'ddc_expected_min_size': root.find('ddc/expectedminsize').text,
                 'uproject_path': root.find('project/uprojectname').text,
                 'uproject_version_key': root.find('project/uprojectversionkey').text,
                 'engine_version_prefix': root.find('project/engineversionprefix').text,

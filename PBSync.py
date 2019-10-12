@@ -97,6 +97,22 @@ def setup_git_config():
     subprocess.call(["git", "config", "push.default", "current"])
     # subprocess.call(["git", "show-ref", "-s", "|", "git", "commit-graph write", "--stdin-commits"]) # Broken in git 2.23
 
+def generate_ddc_command():
+    logging.info("Generating DDC data, please wait... (This may take up to one hour only for the initial run)")
+    state, err = PBTools.generate_ddc_data()
+    logging.info("DDC generate command has exited with " + str(err))
+    if state == 0:
+        logging.info("DDC data successfully generated & versioned!")
+    elif state == 1:
+        logging.error("Error occured while trying to read project version for DDC data generation. Please get support from #tech-support")
+        sys.exit(1)
+    elif state == 2:
+        logging.error("Generated DDC data was smaller than expected. Please get support from #tech-support")
+        sys.exit(1)
+    elif state == 3:
+        logging.error("DDC data was succesffuly generated, but an error occured while versioning your DDC folder. Please get support from #tech-support")
+        sys.exit(1)
+
 def remove_file(file_path):
     try:
         os.remove(file_path)
@@ -403,12 +419,10 @@ def main():
         # Generate DDC data
         if PBParser.ddc_needs_regeneration():
             logging.info("DDC generation is required for this project workspace. Initial DDC data generation is highly recommended to prevent possible crashes & slowdowns in editor.")
-            logging.info("Generating DDC data, please wait... (This may take up to one hour only for the initial run)")
-            if PBTools.generate_ddc_data() == True:
-                logging.info("DDC successfully generated!")
-            else:
-                logging.error("Something went wrong while generating DDC. Please get support from #tech-support")
-                sys.exit(1)
+            generate_ddc_command()
+
+        # Wait a little bit after DDC tool
+        time.sleep(8)
 
         # Run watchman in any case it's disabled
         enable_watchman()
@@ -429,13 +443,7 @@ def main():
         logging.info("Successfully changed engine version as " + str(engine_version))
 
     elif args.sync == "ddc" or args.sync == "DDC":
-        # Generate DDC data
-        logging.info("Generating DDC data, please wait... (This may take up to one hour only for the initial run)")
-        if PBTools.generate_ddc_data() == True:
-            logging.info("DDC successfully generated!")
-        else:
-            logging.error("Something went wrong while generating DDC. Please get support from #tech-support")
-            sys.exit(1)
+        generate_ddc_command()
 
     elif args.print == "latest-engine":
         if args.repository is None:

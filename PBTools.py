@@ -46,6 +46,10 @@ def clean_old_engine_installations():
 
     return False
 
+# 0: DDC generation was successful
+# 1: DDC data generation was not successful because of IO errors
+# 2: Generated DDC data is smaller than expected
+# 3: DDC generation was successful, but version file update was not successful
 def generate_ddc_data():
     current_version = PBParser.get_engine_version_with_prefix()
     
@@ -56,8 +60,24 @@ def generate_ddc_data():
             ue_editor_executable = os.path.join(installation_dir, "Engine/Binaries/Win64/UE4Editor.exe")
             if os.path.isfile(ue_editor_executable):
                 err = subprocess.call([str(ue_editor_executable), os.path.join(os.getcwd(), PBConfig.get('uproject_path')), "-run=DerivedDataCache", "-fill"])
-                if err == 3221225786:
-                    return False
-                return PBParser.ddc_update_version()
+                if not check_ddc_data():
+                    return 2, err
+                if not PBParser.ddc_update_version():
+                    return 3, err
+                return 0, err
     
-    return False
+    return 1, err
+
+def get_size(start_path):
+    total_size = 0
+    for dirpath, dirnames, filenames in os.walk(start_path):
+        for f in filenames:
+            fp = os.path.join(dirpath, f)
+            # skip if it is symbolic link
+            if not os.path.islink(fp):
+                total_size += os.path.getsize(fp)
+
+    return total_size
+
+def check_ddc_data():
+    return get_size("DerivedDataCache") > PBConfig.get('ddc_expected_min_size')
