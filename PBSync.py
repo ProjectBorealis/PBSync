@@ -418,11 +418,15 @@ def main():
         
         # Generate DDC data
         if PBParser.ddc_needs_regeneration():
-            logging.info("DDC generation is required for this project workspace. Initial DDC data generation is highly recommended to prevent possible crashes & slowdowns in editor.")
-            generate_ddc_command()
+            logging.info("DDC generation is required for this project workspace. Initial DDC data generation is highly recommended to prevent possible crashes, shader calculations & slowdowns in editor.")
+            response = input("Do you want to generate DDC data (It may take up to one hour)? If you wish, you can do that another time. [y/N]: ")
+            if "y" in response or "Y" in response:
+                generate_ddc_command()
+            else:
+                logging.warning("DDC data won't be generated this time. On your next editor launch, you will be asked again for that.")
 
         # Wait a little bit after DDC tool
-        time.sleep(8)
+        time.sleep(5)
 
         # Run watchman in any case it's disabled
         enable_watchman()

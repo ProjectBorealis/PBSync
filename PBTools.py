@@ -69,15 +69,18 @@ def generate_ddc_data():
     return 1, err
 
 def get_size(start_path):
-    total_size = 0
-    for dirpath, dirnames, filenames in os.walk(start_path):
-        for f in filenames:
-            fp = os.path.join(dirpath, f)
-            # skip if it is symbolic link
-            if not os.path.islink(fp):
-                total_size += os.path.getsize(fp)
-
+    total_size = -1
+    try:
+        for dirpath, dirnames, filenames in os.walk(start_path):
+            for f in filenames:
+                fp = os.path.join(dirpath, f)
+                # skip if it is symbolic link
+                if not os.path.islink(fp):
+                    total_size += os.path.getsize(fp)
+    except:
+        return -1
     return total_size
 
 def check_ddc_data():
-    return get_size("DerivedDataCache") > PBConfig.get('ddc_expected_min_size')
+    ddc_path = os.path.join(os.getcwd(), "DerivedDataCache")
+    return (get_size(ddc_path) > PBConfig.get('ddc_expected_min_size'))
