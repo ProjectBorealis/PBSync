@@ -15,6 +15,10 @@ import PBParser
 import PBTools
 import PBConfig
 
+def error_state():
+    out = input("Press enter to quit...")
+    sys.exit(1)
+
 def clean_cache():
     cache_dir = ".git\\lfs\\cache"
     if os.path.isdir(cache_dir):
@@ -72,7 +76,7 @@ def wipe_workspace():
     if response != "y" and response != "Y":
         return False
 
-    abort_merge()
+    abort_all()
     disable_watchman()
     subprocess.call(["git", "fetch", "origin", str(current_branch)])
     result = subprocess.call(["git", "reset", "--hard", "FETCH_HEAD"])
@@ -143,7 +147,7 @@ def resolve_conflicts_and_pull():
 
     if "Your branch is ahead of" in str(output):
         logging.error("You have non-pushed commits. Please push them first to process further. If you're not sure about how to do that, request help from #tech-support")
-        sys.exit(1)
+        error_state()
 
     elif "nothing to commit, working tree clean" in str(output):
         logging.info("Resetting your local workspace to latest FETCH_HEAD...")
@@ -158,26 +162,27 @@ def resolve_conflicts_and_pull():
         output = subprocess.getoutput(["git", "pull", "--rebase"])
         logging.info(str(output))
 
-        if "There is no tracking information for the current branch" in str(output):
-            logging.error("Aborting the rebase. Your local branch is not tracked by remote anymore. Please request help on #tech-support to solve the problem")
-            sys.exit(1)
-        elif "Failed to merge in the changes" in str(output) or "could not apply" in str(output):
+        if "Failed to merge in the changes" in str(output) or "could not apply" in str(output):
             abort_rebase()
             output = subprocess.getoutput(["git", "stash", "pop"])
-            logging.error("Aborting the rebase. Changes inside one of your commits will be overridden by incoming changes. Request help on #tech-support to resolve conflicts. Please do not run StartProject.bat until issue is solved.")
-            out = input("Press enter to quit")
-            sys.exit(1)
-        else:
-            output = subprocess.getoutput(["git", "pop"])
+            logging.error("Aborting the rebase. Changes inside one of your commits will be overridden by incoming changes. Request help on #tech-support to resolve conflicts, and  please do not run StartProject.bat until issue is solved.")
+            error_state()
+        elif "Fast-forwarded" in str(output):
+            output = subprocess.getoutput(["git", "stash", "pop"])
             logging.info(str(output))
 
             if "Auto-merging" in str(output) and "CONFLICT" in str(output) and "should have been pointers" in str(output):
-                logging.error("Aborting the rebase. Some of your local changes would be overwritten by incoming changes. Request help on #tech-support to resolve conflicts. Please do not run StartProject.bat until issue is solved.")
-                out = input("Press enter to quit")
-                sys.exit(1)
-            else:
+                logging.error("Rebase is not able to continue further. Some of your local changes would be overwritten by incoming changes. Request help on #tech-support to resolve conflicts, and  please do not run StartProject.bat until issue is solved.")
+                error_state()
+            elif "Dropped refs":
                 logging.info("Rebased on latest changes without any conflict")
-    
+            else:
+                logging.error("Rebase is not able to continue further. Unknown error occured. Request help on #tech-support to resolve conflicts, and  please do not run StartProject.bat until issue is solved.")
+                error_state()
+        else:
+            logging.error("Rebase is not able to continue further. Unknown error occured. Request help on #tech-support to resolve conflicts, and  please do not run StartProject.bat until issue is solved.")
+            error_state()
+
     # Run watchman back
     enable_watchman()
 ############################################################################
@@ -219,7 +224,7 @@ def main():
         logging.getLogger().setLevel(logging.DEBUG)
     else:
         print("A valid config file should be provided with --config argument")
-        sys.exit(1)
+        error_state()
 
     # Workaround for old repositories. Revert that checked out specific file back
     remove_file("PBSync.xml")
@@ -241,7 +246,7 @@ def main():
             # Handle parse error first, in case of possibility of getting expection in following get_git_version() calls
             logging.error("Git is not installed correctly on your system.")
             logging.error("Please install latest Git from https://git-scm.com/download/win")
-            sys.exit(1)
+            error_state()
         elif git_version_result == 0:
             logging.info("Current Git version: " + PBParser.get_git_version())
         elif git_version_result == -1:
@@ -249,20 +254,20 @@ def main():
             logging.error("Supported Git Version: " + PBConfig.get('supported_git_version'))
             logging.error("Current Git Version: " + PBParser.get_git_version())
             logging.error("Please install latest Git from https://git-scm.com/download/win")
-            sys.exit(1)
+            error_state()
         elif git_version_result == 1:
             logging.warning("Current Git version is newer than supported one: " + PBParser.get_git_version())
             logging.warning("Supported Git version: " + PBConfig.get('supported_git_version'))
         else:
             logging.error("Git is not installed correctly on your system.")
             logging.error("Please install latest Git from https://git-scm.com/download/win")
-            sys.exit(1)
+            error_state()
         lfs_version_result = PBParser.compare_lfs_version(PBConfig.get('supported_lfs_version'))
         if lfs_version_result == -2:
             # Handle parse error first, in case of possibility of getting expection in following get_git_version() calls
             logging.error("Git LFS is not installed correctly on your system.")
             logging.error("Please install latest Git LFS from https://git-lfs.github.com")
-            sys.exit(1)
+            error_state()
         elif lfs_version_result == 0:
             logging.info("Current Git LFS version: " + PBParser.get_lfs_version())
         elif lfs_version_result == -1:
@@ -270,21 +275,21 @@ def main():
             logging.error("Supported Git LFS Version: " + PBConfig.get('supported_lfs_version'))
             logging.error("Current Git LFS Version: " + PBParser.get_lfs_version())
             logging.error("Please install latest Git LFS from https://git-lfs.github.com")
-            sys.exit(1)
+            error_state()
         elif lfs_version_result == 1:
             logging.warning("Current Git LFS version is newer than supported one: " + PBParser.get_lfs_version())
             logging.warning("Supported Git LFS version: " + PBConfig.get('supported_lfs_version'))
         else:
             logging.error("Git LFS is not installed correctly on your system")
             logging.error("Please install latest Git LFS from https://git-lfs.github.com")
-            sys.exit(1)
+            error_state()
 
         logging.info("------------------")
 
         # Do not execute if Unreal Editor is running
         if PBTools.check_running_process("UE4Editor.exe"):
             logging.error("Unreal Editor is currently running. Please close it before running PBSync")
-            sys.exit(1)
+            error_state()
 
         logging.info("Fetching recent changes on the repository...")
         subprocess.call(["git", "fetch", "origin"])
@@ -305,7 +310,7 @@ def main():
             
             if PBTools.run_pbget() != 0:
                 logging.error("An error occured while running PBGet. It's likely binary files for this release are not pushed yet. Please request help on #tech-support")
-                sys.exit(1)
+                error_state()
         else:
             logging.warning("Current branch is not set as " + PBConfig.get('expected_branch_name') + ". Auto synchronization will be disabled")
 
@@ -317,21 +322,21 @@ def main():
             logging.info("Current project version: " + project_version)
         else:
             logging.error("Something went wrong while fetching project version. Please request help on #tech-support")
-            sys.exit(1)
+            error_state()
         
         logging.info("------------------")
 
         logging.info("Checking for engine updates...")
         if sync_file("ProjectBorealis.uproject") != 0:
             logging.error("Something went wrong while updating .uproject file. Please request help on #tech-support")
-            sys.exit(1)
+            error_state()
 
         engine_version =  PBParser.get_engine_version()
 
         logging.info("Trying to register current engine build if it exists. Otherwise, required build will be downloaded...")
         if PBTools.run_ue4versionator() != 0:
             logging.error("Something went wrong while registering engine build " + engine_version + ". Please request help on #tech-support")
-            sys.exit(1)
+            error_state()
         else:
             logging.info("Engine build " + engine_version + " successfully registered")
             
