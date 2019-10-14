@@ -175,7 +175,7 @@ def resolve_conflicts_and_pull():
             if "Auto-merging" in str(output) and "CONFLICT" in str(output) and "should have been pointers" in str(output):
                 logging.error("Rebase is not able to continue further. Some of your stashed local changes would be overwritten by incoming changes. Request help on #tech-support to resolve conflicts, and  please do not run StartProject.bat until issue is solved.")
                 error_state()
-            elif "Dropped refs":
+            elif "Dropped refs" in str(output):
                 logging.info("Rebased on latest changes without any conflict")
             else:
                 logging.error("Rebase is not able to continue further, git stash pop is failed. Request help on #tech-support to resolve conflicts, and  please do not run StartProject.bat until issue is solved.")
