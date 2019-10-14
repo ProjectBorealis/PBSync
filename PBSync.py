@@ -45,19 +45,15 @@ def sync_file(file_path):
     sync_head = "origin/" + get_current_branch_name()
     return subprocess.call(["git", "checkout", "-f", sync_head, "--", file_path])
 
-def abort_merge():
+def abort_all():
     # Abort everything
     out = subprocess.getoutput(["git", "merge", "--abort"])
     out = subprocess.getoutput(["git", "rebase", "--abort"])
     out = subprocess.getoutput(["git", "am", "--abort"])
 
-def rebase_switch(switch_val):
-    if switch_val:
-        subprocess.call(["git", "config", "pull.rebase", "true"])
-        subprocess.call(["git", "config", "rebase.autoStash", "true"])
-    else:
-        subprocess.call(["git", "config", "pull.rebase", "false"])
-        subprocess.call(["git", "config", "rebase.autoStash", "false"])
+def abort_rebase():
+    # Abort rebase
+    out = subprocess.getoutput(["git", "rebase", "--abort"])
 
 def disable_watchman():
     subprocess.call(["git", "config", "--unset", "core.fsmonitor"])
@@ -77,13 +73,11 @@ def wipe_workspace():
         return False
 
     abort_merge()
-    rebase_switch(False)
     disable_watchman()
     subprocess.call(["git", "fetch", "origin", str(current_branch)])
     result = subprocess.call(["git", "reset", "--hard", "FETCH_HEAD"])
     subprocess.call(["git", "clean", "-fd"])
     enable_watchman()
-    rebase_switch(True)
     return result == 0
 
 def setup_git_config():
@@ -129,7 +123,6 @@ def get_current_branch_name():
     return str(subprocess.getoutput(["git", "branch", "--show-current"]))
 
 def is_expected_branch():
-     # "git branch --show-current" is a new feature in git 2.22
     output = get_current_branch_name()
     
     if output != PBConfig.get('expected_branch_name'):
@@ -140,21 +133,15 @@ def is_expected_branch():
     return True
 
 def resolve_conflicts_and_pull():
-    # Abort if any merge, rebase or am request is going on at the moment
-    abort_merge()
-
-    # Turn off rebase pull & autostash for now
-    rebase_switch(False)
-    
     # Disable watchman for now
     disable_watchman()
 
     output = subprocess.getoutput(["git", "status"])
+    logging.info(str(output))
 
     logging.info("Please wait while getting latest changes on the repository. It may take a while...")
 
     if "Your branch is ahead of" in str(output):
-        abort_merge()
         logging.error("You have non-pushed commits. Please push them first to process further. If you're not sure about how to do that, request help from #tech-support")
         sys.exit(1)
 
@@ -165,93 +152,34 @@ def resolve_conflicts_and_pull():
         logging.info("Pulled changes without any conflict")
 
     else:
-        output = subprocess.getoutput(["git", "pull"])
+        output = subprocess.getoutput(["git", "stash"])
         logging.info(str(output))
 
-        backup_folder = 'Backup/' + datetime.datetime.now().strftime("%I%M%Y%m%d")
-        
+        output = subprocess.getoutput(["git", "pull", "--rebase"])
+        logging.info(str(output))
+
         if "There is no tracking information for the current branch" in str(output):
-            abort_merge()
-            logging.error("Aborting the merge. Your local branch is not tracked by remote anymore. Please request help on #tech-support to solve the problem")
+            logging.error("Aborting the rebase. Your local branch is not tracked by remote anymore. Please request help on #tech-support to solve the problem")
             sys.exit(1)
-
-        elif "Please commit your changes or stash them before you merge" in str(output):
-            logging.warning("Conflicts found with uncommitted files in your workspace. Another developer made changes on the files listed below, and pushed them into the repository before you:")
-            file_list = []
-            for file_path in output.splitlines():
-                if file_path[0] == '\t':
-                    stripped_filename = file_path.strip()
-                    file_list.append(stripped_filename)
-                    logging.info(stripped_filename)
-            
-            response = input("Files listed above will be overwritten by incoming versions from repository and your work will be backed up in Backup folder. Do you want to continue? [y/N]")
-            if(response != "y" and response != "Y"):
-                logging.error("Please request help on #tech-support to resolve your conflicts")
-                sys.exit(1)
-
-            for file_path in file_list:
-                file_backup_path = backup_folder + "/" + file_path[0:file_path.rfind("/")]
-                try:
-                    os.makedirs(file_backup_path)
-                except:
-                    # Probably the directory already exists error, pass
-                    pass
-                copy(file_path, file_backup_path)
-                time.sleep(1)
-
-                if sync_file(file_path) != 0:
-                    logging.warning("Something went wrong while reverting the file. Trying to remove it from the workspace...")
-                    if remove_file(file_path) == False:
-                        logging.error("Something went wrong while trying to resolve conflicts on " + file_path + ". Please request help on #tech-support")
-                        sys.exit(1)
-
-                logging.info("Conflict resolved for " + file_path)
-                logging.info("File backed up in " + file_backup_path)
-            
-            logging.info("All conflicts are resolved. Trying to pull changes one more time...")
-            status = subprocess.call(["git", "pull"])
-
-            if status == 0:
-                logging.info("Synchronization successful!")
-            else:
-                logging.error("Something went wrong while trying to pull new changes on repository. Please request help on #tech-support")
-                sys.exit(1)
-        
-        elif "The following untracked working tree files would be overwritten by merge" in str(output):
-            file_list = []
-            for file_path in output.splitlines():
-                if file_path[0] == '\t':
-                    stripped_filename = file_path.strip()
-                    file_list.append(stripped_filename)
-                    logging.info(stripped_filename)
-            
-            response = input("Untracked files listed above will be overwritten with new versions, do you confirm? (This can't be reverted) [y/N] ")
-
-            if response == "y" or response == "Y":
-                for file_path in file_list:
-                    remove_file(file_path)
-                    logging.warning("Removed untracked file: " + str(file_path))
-                logging.info("Running synchronization command again...")
-                # Run the whole function again, we have resolved the overwritten untracked file problem
-                resolve_conflicts_and_pull()
-                return
-            else:
-                logging.error("Aborting...")
-                abort_merge()
-                logging.error("Something went wrong while trying to pull new changes on repository. Please request help on #tech-support")
-                sys.exit(1)
-        elif "Your local changes to the following files would be overwritten by merge" in str(output):
-            # That was mostly caused by checked out ProjectBorealis.uproject file, it's probably fixed after latest changes on that part
-            logging.error("Upcoming files will overwrite your local changes. Please request help on #tech-support to solve possible conflicts on your repository.")
-            sys.exit(1)
-        elif "Aborting" in str(output):
-            logging.error("Something went wrong while trying to pull new changes on repository. Please request help on #tech-support")
+        elif "Failed to merge in the changes" in str(output) or "could not apply" in str(output):
+            abort_rebase()
+            output = subprocess.getoutput(["git", "stash", "pop"])
+            logging.error("Aborting the rebase. Changes inside one of your commits will be overridden by incoming changes. Request help on #tech-support to resolve conflicts. Please do not run StartProject.bat until issue is solved.")
+            out = input("Press enter to quit")
             sys.exit(1)
         else:
-            logging.info("Pulled latest changes without any conflict")
+            output = subprocess.getoutput(["git", "pop"])
+            logging.info(str(output))
 
-    # Revert rebase config back
-    rebase_switch(True)
+            if "Auto-merging" in str(output) and "CONFLICT" in str(output) and "should have been pointers" in str(output):
+                logging.error("Aborting the rebase. Some of your local changes would be overwritten by incoming changes. Request help on #tech-support to resolve conflicts. Please do not run StartProject.bat until issue is solved.")
+                out = input("Press enter to quit")
+                sys.exit(1)
+            else:
+                logging.info("Rebased on latest changes without any conflict")
+    
+    # Run watchman back
+    enable_watchman()
 ############################################################################
 
 def main():
@@ -427,9 +355,6 @@ def main():
 
         # Wait a little bit after DDC tool
         time.sleep(5)
-
-        # Run watchman in any case it's disabled
-        enable_watchman()
 
         os.startfile(os.getcwd() + "\\ProjectBorealis.uproject")
 
