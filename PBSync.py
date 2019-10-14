@@ -165,6 +165,7 @@ def resolve_conflicts_and_pull():
         if "Failed to merge in the changes" in str(output) or "could not apply" in str(output):
             abort_rebase()
             output = subprocess.getoutput(["git", "stash", "pop"])
+            logging.info(str(output))
             logging.error("Aborting the rebase. Changes inside one of your commits will be overridden by incoming changes. Request help on #tech-support to resolve conflicts, and  please do not run StartProject.bat until issue is solved.")
             error_state()
         elif "Fast-forwarded" in str(output):
@@ -172,14 +173,21 @@ def resolve_conflicts_and_pull():
             logging.info(str(output))
 
             if "Auto-merging" in str(output) and "CONFLICT" in str(output) and "should have been pointers" in str(output):
-                logging.error("Rebase is not able to continue further. Some of your local changes would be overwritten by incoming changes. Request help on #tech-support to resolve conflicts, and  please do not run StartProject.bat until issue is solved.")
+                logging.error("Rebase is not able to continue further. Some of your stashed local changes would be overwritten by incoming changes. Request help on #tech-support to resolve conflicts, and  please do not run StartProject.bat until issue is solved.")
                 error_state()
             elif "Dropped refs":
                 logging.info("Rebased on latest changes without any conflict")
             else:
-                logging.error("Rebase is not able to continue further. Unknown error occured. Request help on #tech-support to resolve conflicts, and  please do not run StartProject.bat until issue is solved.")
+                logging.error("Rebase is not able to continue further, git stash pop is failed. Request help on #tech-support to resolve conflicts, and  please do not run StartProject.bat until issue is solved.")
                 error_state()
+        elif "is up to date" in str(output):
+            output = subprocess.getoutput(["git", "stash", "pop"])
+            logging.info(str(output))
+            logging.info("Rebased on latest changes without any conflict")
         else:
+            abort_rebase()
+            output = subprocess.getoutput(["git", "stash", "pop"])
+            logging.info(str(output))
             logging.error("Rebase is not able to continue further. Unknown error occured. Request help on #tech-support to resolve conflicts, and  please do not run StartProject.bat until issue is solved.")
             error_state()
 
