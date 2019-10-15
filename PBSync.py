@@ -15,8 +15,11 @@ import PBParser
 import PBTools
 import PBConfig
 
-def error_state():
-    out = input("Press enter to quit...")
+def error_state(fatal_error = False):
+    if fatal_error:
+        # That was a fatal error, until issue is fixed, do not let user run PBSync
+        PBParser.pbsync_error_state(True)
+    out = input("Logs are saved in " + PBConfig.get("log_file_path") + ". Press enter to quit...")
     sys.exit(1)
 
 def clean_cache():
@@ -33,6 +36,21 @@ def clean_cache():
             os.remove(lockcache_path)
         except:
             pass
+
+def git_stash_pop():
+    logging.info("Trying to pop stash...")
+
+    output = subprocess.getoutput(["git", "stash", "pop"])
+    logging.info(str(output))
+
+    if "Auto-merging" in str(output) and "CONFLICT" in str(output) and "should have been pointers" in str(output):
+        logging.error("Git stash pop is failed. Some of your stashed local changes would be overwritten by incoming changes. Request help on #tech-support to resolve conflicts, and  please do not run StartProject.bat until issue is solved.")
+        error_state(True)
+    elif "Dropped refs" in str(output):
+        return
+    else:
+        logging.error("Git stash pop is failed due to unknown error. Request help on #tech-support to resolve possible conflicts, and  please do not run StartProject.bat until issue is solved.")
+        error_state(True)
 
 def check_git_credentials():
     output = str(subprocess.getoutput(["git", "config", "user.name"]))
@@ -103,13 +121,13 @@ def generate_ddc_command():
         logging.info("DDC data successfully generated & versioned!")
     elif state == 1:
         logging.error("Error occured while trying to read project version for DDC data generation. Please get support from #tech-support")
-        sys.exit(1)
+        error_state()
     elif state == 2:
         logging.error("Generated DDC data was smaller than expected. Please get support from #tech-support")
-        sys.exit(1)
+        error_state()
     elif state == 3:
         logging.error("DDC data was succesffuly generated, but an error occured while versioning your DDC folder. Please get support from #tech-support")
-        sys.exit(1)
+        error_state()
 
 def remove_file(file_path):
     try:
@@ -147,7 +165,7 @@ def resolve_conflicts_and_pull():
 
     if "Your branch is ahead of" in str(output):
         logging.error("You have non-pushed commits. Please push them first to process further. If you're not sure about how to do that, request help from #tech-support")
-        error_state()
+        error_state(True)
 
     elif "nothing to commit, working tree clean" in str(output):
         logging.info("Resetting your local workspace to latest FETCH_HEAD...")
@@ -156,40 +174,30 @@ def resolve_conflicts_and_pull():
         logging.info("Pulled changes without any conflict")
 
     else:
+        logging.info("Trying to stash the local work...")
         output = subprocess.getoutput(["git", "stash"])
         logging.info(str(output))
 
+        logging.info("Trying to rebase workspace with latest changes on the repository...")
         output = subprocess.getoutput(["git", "pull", "--rebase"])
         logging.info(str(output))
 
         if "Failed to merge in the changes" in str(output) or "could not apply" in str(output):
+            logging.error("Aborting the rebase. Changes on one of your commits will be overridden by incoming changes. Request help on #tech-support to resolve conflicts, and  please do not run StartProject.bat until issue is solved.")
             abort_rebase()
-            output = subprocess.getoutput(["git", "stash", "pop"])
-            logging.info(str(output))
-            logging.error("Aborting the rebase. Changes inside one of your commits will be overridden by incoming changes. Request help on #tech-support to resolve conflicts, and  please do not run StartProject.bat until issue is solved.")
-            error_state()
+            git_stash_pop()   
+            error_state(True)
         elif "Fast-forwarded" in str(output):
-            output = subprocess.getoutput(["git", "stash", "pop"])
-            logging.info(str(output))
-
-            if "Auto-merging" in str(output) and "CONFLICT" in str(output) and "should have been pointers" in str(output):
-                logging.error("Rebase is not able to continue further. Some of your stashed local changes would be overwritten by incoming changes. Request help on #tech-support to resolve conflicts, and  please do not run StartProject.bat until issue is solved.")
-                error_state()
-            elif "Dropped refs" in str(output):
-                logging.info("Rebased on latest changes without any conflict")
-            else:
-                logging.error("Rebase is not able to continue further, git stash pop is failed. Request help on #tech-support to resolve conflicts, and  please do not run StartProject.bat until issue is solved.")
-                error_state()
+            git_stash_pop()
+            logging.info("Success, rebased on latest changes without any conflict")
         elif "is up to date" in str(output):
-            output = subprocess.getoutput(["git", "stash", "pop"])
-            logging.info(str(output))
-            logging.info("Rebased on latest changes without any conflict")
+            git_stash_pop()
+            logging.info("Success, rebased on latest changes without any conflict")
         else:
+            logging.error("Aborting the rebase, unknown error occured. Request help on #tech-support to resolve conflicts, and  please do not run StartProject.bat until issue is solved.")
             abort_rebase()
-            output = subprocess.getoutput(["git", "stash", "pop"])
-            logging.info(str(output))
-            logging.error("Rebase is not able to continue further. Unknown error occured. Request help on #tech-support to resolve conflicts, and  please do not run StartProject.bat until issue is solved.")
-            error_state()
+            git_stash_pop()
+            error_state(True)
 
     # Run watchman back
     enable_watchman()
@@ -243,8 +251,15 @@ def main():
     out = subprocess.getoutput(["git", "checkout", "PBSync.xml"])
     ##########################################################
 
+    # Do not process further if we're in an error state
+    if PBParser.check_error_state():
+        logging.error("Repository is currently in an error state. Please fix issues in your workspace before running PBSync.")
+        error_state(True)
+
     # Process arguments
     if args.sync == "all" or args.sync == "force":
+        logging.info("------------------")
+
         logging.info("Executing " + str(args.sync) + " sync command for PBSync v" + PBConfig.get('pbsync_version'))
         
         logging.info("------------------")
