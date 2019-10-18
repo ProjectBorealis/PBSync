@@ -48,6 +48,8 @@ def git_stash_pop():
         error_state(True)
     elif "Dropped refs" in str(output):
         return
+    elif "No stash entries found" in str(output):
+        return
     else:
         logging.error("Git stash pop is failed due to unknown error. Request help on #tech-support to resolve possible conflicts, and  please do not run StartProject.bat until issue is solved.")
         error_state(True)
@@ -163,11 +165,7 @@ def resolve_conflicts_and_pull():
 
     logging.info("Please wait while getting latest changes on the repository. It may take a while...")
 
-    if "Your branch is ahead of" in str(output):
-        logging.error("You have non-pushed commits. Please push them first to process further. If you're not sure about how to do that, request help from #tech-support")
-        error_state(True)
-
-    elif "nothing to commit, working tree clean" in str(output):
+    if "nothing to commit, working tree clean" in str(output):
         logging.info("Resetting your local workspace to latest FETCH_HEAD...")
         subprocess.call(["git", "fetch", "origin", get_current_branch_name()])
         subprocess.call(["git", "reset", "--hard", "FETCH_HEAD"])
@@ -193,8 +191,11 @@ def resolve_conflicts_and_pull():
         elif "is up to date" in str(output):
             git_stash_pop()
             logging.info("Success, rebased on latest changes without any conflict")
+        elif "Rewinding head" in str(output) and not("Error" in str(output) or "error" in str(output) or "CONFLICT" in str(output)):
+            git_stash_pop()
+            logging.info("Success, rebased on latest changes without any conflict")
         else:
-            logging.error("Aborting the rebase, unknown error occured. Request help on #tech-support to resolve conflicts, and  please do not run StartProject.bat until issue is solved.")
+            logging.error("Aborting the rebase, an unknown error occured. Request help on #tech-support to resolve conflicts, and please do not run StartProject.bat until issue is solved.")
             abort_rebase()
             git_stash_pop()
             error_state(True)
