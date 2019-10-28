@@ -43,12 +43,14 @@ def git_stash_pop():
     output = subprocess.getoutput(["git", "stash", "pop"])
     logging.info(str(output))
 
-    if "Auto-merging" in str(output) and "CONFLICT" in str(output) and "should have been pointers" in str(output):
+    lower_case_output = str(output).lower()
+
+    if "auto-merging" in lower_case_output and "conflict" in lower_case_output and "should have been pointers" in lower_case_output:
         logging.error("Git stash pop is failed. Some of your stashed local changes would be overwritten by incoming changes. Request help on #tech-support to resolve conflicts, and  please do not run StartProject.bat until issue is solved.")
         error_state(True)
-    elif "Dropped refs" in str(output):
+    elif "dropped refs" in lower_case_output:
         return
-    elif "No stash entries found" in str(output):
+    elif "no stash entries found" in lower_case_output:
         return
     else:
         logging.error("Git stash pop is failed due to unknown error. Request help on #tech-support to resolve possible conflicts, and  please do not run StartProject.bat until issue is solved.")
@@ -180,18 +182,20 @@ def resolve_conflicts_and_pull():
         output = subprocess.getoutput(["git", "pull", "--rebase"])
         logging.info(str(output))
 
-        if "Failed to merge in the changes" in str(output) or "could not apply" in str(output):
+        lower_case_output = str(output).lower()
+
+        if "failed to merge in the changes" in lower_case_output or "could not apply" in lower_case_output:
             logging.error("Aborting the rebase. Changes on one of your commits will be overridden by incoming changes. Request help on #tech-support to resolve conflicts, and  please do not run StartProject.bat until issue is solved.")
             abort_rebase()
             git_stash_pop()   
             error_state(True)
-        elif "Fast-forwarded" in str(output):
+        elif "fast-forwarded" in lower_case_output:
             git_stash_pop()
             logging.info("Success, rebased on latest changes without any conflict")
-        elif "is up to date" in str(output):
+        elif "is up to date" in lower_case_output:
             git_stash_pop()
             logging.info("Success, rebased on latest changes without any conflict")
-        elif "Rewinding head" in str(output) and not("Error" in str(output) or "error" in str(output) or "CONFLICT" in str(output)):
+        elif "rewinding head" in lower_case_output and not("error" in lower_case_output or "conflict" in lower_case_output):
             git_stash_pop()
             logging.info("Success, rebased on latest changes without any conflict")
         else:
