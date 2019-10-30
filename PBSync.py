@@ -109,6 +109,7 @@ def wipe_workspace():
 def setup_git_config():
     # Keep those files always in sync with origin
     sync_file(PBConfig.get('git_hooks_path'))
+    subprocess.call(["git", "config", PBConfig.get('lfs_lock_url'), "true"])
     subprocess.call(["git", "config", "core.hooksPath", PBConfig.get('git_hooks_path')])
     subprocess.call(["git", "config", "core.autocrlf", "true"])
     subprocess.call(["git", "config", "commit.template", "git-hooks/gitmessage.txt"])

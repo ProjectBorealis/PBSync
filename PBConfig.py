@@ -44,7 +44,8 @@ def generate_config(config_path):
                 'engine_version_prefix': root.find('project/engineversionprefix').text,
                 'defaultgame_path': root.find('project/defaultgameinipath').text,
                 'defaultgame_version_key': root.find('project/projectversionkey').text,
-                'versionator_config_path': root.find('project/versionatorconfigpath').text
+                'versionator_config_path': root.find('project/versionatorconfigpath').text,
+                'lfs_lock_url': root.find('git/lfslockurl').text
             }
         except:
             return False
