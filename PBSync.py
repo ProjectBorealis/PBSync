@@ -472,7 +472,7 @@ def main():
             sys.exit(1)
     else:
         logging.error("Please start PBSync from StartProject.bat, or pass proper argument set to the executable")
-        sys.exit(1)
+        error_state()
         
 
 if __name__ == '__main__':
