@@ -115,7 +115,6 @@ def setup_git_config():
     subprocess.call(["git", "config", "commit.template", "git-hooks/gitmessage.txt"])
     subprocess.call(["git", "config", "merge.conflictstyle", "diff3"])
     subprocess.call(["git", "config", "push.default", "current"])
-    subprocess.call(["git", "config", "core.splitIndex ", "true"])
     subprocess.call(["git", "config", "core.untrackedCache", "true"])
     subprocess.call(["git", "config", "core.checkStat", "minimal"])
     subprocess.call(["git", "config", "core.commitGraph", "true"])
