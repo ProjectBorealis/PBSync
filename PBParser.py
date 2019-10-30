@@ -249,19 +249,19 @@ def get_latest_available_engine_version(bucket_url):
     return str(versions[len(versions) - 1])
 
 def ddc_needs_regeneration():
-    if path.isfile(PBConfig.get('ddc_version_path')):
-        try:
+    try:
+        if path.isfile(PBConfig.get('ddc_version_path')):
             with open(PBConfig.get('ddc_version_path'), 'r') as ddc_version_file:
                 current_version = ddc_version_file.readline(1)
                 if int(current_version) < PBConfig.get('ddc_version'):
                     return True
                 else:
                     return False
-        except:
+        else:
+            # DDC is not runned yet on this system, or it's removed
             return True
-    else:
-        # DDC is not runned yet on this system, or it's removed
-        return True
+    except:
+        return False
         
 def ddc_update_version():
     try:

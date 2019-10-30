@@ -9,6 +9,10 @@ import time
 import PBParser
 import PBConfig
 
+def check_ue4_file_association():
+    file_assoc_result = subprocess.getoutput(["assoc", ".uproject"])
+    return "Unreal.ProjectFile" in file_assoc_result
+
 def run_pbget():
     os.chdir("PBGet")
     subprocess.call(["PBGet.exe", "resetcache"])

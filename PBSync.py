@@ -111,11 +111,29 @@ def setup_git_config():
     sync_file(PBConfig.get('git_hooks_path'))
     subprocess.call(["git", "config", "core.hooksPath", PBConfig.get('git_hooks_path')])
     subprocess.call(["git", "config", "core.autocrlf", "true"])
-    subprocess.call(["git", "config", "help.autocorrect", "true"])
     subprocess.call(["git", "config", "commit.template", "git-hooks/gitmessage.txt"])
     subprocess.call(["git", "config", "merge.conflictstyle", "diff3"])
     subprocess.call(["git", "config", "push.default", "current"])
-    # subprocess.call(["git", "show-ref", "-s", "|", "git", "commit-graph write", "--stdin-commits"]) # Broken in git 2.23
+    subprocess.call(["git", "config", "core.splitIndex ", "true"])
+    subprocess.call(["git", "config", "core.untrackedCache", "true"])
+    subprocess.call(["git", "config", "core.checkStat", "minimal"])
+    subprocess.call(["git", "config", "core.commitGraph", "true"])
+    subprocess.call(["git", "config", "core.multiPackIndex", "true"])
+    subprocess.call(["git", "config", "core.sparseCheckout", "true"])
+    subprocess.call(["git", "config", "blame.coloring", "highlightRecent"])
+    subprocess.call(["git", "config", "fetch.prune", "true"])
+    subprocess.call(["git", "config", "fetch.pruneTags", "true"])
+    subprocess.call(["git", "config", "gc.writeCommitGraph", "true"])
+    subprocess.call(["git", "config", "gc.auto", "100"])
+    subprocess.call(["git", "config", "help.autoCorrect", "0.2"])
+    subprocess.call(["git", "config", "index.threads", "true"])
+    subprocess.call(["git", "config", "pack.threads", "0"])
+    subprocess.call(["git", "config", "pack.useSparse", "true"])
+    subprocess.call(["git", "config", "protocol.version", "2"])
+    subprocess.call(["git", "config", "pull.rebase", "merges"])
+    subprocess.call(["git", "config", "repack.writeBitmaps", "true"])
+    subprocess.call(["git", "config", "rerere.autoUpdate", "true"])
+    subprocess.call(["git", "config", "rerere.enabled", "true"])
 
 def generate_ddc_command():
     logging.info("Generating DDC data, please wait... (This may take up to one hour only for the initial run)")
@@ -383,13 +401,18 @@ def main():
             response = input("Do you want to generate DDC data (It may take up to one hour)? If you wish, you can do that another time. [y/N]: ")
             if "y" in response or "Y" in response:
                 generate_ddc_command()
+                # Wait a little bit after DDC tool
+                time.sleep(8)
             else:
                 logging.warning("DDC data won't be generated this time. On your next editor launch, you will be asked again for that.")
+        else:
+            logging.info("DDC generation is not required for this project workspace")
 
-        # Wait a little bit after DDC tool
-        time.sleep(5)
-
-        os.startfile(os.getcwd() + "\\ProjectBorealis.uproject")
+        if PBTools.check_ue4_file_association():
+            os.startfile(os.getcwd() + "\\ProjectBorealis.uproject")
+        else:
+            logging.error(".uproject extension is not correctly set into Unreal Engine. Make sure you have Epic Games Launcher installed. If problem still persists, please get help from #tech-support.")
+            error_state()
 
     elif args.sync == "engine":
         if args.repository is None:
