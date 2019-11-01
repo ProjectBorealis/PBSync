@@ -265,6 +265,14 @@ def main():
         print("A valid config file should be provided with --config argument")
         error_state()
 
+    # Firstly, check our remote connection before doing anything
+    remote_state, remote_url = PBTools.check_remote_connection()
+    if not remote_state:
+        logging.error("Remote connection was not successful. Please verify you have a valid git remote URL & internet connection. Current git remote URL: " + remote_url)
+        error_state()
+    else:
+        logging.info("Remote connection is up")
+
     # Workaround for old repositories. Revert that checked out specific file back
     remove_file("PBSync.xml")
     out = subprocess.getoutput(["git", "reset", "--", "PBSync.xml"])

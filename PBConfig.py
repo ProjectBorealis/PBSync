@@ -14,7 +14,7 @@ def get(key):
 
 def generate_config(config_path):
     global config
-    pbsync_version = "0.1.7"
+    pbsync_version = "0.1.8"
 
     if config_path != None and os.path.isfile(config_path):
         tree = ET.parse(config_path)
@@ -45,7 +45,8 @@ def generate_config(config_path):
                 'defaultgame_path': root.find('project/defaultgameinipath').text,
                 'defaultgame_version_key': root.find('project/projectversionkey').text,
                 'versionator_config_path': root.find('project/versionatorconfigpath').text,
-                'lfs_lock_url': root.find('git/lfslockurl').text
+                'lfs_lock_url': root.find('git/lfslockurl').text,
+                'git_url': root.find('git/url').text
             }
         except:
             return False

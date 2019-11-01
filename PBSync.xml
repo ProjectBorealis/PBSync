@@ -8,6 +8,7 @@
         <hooksfoldername></hooksfoldername>
         <watchmanexecname></watchmanexecname>
         <lfslockurl></lfslockurl>
+        <url></url>
     </git>
     <log>
         <file></file>
