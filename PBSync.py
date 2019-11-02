@@ -59,12 +59,12 @@ def git_stash_pop():
 def check_git_credentials():
     output = str(subprocess.getoutput(["git", "config", "user.name"]))
     if output == "" or output == None:
-        user_name = input("Please enter your Gitlab username: ")
+        user_name = input("Please enter your Github username: ")
         subprocess.call(["git", "config", "user.name", user_name])
 
     output = str(subprocess.getoutput(["git", "config", "user.email"]))
     if output == "" or output == None:
-        user_mail = input("Please enter your Gitlab e-mail: ")
+        user_mail = input("Please enter your Github e-mail: ")
         subprocess.call(["git", "config", "user.email", user_mail])
 
 def sync_file(file_path):
@@ -101,8 +101,9 @@ def wipe_workspace():
     abort_all()
     disable_watchman()
     subprocess.call(["git", "fetch", "origin", str(current_branch)])
-    result = subprocess.call(["git", "reset", "--hard", "FETCH_HEAD"])
+    result = subprocess.call(["git", "reset", "--hard", "origin/" + str(current_branch)])
     subprocess.call(["git", "clean", "-fd"])
+    subprocess.call(["git", "pull"])
     enable_watchman()
     return result == 0
 
@@ -238,13 +239,9 @@ def main():
     parser.add_argument("--config", help="Path of config XML file. If not provided, ./PBSync.xml is used as default")
     args = parser.parse_args()
 
-    # Workaround for old repositories. they need the xml file
-    out = subprocess.getoutput(["git", "fetch", "origin"])
-    sync_file("PBSync.xml")
-    ##########################################################
-
     # If config parameter is not passed, default to PBSync.xml
     if args.config == None:
+        print("No config files provided with --config. Using PBSync.xml as default config file.")
         args.config = "PBSync.xml"
 
     if PBConfig.generate_config(args.config):
@@ -262,8 +259,14 @@ def main():
         logging.getLogger().addHandler(consoleHandler)
         logging.getLogger().setLevel(logging.DEBUG)
     else:
-        print("A valid config file should be provided with --config argument")
+        print(str(args.config) + " config file is not valid or not found. Please check integrity of the file")
         error_state()
+
+    # Do not progress further if we're in an error state
+    if PBParser.check_error_state():
+        logging.error("Repository is currently in an error state. Please fix issues in your workspace before running PBSync")
+        logging.info("If you have already fixed the problem, you may remove " + PBConfig.get('error_file') + " from your project folder & run StartProject bat file again.")
+        error_state(True)
 
     # Firstly, check our remote connection before doing anything
     remote_state, remote_url = PBTools.check_remote_connection()
@@ -272,20 +275,6 @@ def main():
         error_state()
     else:
         logging.info("Remote connection is up")
-
-    # Workaround for old repositories. Revert that checked out specific file back
-    remove_file("PBSync.xml")
-    out = subprocess.getoutput(["git", "reset", "--", "PBSync.xml"])
-    out = subprocess.getoutput(["git", "add", "PBSync.xml"])
-    out = subprocess.getoutput(["git", "reset", "--", "PBSync.xml"])
-    # Try checkout, in case of file already exists in current state of the branch
-    out = subprocess.getoutput(["git", "checkout", "PBSync.xml"])
-    ##########################################################
-
-    # Do not process further if we're in an error state
-    if PBParser.check_error_state():
-        logging.error("Repository is currently in an error state. Please fix issues in your workspace before running PBSync.")
-        error_state(True)
 
     # Process arguments
     if args.sync == "all" or args.sync == "force":
@@ -399,7 +388,7 @@ def main():
             if PBTools.clean_old_engine_installations():
                 logging.info("Old engine installations are successfully cleaned")
             else:
-                logging.warning("Something went wrong while cleaning old engine installations. You may clean them manually.")
+                logging.warning("Something went wrong while cleaning old engine installations. You may want to clean them manually.")
 
         logging.info("------------------")
         
@@ -485,6 +474,6 @@ def main():
 
 if __name__ == '__main__':
     if "Scripts" in os.getcwd():
-        # Exception for scripts running PBSync from Scripts folder
+        # Working directory fix for scripts calling PBSync from Scripts folder
         os.chdir("..")
     main()

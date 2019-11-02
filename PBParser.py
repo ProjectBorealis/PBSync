@@ -274,7 +274,7 @@ def ddc_update_version():
 # True: Error on last run, False: No errors
 def check_error_state():
     try:
-        with open(".pbsync_err", 'r') as error_state_file:
+        with open(PBConfig.get('error_file'), 'r') as error_state_file:
             error_state = error_state_file.readline(1)
             if int(error_state) == 0:
                 return False
@@ -288,7 +288,7 @@ def check_error_state():
 
 # 1: Error happened on last run, 0: No errors
 def pbsync_error_state(state):
-    with open(".pbsync_err", 'w') as error_state_file:
+    with open(PBConfig.get('error_file'), 'w') as error_state_file:
         if state:
             error_state_file.write("1")
         else:

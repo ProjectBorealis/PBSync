@@ -26,5 +26,6 @@
         <defaultgameinipath></defaultgameinipath>
         <projectversionkey></projectversionkey>
         <versionatorconfigpath></versionatorconfigpath>
+        <errorfile></errorfile>
     </project>
 </config>

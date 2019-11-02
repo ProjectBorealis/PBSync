@@ -34,6 +34,8 @@ def generate_config(config_path):
                 'expected_branch_name': root.find('git/expectedbranch').text,
                 'git_hooks_path': root.find('git/hooksfoldername').text,
                 'watchman_executable_name': root.find('git/watchmanexecname').text,
+                'lfs_lock_url': root.find('git/lfslockurl').text,
+                'git_url': root.find('git/url').text,
                 'log_file_path': root.find('log/file').text,
                 'max_log_size': int(root.find('log/maximumsize').text),
                 'ddc_version_path': root.find('ddc/versionfilepath').text,
@@ -45,8 +47,7 @@ def generate_config(config_path):
                 'defaultgame_path': root.find('project/defaultgameinipath').text,
                 'defaultgame_version_key': root.find('project/projectversionkey').text,
                 'versionator_config_path': root.find('project/versionatorconfigpath').text,
-                'lfs_lock_url': root.find('git/lfslockurl').text,
-                'git_url': root.find('git/url').text
+                'error_file': root.find('project/errorfile')
             }
         except:
             return False
