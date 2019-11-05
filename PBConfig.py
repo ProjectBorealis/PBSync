@@ -48,8 +48,8 @@ def generate_config(config_path):
                 'defaultgame_version_key': root.find('project/projectversionkey').text,
                 'versionator_config_path': root.find('project/versionatorconfigpath').text,
                 'error_file': root.find('project/errorfile'),
-                'pbget_url': root.find('pbget/url'),
-                'pbget_token': root.find('pbget/token')
+                'pbget_url': root.find('pbget/url').text,
+                'pbget_token': root.find('pbget/token').text
             }
         except:
             return False

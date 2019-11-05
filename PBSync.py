@@ -467,6 +467,8 @@ def main():
         if not PBTools.clean_old_engine_installations():
             logging.error("Something went wrong on engine installation root folder clean process")
             sys.exit(1)
+    elif args.push == "binaries":
+        pass
     else:
         logging.error("Please start PBSync from StartProject.bat, or pass proper argument set to the executable")
         error_state()
@@ -474,7 +476,10 @@ def main():
     if args.push == "binaries":
         project_version = PBParser.get_project_version()
         logging.info("Initiating PBGet to push " + project_version + " binaries...")
-        return PBTools.pbget_push()
+        result = PBTools.pbget_push()
+        if int(result) == 1:
+            logging.error("Error occured while pushing binaries for " + project_version)
+            sys.exit(1)
 
 if __name__ == '__main__':
     if "Scripts" in os.getcwd():
