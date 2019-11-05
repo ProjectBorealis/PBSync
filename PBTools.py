@@ -31,9 +31,9 @@ def pbget_pull():
     os.chdir("..")
     return status
 
-def pbget_push():
+def pbget_push(apikey):
     os.chdir("PBGet")
-    status = subprocess.call(["PBGet.exe", "push", "--source", PBConfig.get('pbget_url'), "--apikey", PBConfig.get('pbget_token')])
+    status = subprocess.call(["PBGet.exe", "push", "--source", PBConfig.get('pbget_url'), "--apikey", apikey])
     os.chdir("..")
     return status
 

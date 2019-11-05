@@ -237,7 +237,7 @@ def main():
     parser.add_argument("--wipe", help="[latest] Wipe the workspace and get latest changes from current branch (Not revertable)")
     parser.add_argument("--clean", help="[engine] Do cleanup according to specified argument")
     parser.add_argument("--config", help="Path of config XML file. If not provided, ./PBSync.xml is used as default")
-    parser.add_argument("--push", help="[binaries] Push current binaries into NuGet repository. If provided with --autoversion, push will be done after auto versioning.")
+    parser.add_argument("--push", help="[apikey] Push current binaries into NuGet repository with provided api key. If provided with --autoversion, push will be done after auto versioning.")
     args = parser.parse_args()
 
     # If config parameter is not passed, default to PBSync.xml
@@ -467,16 +467,16 @@ def main():
         if not PBTools.clean_old_engine_installations():
             logging.error("Something went wrong on engine installation root folder clean process")
             sys.exit(1)
-    elif args.push == "binaries":
+    elif not (args.push is None):
         pass
     else:
         logging.error("Please start PBSync from StartProject.bat, or pass proper argument set to the executable")
         error_state()
 
-    if args.push == "binaries":
+    if not (args.push is None):
         project_version = PBParser.get_project_version()
         logging.info("Initiating PBGet to push " + project_version + " binaries...")
-        result = PBTools.pbget_push()
+        result = PBTools.pbget_push(str(args.push))
         if int(result) == 1:
             logging.error("Error occured while pushing binaries for " + project_version)
             sys.exit(1)
