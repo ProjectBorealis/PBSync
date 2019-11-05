@@ -241,7 +241,6 @@ def main():
 
     # If config parameter is not passed, default to PBSync.xml
     if args.config == None:
-        print("No config files provided with --config. Using PBSync.xml as default config file.")
         args.config = "PBSync.xml"
 
     if PBConfig.generate_config(args.config):
@@ -262,22 +261,22 @@ def main():
         print(str(args.config) + " config file is not valid or not found. Please check integrity of the file")
         error_state()
 
-    # Do not progress further if we're in an error state
-    if PBParser.check_error_state():
-        logging.error("Repository is currently in an error state. Please fix issues in your workspace before running PBSync")
-        logging.info("If you have already fixed the problem, you may remove " + PBConfig.get('error_file') + " from your project folder & run StartProject bat file again.")
-        error_state(True)
-
-    # Firstly, check our remote connection before doing anything
-    remote_state, remote_url = PBTools.check_remote_connection()
-    if not remote_state:
-        logging.error("Remote connection was not successful. Please verify you have a valid git remote URL & internet connection. Current git remote URL: " + remote_url)
-        error_state()
-    else:
-        logging.info("Remote connection is up")
-
     # Process arguments
     if args.sync == "all" or args.sync == "force":
+        # Do not progress further if we're in an error state
+        if PBParser.check_error_state():
+            logging.error("Repository is currently in an error state. Please fix issues in your workspace before running PBSync")
+            logging.info("If you have already fixed the problem, you may remove " + PBConfig.get('error_file') + " from your project folder & run StartProject bat file again.")
+            error_state(True)
+
+        # Firstly, check our remote connection before doing anything
+        remote_state, remote_url = PBTools.check_remote_connection()
+        if not remote_state:
+            logging.error("Remote connection was not successful. Please verify you have a valid git remote URL & internet connection. Current git remote URL: " + remote_url)
+            error_state()
+        else:
+            logging.info("Remote connection is up")
+
         logging.info("------------------")
 
         logging.info("Executing " + str(args.sync) + " sync command for PBSync v" + PBConfig.get('pbsync_version'))
