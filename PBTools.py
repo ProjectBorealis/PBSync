@@ -24,10 +24,16 @@ def check_ue4_file_association():
     file_assoc_result = subprocess.getoutput(["assoc", ".uproject"])
     return "Unreal.ProjectFile" in file_assoc_result
 
-def run_pbget():
+def pbget_pull():
     os.chdir("PBGet")
     subprocess.call(["PBGet.exe", "resetcache"])
     status = subprocess.call(["PBGet.exe", "pull", "--threading", "false"])
+    os.chdir("..")
+    return status
+
+def pbget_push():
+    os.chdir("PBGet")
+    status = subprocess.call(["PBGet.exe", "push", "--source", PBConfig.get('pbget_url'), "--apikey", PBConfig.get('pbget_token')])
     os.chdir("..")
     return status
 

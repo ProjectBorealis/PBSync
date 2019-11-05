@@ -28,4 +28,8 @@
         <versionatorconfigpath></versionatorconfigpath>
         <errorfile></errorfile>
     </project>
+    <pbget>
+        <url></url>
+        <token></token>
+    </pbget>
 </config>

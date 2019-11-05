@@ -233,10 +233,11 @@ def main():
     parser.add_argument("--sync", help="[force, all, engine, ddc] Main command for the PBSync, synchronizes the project with latest changes in repo, and does some housekeeping")
     parser.add_argument("--print", help="[current-engine, latest-engine, project] Prints requested version information into console. latest-engine command needs --repository parameter")
     parser.add_argument("--repository", help="<URL> Required repository url for --print latest-engine and --sync engine commands")
-    parser.add_argument("--autoversion", help="[minor, major, release] Automatic version update for project version")
+    parser.add_argument("--autoversion", help="[hotfix, stable, release] Automatic version update for project version")
     parser.add_argument("--wipe", help="[latest] Wipe the workspace and get latest changes from current branch (Not revertable)")
     parser.add_argument("--clean", help="[engine] Do cleanup according to specified argument")
     parser.add_argument("--config", help="Path of config XML file. If not provided, ./PBSync.xml is used as default")
+    parser.add_argument("--push", help="[binaries] Push current binaries into NuGet repository. If provided with --autoversion, push will be done after auto versioning.")
     args = parser.parse_args()
 
     # If config parameter is not passed, default to PBSync.xml
@@ -350,7 +351,7 @@ def main():
             logging.info("------------------")
             clean_cache()
             
-            if PBTools.run_pbget() != 0:
+            if PBTools.pbget_pull() != 0:
                 logging.error("An error occured while running PBGet. It's likely binary files for this release are not pushed yet. Please request help on #tech-support")
                 error_state()
         else:
@@ -469,7 +470,11 @@ def main():
     else:
         logging.error("Please start PBSync from StartProject.bat, or pass proper argument set to the executable")
         error_state()
-        
+
+    if args.push == "binaries":
+        project_version = PBParser.get_project_version()
+        logging.info("Initiating PBGet to push " + project_version + " binaries...")
+        return PBTools.pbget_push()
 
 if __name__ == '__main__':
     if "Scripts" in os.getcwd():

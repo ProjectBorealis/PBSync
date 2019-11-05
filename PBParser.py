@@ -183,17 +183,17 @@ def project_version_increase(increase_type):
     if project_version is None:
         return False
 
-    # Split release, major and minor versions into an array
+    # Split hotfix, stable and release versions into an array
     version_split = project_version.split('.')
 
     if len(version_split) != 3:
         print("Incorrect project version detected")
         return False
 
-    if increase_type == "minor":
+    if increase_type == "hotfix":
         new_version = version_split[0] + "." + version_split[1] + "." + str(int(version_split[2]) + 1)
     
-    elif increase_type == "major":
+    elif increase_type == "stable":
         new_version = version_split[0] + "." + str(int(version_split[1]) + 1) + ".0"
 
     elif increase_type == "release":
