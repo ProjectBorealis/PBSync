@@ -233,7 +233,7 @@ def main():
     parser.add_argument("--sync", help="[force, all, engine, ddc] Main command for the PBSync, synchronizes the project with latest changes in repo, and does some housekeeping")
     parser.add_argument("--print", help="[current-engine, latest-engine, project] Prints requested version information into console. latest-engine command needs --repository parameter")
     parser.add_argument("--repository", help="<URL> Required repository url for --print latest-engine and --sync engine commands")
-    parser.add_argument("--autoversion", help="[hotfix, stable, release] Automatic version update for project version")
+    parser.add_argument("--autoversion", help="[hotfix, stable, public] Automatic version update for project version")
     parser.add_argument("--wipe", help="[latest] Wipe the workspace and get latest changes from current branch (Not revertable)")
     parser.add_argument("--clean", help="[engine] Do cleanup according to specified argument")
     parser.add_argument("--config", help="Path of config XML file. If not provided, ./PBSync.xml is used as default")
