@@ -22,21 +22,6 @@ def error_state(fatal_error = False):
     out = input("Logs are saved in " + PBConfig.get("log_file_path") + ". Press enter to quit...")
     sys.exit(1)
 
-def clean_cache():
-    cache_dir = ".git\\lfs\\cache"
-    if os.path.isdir(cache_dir):
-        try:
-            rmtree(cache_dir)
-        except:
-            pass
-        
-    lockcache_path = ".git\\lfs\\lockcache.db"
-    if os.path.isfile(lockcache_path):
-        try:
-            os.remove(lockcache_path)
-        except:
-            pass
-
 def git_stash_pop():
     logging.info("Trying to pop stash...")
 
@@ -108,8 +93,6 @@ def wipe_workspace():
     return result == 0
 
 def setup_git_config():
-    # Keep those files always in sync with origin
-    sync_file(PBConfig.get('git_hooks_path'))
     subprocess.call(["git", "config", PBConfig.get('lfs_lock_url'), "true"])
     subprocess.call(["git", "config", "core.hooksPath", PBConfig.get('git_hooks_path')])
     subprocess.call(["git", "config", "core.autocrlf", "true"])
@@ -117,16 +100,15 @@ def setup_git_config():
     subprocess.call(["git", "config", "merge.conflictstyle", "diff3"])
     subprocess.call(["git", "config", "push.default", "current"])
     subprocess.call(["git", "config", "core.untrackedCache", "true"])
-    subprocess.call(["git", "config", "core.checkStat", "minimal"])
+    # subprocess.call(["git", "config", "core.checkStat", "minimal"])
     subprocess.call(["git", "config", "core.commitGraph", "true"])
     subprocess.call(["git", "config", "core.multiPackIndex", "true"])
-    subprocess.call(["git", "config", "core.sparseCheckout", "true"])
+    # subprocess.call(["git", "config", "core.sparseCheckout", "true"])
     subprocess.call(["git", "config", "blame.coloring", "highlightRecent"])
     subprocess.call(["git", "config", "fetch.prune", "true"])
     subprocess.call(["git", "config", "fetch.pruneTags", "true"])
-    subprocess.call(["git", "config", "gc.writeCommitGraph", "true"])
-    subprocess.call(["git", "config", "gc.auto", "100"])
-    subprocess.call(["git", "config", "help.autoCorrect", "0.2"])
+    # subprocess.call(["git", "config", "gc.auto", "100"])
+    subprocess.call(["git", "config", "help.autoCorrect", "5"])
     subprocess.call(["git", "config", "index.threads", "true"])
     subprocess.call(["git", "config", "pack.threads", "0"])
     subprocess.call(["git", "config", "pack.useSparse", "true"])
@@ -186,42 +168,35 @@ def resolve_conflicts_and_pull():
 
     logging.info("Please wait while getting latest changes on the repository. It may take a while...")
 
-    if "nothing to commit, working tree clean" in str(output):
-        logging.info("Resetting your local workspace to latest FETCH_HEAD...")
-        subprocess.call(["git", "fetch", "origin", get_current_branch_name()])
-        subprocess.call(["git", "reset", "--hard", "FETCH_HEAD"])
-        logging.info("Pulled changes without any conflict")
+    logging.info("Trying to stash the local work...")
+    output = subprocess.getoutput(["git", "stash"])
+    logging.info(str(output))
 
+    logging.info("Trying to rebase workspace with latest changes on the repository...")
+    output = subprocess.getoutput(["git", "pull", "--rebase"])
+    logging.info(str(output))
+
+    lower_case_output = str(output).lower()
+
+    if "failed to merge in the changes" in lower_case_output or "could not apply" in lower_case_output:
+        logging.error("Aborting the rebase. Changes on one of your commits will be overridden by incoming changes. Request help on #tech-support to resolve conflicts, and  please do not run StartProject.bat until issue is solved.")
+        abort_rebase()
+        git_stash_pop()
+        error_state(True)
+    elif "fast-forwarded" in lower_case_output:
+        git_stash_pop()
+        logging.info("Success, rebased on latest changes without any conflict")
+    elif "is up to date" in lower_case_output:
+        git_stash_pop()
+        logging.info("Success, rebased on latest changes without any conflict")
+    elif "rewinding head" in lower_case_output and not("error" in lower_case_output or "conflict" in lower_case_output):
+        git_stash_pop()
+        logging.info("Success, rebased on latest changes without any conflict")
     else:
-        logging.info("Trying to stash the local work...")
-        output = subprocess.getoutput(["git", "stash"])
-        logging.info(str(output))
-
-        logging.info("Trying to rebase workspace with latest changes on the repository...")
-        output = subprocess.getoutput(["git", "pull", "--rebase"])
-        logging.info(str(output))
-
-        lower_case_output = str(output).lower()
-
-        if "failed to merge in the changes" in lower_case_output or "could not apply" in lower_case_output:
-            logging.error("Aborting the rebase. Changes on one of your commits will be overridden by incoming changes. Request help on #tech-support to resolve conflicts, and  please do not run StartProject.bat until issue is solved.")
-            abort_rebase()
-            git_stash_pop()   
-            error_state(True)
-        elif "fast-forwarded" in lower_case_output:
-            git_stash_pop()
-            logging.info("Success, rebased on latest changes without any conflict")
-        elif "is up to date" in lower_case_output:
-            git_stash_pop()
-            logging.info("Success, rebased on latest changes without any conflict")
-        elif "rewinding head" in lower_case_output and not("error" in lower_case_output or "conflict" in lower_case_output):
-            git_stash_pop()
-            logging.info("Success, rebased on latest changes without any conflict")
-        else:
-            logging.error("Aborting the rebase, an unknown error occured. Request help on #tech-support to resolve conflicts, and please do not run StartProject.bat until issue is solved.")
-            abort_rebase()
-            git_stash_pop()
-            error_state(True)
+        logging.error("Aborting the rebase, an unknown error occured. Request help on #tech-support to resolve conflicts, and please do not run StartProject.bat until issue is solved.")
+        abort_rebase()
+        git_stash_pop()
+        error_state(True)
 
     # Run watchman back
     enable_watchman()
@@ -281,7 +256,7 @@ def main():
         logging.info("------------------")
 
         logging.info("Executing " + str(args.sync) + " sync command for PBSync v" + PBConfig.get('pbsync_version'))
-        
+
         logging.info("------------------")
 
         git_version_result = PBParser.compare_git_version(PBConfig.get('supported_git_version'))
@@ -349,7 +324,6 @@ def main():
         if args.sync == "force" or is_expected_branch():
             resolve_conflicts_and_pull()
             logging.info("------------------")
-            clean_cache()
             
             if PBTools.pbget_pull() != 0:
                 logging.error("An error occured while running PBGet. It's likely binary files for this release are not pushed yet. Please request help on #tech-support")

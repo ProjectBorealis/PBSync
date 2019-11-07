@@ -11,12 +11,12 @@ import PBConfig
 
 def check_remote_connection():
     current_url = subprocess.check_output(["git", "remote", "get-url", "origin"])
-    recent_url = PBConfig.get("git_url")
+    # recent_url = PBConfig.get("git_url")
 
-    if current_url != recent_url:
-        subprocess.call(["git", "remote", "set-url", "origin", recent_url])
+    # if current_url != recent_url:
+    #     subprocess.call(["git", "remote", "set-url", "origin", recent_url])
 
-    current_url = subprocess.check_output(["git", "remote", "get-url", "origin"])
+    # current_url = subprocess.check_output(["git", "remote", "get-url", "origin"])
     out = subprocess.check_output(["git", "ls-remote", "--exit-code", "-h"])
     return not ("fatal" in str(out)), str(current_url)
 
