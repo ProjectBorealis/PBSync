@@ -31,4 +31,10 @@
     <pbget>
         <url></url>
     </pbget>
+    <dispatch>
+        <executable></executable>
+        <config></config>
+        <drm></drm>
+        <stagedir></stagedir>
+    </dispatch>
 </config>

@@ -9,6 +9,24 @@ import time
 import PBParser
 import PBConfig
 
+def push_build(branch_type):
+    # Wrap executable with DRM
+    result = subprocess.call([PBConfig.get('dispatch_executable'), "build", "drm-wrap", str(os.environ['DISPATCH_APP_ID']), PBConfig.get('dispatch_drm')])
+    if result != 0:
+        return False
+
+    branch_id = "-1"
+    if branch_type == "stable":
+        branch_id = str(os.environ['DISPATCH_ALPHA_BID'])
+    elif branch_type == "public":
+        branch_id = str(os.environ['DISPATCH_BETA_BID'])
+    else:
+        return False
+
+    # Push & Publish the build
+    result = subprocess.call([PBConfig.get('dispatch_executable'), "build", "push", branch_id, PBConfig.get('dispatch_config'), PBConfig.get('dispatch_stagedir'), "-p"])
+    return result == 0
+
 def check_remote_connection():
     current_url = subprocess.check_output(["git", "remote", "get-url", "origin"])
     # recent_url = PBConfig.get("git_url")

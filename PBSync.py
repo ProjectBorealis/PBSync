@@ -214,6 +214,7 @@ def main():
     parser.add_argument("--clean", help="[engine] Do cleanup according to specified argument")
     parser.add_argument("--config", help="Path of config XML file. If not provided, ./PBSync.xml is used as default")
     parser.add_argument("--push", help="[apikey] Push current binaries into NuGet repository with provided api key. If provided with --autoversion, push will be done after auto versioning.")
+    parser.add_argument("--publish", help="[stable, public] Publishes a playable build with provided build type")
     args = parser.parse_args()
 
     # If config parameter is not passed, default to PBSync.xml
@@ -442,8 +443,15 @@ def main():
         if not PBTools.clean_old_engine_installations():
             logging.error("Something went wrong on engine installation root folder clean process")
             sys.exit(1)
+
+    elif not (args.publish is None):
+        if not PBTools.push_build(args.publish):
+            logging.error("Something went wrong while pushing a new playable build.")
+            sys.exit(1)
+
     elif not (args.push is None):
         pass
+    
     else:
         logging.error("Please start PBSync from StartProject.bat, or pass proper argument set to the executable")
         error_state()
