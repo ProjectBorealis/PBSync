@@ -10,7 +10,7 @@ import PBConfig
 
 def get_git_version():
     installed_version = subprocess.getoutput(["git", "--version"])
-    installed_version_parsed = re.findall("[0-9].[0-9]{2}.[0-9]", str(installed_version))
+    installed_version_parsed = re.findall("(\d+\.)(\d+\.)(\d)", str(installed_version))
     if len(installed_version_parsed) == 0 or len(installed_version_parsed[0]) == 0:
         return ""
 
@@ -18,7 +18,7 @@ def get_git_version():
 
 def get_lfs_version():
     installed_version = subprocess.getoutput(["git-lfs", "--version"])
-    installed_version_parsed = re.findall("[0-9].[0-9].[0-9]", str(installed_version))
+    installed_version_parsed = re.findall("(\d+\.)(\d+\.)(\d)", str(installed_version))
     if len(installed_version_parsed) == 0 or len(installed_version_parsed[0]) == 0:
         return ""
 
