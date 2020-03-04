@@ -4,10 +4,13 @@ import psutil
 import subprocess
 import shutil
 import time
+import re
 
 # PBSync Imports
 import PBParser
 import PBConfig
+
+engine_installation_folder_regex = "[0-9].[0-9]{2}-PB-[0-9]{8}"
 
 def push_build(branch_type):
     # Wrap executable with DRM
@@ -68,13 +71,17 @@ def run_ue4versionator():
 
 def clean_old_engine_installations():
     current_version = PBParser.get_engine_version_with_prefix()
+    global engine_installation_folder_regex
+    p = re.compile(engine_installation_folder_regex)
     if current_version != None:
         engine_install_root = PBParser.get_engine_install_root()
         if engine_install_root != None and os.path.isdir(engine_install_root):
             dirs = os.listdir(engine_install_root)
             for dir in dirs:
-                if dir != current_version:
-                    full_path = os.path.join(engine_install_root, dir)
+                # Do not remove folders if they do not match with installation folder name pattern
+                # Also do not remove files. Only remove folders
+                full_path = os.path.join(engine_install_root, dir)
+                if dir != current_version and p.match(dir) != None and os.path.isdir(full_path):
                     print("Removing old engine installation: " + str(full_path) + "...")
                     try:
                         shutil.rmtree(full_path)
@@ -88,7 +95,6 @@ def clean_old_engine_installations():
 # 0: DDC generation was successful
 # 1: DDC data generation was not successful because of IO errors
 # 2: Generated DDC data is smaller than expected
-# 3: DDC generation was successful, but version file update was not successful
 def generate_ddc_data():
     current_version = PBParser.get_engine_version_with_prefix()
     
@@ -101,8 +107,6 @@ def generate_ddc_data():
                 err = subprocess.call([str(ue_editor_executable), os.path.join(os.getcwd(), PBConfig.get('uproject_path')), "-run=DerivedDataCache", "-fill"])
                 if not check_ddc_data():
                     return 2, err
-                if not PBParser.ddc_update_version():
-                    return 3, err
                 return 0, err
     
     return 1, err

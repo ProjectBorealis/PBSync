@@ -109,8 +109,8 @@ def generate_ddc_command():
     elif state == 2:
         logging.error("Generated DDC data was smaller than expected. Please get support from #tech-support")
         error_state()
-    elif state == 3:
-        logging.error("DDC data was succesffuly generated, but an error occured while versioning your DDC folder. Please get support from #tech-support")
+    else:
+        logging.error("Unspecified error occured while generating DDC data. Please get support from #tech-support")
         error_state()
 
 def remove_file(file_path):
@@ -345,19 +345,6 @@ def main():
                 logging.warning("Something went wrong while cleaning old engine installations. You may want to clean them manually.")
 
         logging.info("------------------")
-        
-        # Generate DDC data
-        if PBParser.ddc_needs_regeneration():
-            logging.info("DDC generation is required for this project workspace. Initial DDC data generation is highly recommended to prevent possible crashes, shader calculations & slowdowns in editor.")
-            response = input("Do you want to generate DDC data (It may take up to one hour)? If you wish, you can do that another time. [y/N]: ")
-            if "y" in response or "Y" in response:
-                generate_ddc_command()
-                # Wait a little bit after DDC tool
-                time.sleep(8)
-            else:
-                logging.warning("DDC data won't be generated this time. On your next editor launch, you will be asked again for that.")
-        else:
-            logging.info("DDC generation is not required for this project workspace")
 
         if PBTools.check_ue4_file_association():
             os.startfile(os.getcwd() + "\\ProjectBorealis.uproject")
