@@ -14,7 +14,7 @@ def get(key):
 
 def generate_config(config_path):
     global config
-    pbsync_version = "0.1.17"
+    pbsync_version = "0.1.18"
 
     if config_path != None and os.path.isfile(config_path):
         tree = ET.parse(config_path)
@@ -45,7 +45,7 @@ def generate_config(config_path):
                 'defaultgame_path': root.find('project/defaultgameinipath').text,
                 'defaultgame_version_key': root.find('project/projectversionkey').text,
                 'versionator_config_path': root.find('project/versionatorconfigpath').text,
-                'error_file': root.find('project/errorfile'),
+                'error_file': root.find('project/errorfile').text,
                 'pbget_url': root.find('pbget/url').text,
                 'dispatch_executable': root.find('dispatch/executable').text,
                 'dispatch_config': root.find('dispatch/config').text,
