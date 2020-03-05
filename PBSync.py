@@ -95,7 +95,7 @@ def wipe_workspace():
 def setup_git_config():
     subprocess.call(["git", "config", PBConfig.get('lfs_lock_url'), "true"])
     subprocess.call(["git", "config", "core.hooksPath", PBConfig.get('git_hooks_path')])
-    subprocess.call(["git", "config", "include.path", "$PWD/.gitconfig"])
+    subprocess.call(["git", "config", "include.path", "../.gitconfig"])
 
 def generate_ddc_command():
     logging.info("Generating DDC data, please wait... (This may take up to one hour only for the initial run)")
