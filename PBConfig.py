@@ -52,7 +52,8 @@ def generate_config(config_path):
                 'dispatch_drm': root.find('dispatch/drm').text,
                 'dispatch_stagedir': root.find('dispatch/stagedir').text
             }
-        except:
+        except Exception as e:
+            print("Config exception: {0}".format(e))
             return False
 
         return True

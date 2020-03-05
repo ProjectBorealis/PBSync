@@ -15,6 +15,7 @@ def get_git_version():
     if len(installed_version_parsed) == 0 or len(installed_version_parsed[0]) == 0:
         return ""
 
+    print(installed_version_parsed.__str__())
     return installed_version_parsed[0]
 
 def get_lfs_version():
@@ -24,6 +25,7 @@ def get_lfs_version():
         return ""
 
     # Index 0 is lfs version, other matched version is Go compiler version
+    print(installed_version_parsed.__str__())
     return installed_version_parsed[0]
 
 # -2: Parse error
