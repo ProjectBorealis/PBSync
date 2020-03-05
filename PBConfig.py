@@ -38,8 +38,6 @@ def generate_config(config_path):
                 'git_url': root.find('git/url').text,
                 'log_file_path': root.find('log/file').text,
                 'max_log_size': int(root.find('log/maximumsize').text),
-                'ddc_version_path': root.find('ddc/versionfilepath').text,
-                'ddc_version': int(root.find('ddc/version').text),
                 'ddc_expected_min_size': int(root.find('ddc/expectedminsize').text),
                 'uproject_path': root.find('project/uprojectname').text,
                 'uproject_version_key': root.find('project/uprojectversionkey').text,

@@ -15,8 +15,6 @@
         <maximumsize></maximumsize>
     </log>
     <ddc>
-        <versionfilepath></versionfilepath>
-        <version></version>
         <expectedminsize></expectedminsize>
     </ddc>
     <project>
