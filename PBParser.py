@@ -39,8 +39,6 @@ def compare_git_version(compared_version):
     if len(expected_version) != 3:
         return -2
 
-    print(installed_version)
-    print(expected_version)
     if int(installed_version[0]) == int(expected_version[0]) and int(installed_version[1]) == int(expected_version[1]) and int(installed_version[2]) == int(expected_version[2]):
         # Same version
         return 0
