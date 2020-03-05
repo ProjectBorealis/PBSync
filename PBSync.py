@@ -254,7 +254,7 @@ def main():
             logging.error("Please install latest Git from https://git-scm.com/download/win")
             error_state()
         elif git_version_result == 1:
-            logging.warning("Current Git version is newer than supported one: " + PBParser.get_git_version())
+            logging.warning("Current Git version is newer than supported one: " + str(PBParser.get_git_version()))
             logging.warning("Supported Git version: " + PBConfig.get('supported_git_version'))
         else:
             logging.error("Git is not installed correctly on your system.")

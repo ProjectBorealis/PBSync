@@ -14,7 +14,7 @@ def get(key):
 
 def generate_config(config_path):
     global config
-    pbsync_version = "0.1.19"
+    pbsync_version = "0.1.20"
 
     if config_path != None and os.path.isfile(config_path):
         tree = ET.parse(config_path)
