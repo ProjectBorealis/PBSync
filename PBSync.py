@@ -246,11 +246,11 @@ def main():
             logging.error("Please install latest Git from https://git-scm.com/download/win")
             error_state()
         elif git_version_result == 0:
-            logging.info("Current Git version: " + PBParser.get_git_version())
+            logging.info("Current Git version: " + str(PBParser.get_git_version()))
         elif git_version_result == -1:
             logging.error("Git is not updated to the latest version in your system")
             logging.error("Supported Git Version: " + PBConfig.get('supported_git_version'))
-            logging.error("Current Git Version: " + PBParser.get_git_version())
+            logging.error("Current Git Version: " + str(PBParser.get_git_version()))
             logging.error("Please install latest Git from https://git-scm.com/download/win")
             error_state()
         elif git_version_result == 1:
@@ -267,11 +267,11 @@ def main():
             logging.error("Please install latest Git LFS from https://git-lfs.github.com")
             error_state()
         elif lfs_version_result == 0:
-            logging.info("Current Git LFS version: " + PBParser.get_lfs_version())
+            logging.info("Current Git LFS version: " + str(PBParser.get_lfs_version()))
         elif lfs_version_result == -1:
             logging.error("Git LFS is not updated to the latest version in your system")
             logging.error("Supported Git LFS Version: " + PBConfig.get('supported_lfs_version'))
-            logging.error("Current Git LFS Version: " + PBParser.get_lfs_version())
+            logging.error("Current Git LFS Version: " + str(PBParser.get_lfs_version()))
             logging.error("Please install latest Git LFS from https://git-lfs.github.com")
             error_state()
         elif lfs_version_result == 1:

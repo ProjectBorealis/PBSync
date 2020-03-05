@@ -10,7 +10,8 @@ import PBConfig
 
 def get_git_version():
     installed_version = subprocess.getoutput(["git", "--version"])
-    installed_version_parsed = re.findall("(\d+\.)(\d+\.)(\d)", str(installed_version))
+    installed_version_parsed = re.findall("(\d+)\.(\d+)\.(\d)", str(installed_version))
+
     if len(installed_version_parsed) == 0 or len(installed_version_parsed[0]) == 0:
         return ""
 
@@ -18,7 +19,7 @@ def get_git_version():
 
 def get_lfs_version():
     installed_version = subprocess.getoutput(["git-lfs", "--version"])
-    installed_version_parsed = re.findall("(\d+\.)(\d+\.)(\d)", str(installed_version))
+    installed_version_parsed = re.findall("(\d+)\.(\d+)\.(\d)", str(installed_version))
     if len(installed_version_parsed) == 0 or len(installed_version_parsed[0]) == 0:
         return ""
 
@@ -30,15 +31,17 @@ def get_lfs_version():
 # 0: Expected version
 # 1: Newer version
 def compare_git_version(compared_version):
-    installed_version = str(get_git_version()).split(".")
+    installed_version = get_git_version()
     if len(installed_version) != 3:
         return -2
-
+    
     expected_version = str(compared_version).split(".")
     if len(expected_version) != 3:
         return -2
-    
-    if (int(installed_version[0]) == int(expected_version[0])) and (int(installed_version[1]) == int(expected_version[1])) and (int(installed_version[2]) == int(expected_version[2])):
+
+    print(installed_version)
+    print(expected_version)
+    if int(installed_version[0]) == int(expected_version[0]) and int(installed_version[1]) == int(expected_version[1]) and int(installed_version[2]) == int(expected_version[2]):
         # Same version
         return 0
     
@@ -66,7 +69,7 @@ def compare_git_version(compared_version):
 # 0: Expected version
 # 1: Newer version
 def compare_lfs_version(compared_version):
-    installed_version = str(get_lfs_version()).split(".")
+    installed_version = get_lfs_version()
     if len(installed_version) != 3:
         return -2
     
@@ -74,7 +77,7 @@ def compare_lfs_version(compared_version):
     if len(installed_version) != 3:
         return -2
     
-    if (int(installed_version[0]) == int(expected_version[0])) and (int(installed_version[1]) == int(expected_version[1])) and (int(installed_version[2]) == int(expected_version[2])):
+    if int(installed_version[0]) == int(expected_version[0]) and int(installed_version[1]) == int(expected_version[1]) and int(installed_version[2]) == int(expected_version[2]):
         # Same version
         return 0
     
