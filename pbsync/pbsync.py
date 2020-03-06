@@ -10,24 +10,13 @@ from pbsync import pbsync_version
 default_config_name = "PBSync.xml"
 
 def config_handler(config_var, config_parser_func):
-    if pbconfig.generate_config(config_var, config_parser_func):
-        # If log file is big enough, remove it
-        if os.path.isfile(pbconfig.get('log_file_path')) and os.path.getsize(pbconfig.get('log_file_path')) >= pbconfig.get('max_log_size'):
-            pbtools.remove_file(pbconfig.get('log_file_path'))
-        # Setup logger
-        pblog.setup_logger(pbconfig.get('log_file_path'))
-    else:
+    if not pbconfig.generate_config(config_var, config_parser_func):
         # Logger is not initialized yet, so use print instead
         print(str(config_var) + " config file is not valid or not found. Please check integrity of the file")
         pbtools.error_state()
 
 def sync_handler(sync_val, repository_val = None):
     if sync_val == "all" or sync_val == "force":
-        # Do not progress further if we're in an error state
-        if pbtools.check_error_state():
-            pbtools.error_state("""Repository is currently in an error state. Please fix issues in your workspace before running PBSync
-            If you have already fixed the problem, you may remove """ + pbtools.error_file + " from your project folder & run StartProject bat file again.", True)
-
         # Firstly, check our remote connection before doing anything
         remote_state, remote_url = pbtools.check_remote_connection()
         if not remote_state:
@@ -243,6 +232,7 @@ def main():
         print("At least one valid argument should be passed!")
         sys.exit(1)
 
+    # Parser function object for PBSync config file
     def pbsync_config_parser_func (root): return {
         'engine_base_version': root.find('enginebaseversion').text,
         'supported_git_version': root.find('git/version').text,
@@ -268,9 +258,16 @@ def main():
         'dispatch_stagedir': root.find('dispatch/stagedir').text
     }
 
-    # Process arguments
+    # Preparation
     config_handler(args.config)
+    pblog.setup_logger(pbconfig.get('log_file_path'))
 
+    # Do not process further if we're in an error state
+    if pbtools.check_error_state():
+        pbtools.error_state("""Repository is currently in an error state. Please fix issues in your workspace before running PBSync
+        If you have already fixed the problem, you may remove """ + pbtools.error_file + " from your project folder & run StartProject bat file again.", True)
+
+    # Parse args
     if not (args.sync is None):
         sync_handler(args.sync, args.repository)
     elif not (args.print is None):
