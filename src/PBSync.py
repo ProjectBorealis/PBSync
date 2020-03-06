@@ -69,8 +69,8 @@ def abort_rebase():
 
 def disable_watchman():
     subprocess.call(["git", "config", "--unset", "core.fsmonitor"])
-    # if PBTools.check_running_process(PBConfig.get('watchman_executable_name')):
-    os.system("taskkill /f /im " + PBConfig.get('watchman_executable_name'))
+    if PBTools.check_running_process(PBConfig.get('watchman_executable_name')):
+        os.system("taskkill /f /im " + PBConfig.get('watchman_executable_name'))
 
 def enable_watchman():
     subprocess.call(["git", "config", "core.fsmonitor", "git-watchman/query-watchman"])
@@ -286,9 +286,10 @@ def main():
         logging.info("------------------")
 
         # Do not execute if Unreal Editor is running
-        # if PBTools.check_running_process("UE4Editor.exe"):
-        #     logging.error("Unreal Editor is currently running. Please close it before running PBSync")
-        #     error_state()
+        if PBTools.check_running_process("UE4Editor.exe"):
+            logging.error("Unreal Editor is currently running. Please close it before running PBSync.")
+            logging.error("If editor is not running, but you're somehow getting that error, please restart your system")
+            error_state()
 
         logging.info("Fetching recent changes on the repository...")
         subprocess.call(["git", "fetch", "origin"])

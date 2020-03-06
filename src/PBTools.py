@@ -1,6 +1,6 @@
 import os
 import os.path
-# import psutil
+import psutil
 import subprocess
 import shutil
 import time
@@ -58,10 +58,14 @@ def pbget_push(apikey):
     os.chdir("..")
     return status
 
-# def check_running_process(process_name):
-#     if process_name in (p.name() for p in psutil.process_iter()):
-#         return True
-#     return False
+def check_running_process(process_name):
+    try:
+        if process_name in (p.name() for p in psutil.process_iter()):
+            return True
+    except:
+        # An exception occured while checking, assume the program is not running
+        pass
+    return False
 
 def run_ue4versionator():
     if PBParser.is_versionator_symbols_enabled():
