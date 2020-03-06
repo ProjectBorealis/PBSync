@@ -9,6 +9,7 @@ import stat
 from pbpy import pbunreal
 from pbpy import pbconfig
 from pbpy import pblog
+from pbpy import pbgit
 
 error_file = ".pbsync_err"
 
@@ -154,3 +155,60 @@ def get_path_total_size(start_path):
         return -1
     return total_size
 
+def wipe_workspace():
+    current_branch = pbgit.get_current_branch_name()
+    response = input("This command will wipe your workspace and get latest changes from " + current_branch + ". Are you sure? [y/N]")
+    
+    if response != "y" and response != "Y":
+        return False
+
+    pbgit.abort_all()
+    disable_watchman()
+    subprocess.call(["git", "fetch", "origin", str(current_branch)])
+    result = subprocess.call(["git", "reset", "--hard", "origin/" + str(current_branch)])
+    subprocess.call(["git", "clean", "-fd"])
+    subprocess.call(["git", "pull"])
+    enable_watchman()
+    return result == 0
+
+def resolve_conflicts_and_pull():
+    # Disable watchman for now
+    disable_watchman()
+
+    output = subprocess.getoutput(["git", "status"])
+    pblog.info(str(output))
+
+    pblog.info("Please wait while getting latest changes on the repository. It may take a while...")
+
+    pblog.info("Trying to stash the local work...")
+    output = subprocess.getoutput(["git", "stash"])
+    pblog.info(str(output))
+
+    pblog.info("Trying to rebase workspace with latest changes on the repository...")
+    output = subprocess.getoutput(["git", "pull", "--rebase"])
+    pblog.info(str(output))
+
+    lower_case_output = str(output).lower()
+
+    if "failed to merge in the changes" in lower_case_output or "could not apply" in lower_case_output:
+        pblog.error("Aborting the rebase. Changes on one of your commits will be overridden by incoming changes. Request help on #tech-support to resolve conflicts, and  please do not run StartProject.bat until issue is solved.")
+        pbgit.abort_rebase()
+        pbgit.git_stash_pop()
+        error_state(True)
+    elif "fast-forwarded" in lower_case_output:
+        pbgit.git_stash_pop()
+        pblog.info("Success, rebased on latest changes without any conflict")
+    elif "is up to date" in lower_case_output:
+        pbgit.git_stash_pop()
+        pblog.info("Success, rebased on latest changes without any conflict")
+    elif "rewinding head" in lower_case_output and not("error" in lower_case_output or "conflict" in lower_case_output):
+        pbgit.git_stash_pop()
+        pblog.info("Success, rebased on latest changes without any conflict")
+    else:
+        pblog.error("Aborting the rebase, an unknown error occured. Request help on #tech-support to resolve conflicts, and please do not run StartProject.bat until issue is solved.")
+        pbgit.abort_rebase()
+        pbgit.git_stash_pop()
+        error_state(True)
+
+    # Run watchman back
+    enable_watchman()

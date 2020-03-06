@@ -12,7 +12,8 @@ def get(key):
     
     return config.get(str(key))
 
-def generate_config(config_path):
+# Generalized config generator. parser_func is responsible with returnning a valid config object
+def generate_config(config_path, parser_func):
     global config
 
     if config_path != None and os.path.isfile(config_path):
@@ -25,30 +26,7 @@ def generate_config(config_path):
 
         # Read config xml
         try:
-            config = {
-                'engine_base_version': root.find('enginebaseversion').text,
-                'supported_git_version': root.find('git/version').text,
-                'supported_lfs_version': root.find('git/lfsversion').text,
-                'expected_branch_name': root.find('git/expectedbranch').text,
-                'git_hooks_path': root.find('git/hooksfoldername').text,
-                'watchman_executable_name': root.find('git/watchmanexecname').text,
-                'lfs_lock_url': root.find('git/lfslockurl').text,
-                'git_url': root.find('git/url').text,
-                'log_file_path': root.find('log/file').text,
-                'max_log_size': int(root.find('log/maximumsize').text),
-                'ddc_expected_min_size': int(root.find('ddc/expectedminsize').text),
-                'uproject_path': root.find('project/uprojectname').text,
-                'uproject_version_key': root.find('project/uprojectversionkey').text,
-                'engine_version_prefix': root.find('project/engineversionprefix').text,
-                'defaultgame_path': root.find('project/defaultgameinipath').text,
-                'defaultgame_version_key': root.find('project/projectversionkey').text,
-                'versionator_config_path': root.find('project/versionatorconfigpath').text,
-                'pbget_url': root.find('pbget/url').text,
-                'dispatch_executable_path': root.find('dispatch/executable').text,
-                'dispatch_config': root.find('dispatch/config').text,
-                'dispatch_drm': root.find('dispatch/drm').text,
-                'dispatch_stagedir': root.find('dispatch/stagedir').text
-            }
+            config = parser_func(root)
         except Exception as e:
             print("Config exception: {0}".format(e))
             return False

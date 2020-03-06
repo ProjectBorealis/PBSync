@@ -11,65 +11,6 @@ from pbpy import pbconfig
 from pbpy import pbunreal
 from pbpy import pbversion
 
-def wipe_workspace():
-    current_branch = pbgit.get_current_branch_name()
-    response = input("This command will wipe your workspace and get latest changes from " + current_branch + ". Are you sure? [y/N]")
-    
-    if response != "y" and response != "Y":
-        return False
-
-    pbgit.abort_all()
-    pbtools.disable_watchman()
-    subprocess.call(["git", "fetch", "origin", str(current_branch)])
-    result = subprocess.call(["git", "reset", "--hard", "origin/" + str(current_branch)])
-    subprocess.call(["git", "clean", "-fd"])
-    subprocess.call(["git", "pull"])
-    pbtools.enable_watchman()
-    return result == 0
-
-def resolve_conflicts_and_pull():
-    # Disable watchman for now
-    pbtools.disable_watchman()
-
-    output = subprocess.getoutput(["git", "status"])
-    pblog.info(str(output))
-
-    pblog.info("Please wait while getting latest changes on the repository. It may take a while...")
-
-    pblog.info("Trying to stash the local work...")
-    output = subprocess.getoutput(["git", "stash"])
-    pblog.info(str(output))
-
-    pblog.info("Trying to rebase workspace with latest changes on the repository...")
-    output = subprocess.getoutput(["git", "pull", "--rebase"])
-    pblog.info(str(output))
-
-    lower_case_output = str(output).lower()
-
-    if "failed to merge in the changes" in lower_case_output or "could not apply" in lower_case_output:
-        pblog.error("Aborting the rebase. Changes on one of your commits will be overridden by incoming changes. Request help on #tech-support to resolve conflicts, and  please do not run StartProject.bat until issue is solved.")
-        pbgit.abort_rebase()
-        pbgit.git_stash_pop()
-        pbtools.error_state(True)
-    elif "fast-forwarded" in lower_case_output:
-        pbgit.git_stash_pop()
-        pblog.info("Success, rebased on latest changes without any conflict")
-    elif "is up to date" in lower_case_output:
-        pbgit.git_stash_pop()
-        pblog.info("Success, rebased on latest changes without any conflict")
-    elif "rewinding head" in lower_case_output and not("error" in lower_case_output or "conflict" in lower_case_output):
-        pbgit.git_stash_pop()
-        pblog.info("Success, rebased on latest changes without any conflict")
-    else:
-        pblog.error("Aborting the rebase, an unknown error occured. Request help on #tech-support to resolve conflicts, and please do not run StartProject.bat until issue is solved.")
-        pbgit.abort_rebase()
-        pbgit.git_stash_pop()
-        pbtools.error_state(True)
-
-    # Run watchman back
-    pbtools.enable_watchman()
-############################################################################
-
 def main():
     parser = argparse.ArgumentParser(description="Project Borealis Workspace Synchronization Tool")
 
@@ -88,7 +29,32 @@ def main():
     if args.config == None:
         args.config = "PBSync.xml"
 
-    if pbconfig.generate_config(args.config):
+    def pbsync_config_parser_func (root): return {
+        'engine_base_version': root.find('enginebaseversion').text,
+        'supported_git_version': root.find('git/version').text,
+        'supported_lfs_version': root.find('git/lfsversion').text,
+        'expected_branch_name': root.find('git/expectedbranch').text,
+        'git_hooks_path': root.find('git/hooksfoldername').text,
+        'watchman_executable_name': root.find('git/watchmanexecname').text,
+        'lfs_lock_url': root.find('git/lfslockurl').text,
+        'git_url': root.find('git/url').text,
+        'log_file_path': root.find('log/file').text,
+        'max_log_size': int(root.find('log/maximumsize').text),
+        'ddc_expected_min_size': int(root.find('ddc/expectedminsize').text),
+        'uproject_path': root.find('project/uprojectname').text,
+        'uproject_version_key': root.find('project/uprojectversionkey').text,
+        'engine_version_prefix': root.find('project/engineversionprefix').text,
+        'defaultgame_path': root.find('project/defaultgameinipath').text,
+        'defaultgame_version_key': root.find('project/projectversionkey').text,
+        'versionator_config_path': root.find('project/versionatorconfigpath').text,
+        'pbget_url': root.find('pbget/url').text,
+        'dispatch_executable_path': root.find('dispatch/executable').text,
+        'dispatch_config': root.find('dispatch/config').text,
+        'dispatch_drm': root.find('dispatch/drm').text,
+        'dispatch_stagedir': root.find('dispatch/stagedir').text
+    }
+
+    if pbconfig.generate_config(args.config, pbsync_config_parser_func):
         # If log file is big enough, remove it
         if os.path.isfile(pbconfig.get('log_file_path')) and os.path.getsize(pbconfig.get('log_file_path')) >= pbconfig.get('max_log_size'):
             pbtools.remove_file(pbconfig.get('log_file_path'))
@@ -182,7 +148,7 @@ def main():
 
         # Execute synchronization part of script if we're on the expected branch, force sync is enabled
         if args.sync == "force" or pbgit.compare_with_currnent_branch_name(pbconfig.get('expected_branch_name')):
-            resolve_conflicts_and_pull() 
+            pbtools.resolve_conflicts_and_pull() 
             pblog.info("------------------")
             
             if pbtools.pbget_pull() != 0:
@@ -272,7 +238,7 @@ def main():
             sys.exit(1)
 
     elif not (args.wipe is None):
-        if wipe_workspace():
+        if pbtools.wipe_workspace():
             pblog.info("Workspace wipe successful")
             input("Press enter to quit...")
         else:
