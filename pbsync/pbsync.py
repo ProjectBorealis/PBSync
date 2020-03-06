@@ -4,7 +4,13 @@ import os
 import sys
 import argparse
 
-from pbpy import *
+from pbpy import pblog
+from pbpy import pbtools
+from pbpy import pbunreal
+from pbpy import pbgit
+from pbpy import pbconfig
+from pbpy import pbversion
+from pbpy import pbdispatch
 from pbsync import pbsync_version
 
 default_config_name = "PBSync.xml"
@@ -13,7 +19,7 @@ def config_handler(config_var, config_parser_func):
     if not pbconfig.generate_config(config_var, config_parser_func):
         # Logger is not initialized yet, so use print instead
         print(str(config_var) + " config file is not valid or not found. Please check integrity of the file")
-        pbtools.error_state()
+        sys.exit(1)
 
 def sync_handler(sync_val, repository_val = None):
     if sync_val == "all" or sync_val == "force":
@@ -198,15 +204,19 @@ def autoversion_handler(autoversion_val):
         pblog.error("Error occured while trying to increase project version")
         sys.exit(1)
 
-def publish_handler(publish_val):
-    if not pbtools.push_build(publish_val):
+def publish_handler(publish_val, dispatch_exec_path):
+    if dispatch_exec_path is None:
+        pblog.error("--dispatch argument should be provided for --publish command")
+        sys.exit(1)
+
+    if not pbdispatch.push_build(publish_val, dispatch_exec_path, pbconfig.get('dispatch_config'), pbconfig.get('dispatch_stagedir'), pbconfig.get('dispatch_drm')):
         pblog.error("Something went wrong while pushing a new playable build.")
         sys.exit(1)
 
 def push_handler(push_val):
     project_version = pbunreal.get_project_version()
     pblog.info("Initiating PBGet to push " + project_version + " binaries...")
-    result = pbtools.pbget_push(str(push_val))
+    result = pbtools.pbget_push(str(push_val), pbconfig.get("pbget_url"))
     if int(result) == 1:
         pblog.error("Error occured while pushing binaries for " + project_version)
         sys.exit(1)
@@ -219,6 +229,7 @@ def main():
     parser.add_argument("--print", help="Prints requested version information into console. latest-engine command needs --repository parameter",
     choices=["current-engine", "latest-engine", "project"])
     parser.add_argument("--repository", help="<URL> Required repository url for --print latest-engine and --sync engine commands")
+    parser.add_argument("--dispatch", help="<PATH_TO_DISPATCH_EXE> Required dispastch executable path for --publish command")
     parser.add_argument("--autoversion", help="Automatic version update for project version", choices=["hotfix", "stable", "public"])
     parser.add_argument("--clean", help="""Do cleanup according to specified argument. If engine is provided, old engine installations will be cleared
     If workspace is provided, workspace will be reset with latest changes from current branch (Not revertable)""", choices=["engine", "workspace"])
@@ -234,32 +245,25 @@ def main():
 
     # Parser function object for PBSync config file
     def pbsync_config_parser_func (root): return {
-        'engine_base_version': root.find('enginebaseversion').text,
         'supported_git_version': root.find('git/version').text,
         'supported_lfs_version': root.find('git/lfsversion').text,
         'expected_branch_name': root.find('git/expectedbranch').text,
         'git_hooks_path': root.find('git/hooksfoldername').text,
-        'watchman_executable_name': root.find('git/watchmanexecname').text,
         'lfs_lock_url': root.find('git/lfslockurl').text,
         'git_url': root.find('git/url').text,
         'log_file_path': root.find('log/file').text,
-        'max_log_size': int(root.find('log/maximumsize').text),
-        'ddc_expected_min_size': int(root.find('ddc/expectedminsize').text),
+        'versionator_config_path': root.find('versionator/configpath').text,
+        'engine_base_version': root.find('project/enginebaseversion').text,
         'uproject_path': root.find('project/uprojectname').text,
-        'uproject_version_key': root.find('project/uprojectversionkey').text,
-        'engine_version_prefix': root.find('project/engineversionprefix').text,
         'defaultgame_path': root.find('project/defaultgameinipath').text,
-        'defaultgame_version_key': root.find('project/projectversionkey').text,
-        'versionator_config_path': root.find('project/versionatorconfigpath').text,
         'pbget_url': root.find('pbget/url').text,
-        'dispatch_executable_path': root.find('dispatch/executable').text,
         'dispatch_config': root.find('dispatch/config').text,
         'dispatch_drm': root.find('dispatch/drm').text,
         'dispatch_stagedir': root.find('dispatch/stagedir').text
     }
 
     # Preparation
-    config_handler(args.config)
+    config_handler(args.config, pbsync_config_parser_func)
     pblog.setup_logger(pbconfig.get('log_file_path'))
 
     # Do not process further if we're in an error state
@@ -277,7 +281,7 @@ def main():
     elif not (args.clean is None):
         clean_handler(args.clean)
     elif not (args.publish is None):
-        publish_handler(args.publish)
+        publish_handler(args.publish, args.dispatch)
     elif not (args.push is None):
         push_handler(args.push)
     else:

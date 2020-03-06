@@ -1,36 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <config>
-    <enginebaseversion></enginebaseversion>
+    <project>
+        <enginebaseversion></enginebaseversion>
+        <uprojectname></uprojectname>
+        <defaultgameinipath></defaultgameinipath>
+    </project>
     <git>
         <version></version>
         <lfsversion></lfsversion>
         <expectedbranch></expectedbranch>
         <hooksfoldername></hooksfoldername>
-        <watchmanexecname></watchmanexecname>
         <lfslockurl></lfslockurl>
         <url></url>
     </git>
+    <versionator>
+        <configpath></configpath>
+    </versionator>
     <log>
         <file></file>
-        <maximumsize></maximumsize>
     </log>
-    <ddc>
-        <expectedminsize></expectedminsize>
-    </ddc>
-    <project>
-        <uprojectname></uprojectname>
-        <engineversionprefix></engineversionprefix>
-        <defaultgameinipath></defaultgameinipath>
-        <projectversionkey></projectversionkey>
-        <versionatorconfigpath></versionatorconfigpath>
-    </project>
     <pbget>
         <url></url>
     </pbget>
     <dispatch>
-        <executable></executable>
         <config></config>
-        <drm></drm>
         <stagedir></stagedir>
+        <drm></drm>
     </dispatch>
 </config>

@@ -18,8 +18,12 @@ project_version_key = "ProjectVersion="
 ddc_folder_name = "DerivedDataCache"
 ue4_editor_relative_path = "Engine/Binaries/Win64/UE4Editor.exe"
 engine_installation_folder_regex = "[0-9].[0-9]{2}-PB-[0-9]{8}"
+engine_version_prefix = "PB"
 
-def get_engine_version_suffix():
+def get_engine_prefix():
+    return pbconfig.get('engine_base_version') + "-" + engine_version_prefix
+
+def get_engine_date_suffix():
     try:
         with open(pbconfig.get('uproject_path'), "r") as uproject_file:  
             data = json.load(uproject_file)
@@ -132,7 +136,7 @@ def get_engine_version():
 def get_engine_version_with_prefix():
     engine_ver_number = get_engine_version()
     if engine_ver_number != None:
-        return pbconfig.get('engine_version_prefix') + engine_ver_number
+        return get_engine_prefix() + engine_ver_number
     return None
 
 def get_engine_install_root():
@@ -159,9 +163,9 @@ def check_ue4_file_association():
     file_assoc_result = subprocess.getoutput(["assoc", uproject_ext])
     return "Unreal.ProjectFile" in file_assoc_result
 
-def check_ddc_data():
+def check_ddc_folder_created():
     ddc_path = os.path.join(os.getcwd(), ddc_folder_name)
-    return (pbtools.get_path_total_size(ddc_path) > pbconfig.get('ddc_expected_min_size'))
+    return os.path.isdir(ddc_path)
 
 def generate_ddc_data():
     pblog.info("Generating DDC data, please wait... (This may take up to one hour only for the initial run)")
@@ -174,8 +178,8 @@ def generate_ddc_data():
             if os.path.isfile(ue_editor_executable):
                 err = subprocess.call([str(ue_editor_executable), os.path.join(os.getcwd(), pbconfig.get('uproject_path')), "-run=DerivedDataCache", "-fill"])
                 pblog.info("DDC generate command has exited with " + str(err))
-                if not check_ddc_data():
-                    pbtools.error_state("Generated DDC data was smaller than expected. Please get support from #tech-support")
+                if not check_ddc_folder_created():
+                    pbtools.error_state("DDC folder doesn't exist. Please get support from #tech-support")
                     return
                 pblog.info("DDC data successfully generated!")
                 return

@@ -12,6 +12,7 @@ from pbpy import pblog
 from pbpy import pbgit
 
 error_file = ".pbsync_err"
+watchman_exec_name = "watchman.exe"
 
 # True: Error on last run, False: No errors
 def check_error_state():
@@ -51,32 +52,15 @@ def error_state(msg = None, fatal_error = False):
 
 def disable_watchman():
     subprocess.call(["git", "config", "--unset", "core.fsmonitor"])
-    if check_running_process(pbconfig.get('watchman_executable_name')):
-        os.system("taskkill /f /im " + pbconfig.get('watchman_executable_name'))
+    if check_running_process(watchman_exec_name):
+        os.system("taskkill /f /im " + watchman_exec_name)
 
 def enable_watchman():
     subprocess.call(["git", "config", "core.fsmonitor", "git-watchman/query-watchman"])
     # Trigger
     out = subprocess.getoutput(["git", "status"])
 
-def push_build(branch_type):
-    # Wrap executable with DRM
-    result = subprocess.call([pbconfig.get('dispatch_executable_path'), "build", "drm-wrap", str(os.environ['DISPATCH_APP_ID']), pbconfig.get('dispatch_drm')])
-    if result != 0:
-        return False
-
-    branch_id = "-1"
-    if branch_type == "stable":
-        branch_id = str(os.environ['DISPATCH_ALPHA_BID'])
-    elif branch_type == "public":
-        branch_id = str(os.environ['DISPATCH_BETA_BID'])
-    else:
-        return False
-
-    # Push & Publish the build
-    result = subprocess.call([pbconfig.get('dispatch_executable_path'), "build", "push", branch_id, pbconfig.get('dispatch_config'), pbconfig.get('dispatch_stagedir'), "-p"])
-    return result == 0
-
+# Deprecated
 def pbget_pull():
     os.chdir("PBGet")
     subprocess.call(["PBGet.exe", "resetcache"])
@@ -84,9 +68,10 @@ def pbget_pull():
     os.chdir("..")
     return status
 
-def pbget_push(apikey):
+# Deprecated
+def pbget_push(apikey, source_url):
     os.chdir("PBGet")
-    status = subprocess.call(["PBGet.exe", "push", "--source", pbconfig.get('pbget_url'), "--apikey", apikey])
+    status = subprocess.call(["PBGet.exe", "push", "--source", source_url, "--apikey", apikey])
     os.chdir("..")
     return status
 
@@ -99,7 +84,7 @@ def check_running_process(process_name):
         pass
     return False
 
-# TODO: Implement that into ue4versionator. Until doing that, this can stay inside pbunreal module
+# TODO: Implement that into ue4versionator. Until doing that, this can stay inside pbtool module
 def is_versionator_symbols_enabled():
     if not path.isfile(pbconfig.get('versionator_config_path')):
         # Config file somehow isn't generated yet, only get a response, but do not write anything into config
@@ -136,24 +121,12 @@ def is_versionator_symbols_enabled():
     except:
         return False
 
+# TODO: Implement that into ue4versionator. Until doing that, this can stay inside pbtools module
 def run_ue4versionator():
     if is_versionator_symbols_enabled():
         return subprocess.call(["ue4versionator.exe", "--with-symbols"])
     else:
         return subprocess.call(["ue4versionator.exe"])
-
-def get_path_total_size(start_path):
-    total_size = -1
-    try:
-        for dirpath, dirnames, filenames in os.walk(start_path):
-            for f in filenames:
-                fp = os.path.join(dirpath, f)
-                # skip if it is symbolic link
-                if not os.path.islink(fp):
-                    total_size += os.path.getsize(fp)
-    except:
-        return -1
-    return total_size
 
 def wipe_workspace():
     current_branch = pbgit.get_current_branch_name()
