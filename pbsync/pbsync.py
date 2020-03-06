@@ -1,22 +1,15 @@
 import subprocess
 import os.path
 import os
-import time
 import sys
-import datetime
-from shutil import copy
-import stat
-from shutil import rmtree
 import argparse
-import logging
 
-# PBSync Imports
-import pbunreal
-import pbtools
-import pbconfig
-import pbversion
-import pbgit
-import pblog
+from pbpy import pbtools
+from pbpy import pblog
+from pbpy import pbgit
+from pbpy import pbconfig
+from pbpy import pbunreal
+from pbpy import pbversion
 
 def wipe_workspace():
     current_branch = pbgit.get_current_branch_name()
@@ -33,29 +26,6 @@ def wipe_workspace():
     subprocess.call(["git", "pull"])
     pbtools.enable_watchman()
     return result == 0
-
-def remove_file(file_path):
-    try:
-        os.remove(file_path)
-    except:
-        os.chmod(file_path, stat.S_IRWXU| stat.S_IRWXG| stat.S_IRWXO) # 0777
-        try:
-            os.remove(file_path)
-        except Exception as e:
-            pblog.exception(str(e))
-            pass
-    return not os.path.isfile(file_path)
-
-
-def is_expected_branch():
-    output = pbgit.get_current_branch_name()
-    
-    if output != pbconfig.get('expected_branch_name'):
-        return False
-
-    # In any case, always set upstream to track same branch (only if we're on expected branch)
-    out = subprocess.getoutput(["git", "branch", "--set-upstream-to=origin/" + str(output), str(output)])
-    return True
 
 def resolve_conflicts_and_pull():
     # Disable watchman for now
@@ -121,7 +91,7 @@ def main():
     if pbconfig.generate_config(args.config):
         # If log file is big enough, remove it
         if os.path.isfile(pbconfig.get('log_file_path')) and os.path.getsize(pbconfig.get('log_file_path')) >= pbconfig.get('max_log_size'):
-            remove_file(pbconfig.get('log_file_path'))
+            pbtools.remove_file(pbconfig.get('log_file_path'))
 
         # Setup logger
         pblog.setup_logger(pbconfig.get('log_file_path'))
@@ -211,8 +181,8 @@ def main():
         pblog.info("------------------")
 
         # Execute synchronization part of script if we're on the expected branch, force sync is enabled
-        if args.sync == "force" or is_expected_branch():
-            resolve_conflicts_and_pull()
+        if args.sync == "force" or pbgit.compare_with_currnent_branch_name(pbconfig.get('expected_branch_name')):
+            resolve_conflicts_and_pull() 
             pblog.info("------------------")
             
             if pbtools.pbget_pull() != 0:
@@ -244,7 +214,7 @@ def main():
             pblog.info("Engine build " + engine_version + " successfully registered")
             
         # Clean old engine installations, do that only in expected branch
-        if is_expected_branch():
+        if pbgit.compare_with_currnent_branch_name(pbconfig.get('expected_branch_name')):
             if pbtools.clean_old_engine_installations():
                 pblog.info("Old engine installations are successfully cleaned")
             else:

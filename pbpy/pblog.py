@@ -1,8 +1,8 @@
 import sys
 import logging
 
-import pbtools
-import pbconfig
+from pbpy import pbtools
+from pbpy import pbconfig
 
 def setup_logger(log_file_path):
   logFormatter = logging.Formatter("%(asctime)s [%(levelname)-5.5s]  %(message)s", datefmt='%d-%b-%y %H:%M:%S')

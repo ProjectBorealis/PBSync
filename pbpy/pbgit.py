@@ -1,5 +1,10 @@
-import pblog
-import pbconfig
+from pbpy import pblog
+from pbpy import pbconfig
+from pbpy import pbtools
+
+
+def get_current_branch_name():
+    return str(subprocess.getoutput(["git", "branch", "--show-current"]))
 
 def get_git_version():
     installed_version = subprocess.getoutput(["git", "--version"])
@@ -9,6 +14,9 @@ def get_git_version():
         return ""
 
     return installed_version_parsed[0]
+
+def compare_with_currnent_branch_name(compared_branch):
+    return get_current_branch_name() == compared_branch
 
 def get_lfs_version():
     installed_version = subprocess.getoutput(["git-lfs", "--version"])
@@ -78,9 +86,6 @@ def setup_config():
   subprocess.call(["git", "config", pbconfig.get('lfs_lock_url'), "true"])
   subprocess.call(["git", "config", "core.hooksPath", pbconfig.get('git_hooks_path')])
   subprocess.call(["git", "config", "include.path", "../.gitconfig"])
-
-def get_current_branch_name():
-    return str(subprocess.getoutput(["git", "branch", "--show-current"]))
 
 # -2: Parse error
 # -1: Old version

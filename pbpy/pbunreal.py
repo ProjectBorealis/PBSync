@@ -1,13 +1,13 @@
 import subprocess
 import re
 from shutil import move
+from shutil import rmtree
 from os import remove
-from os import path
 import json
 
-import pbconfig
-import pbtools
-import pblog
+from pbpy import pbconfig
+from pbpy import pbtools
+from pbpy import pblog
 
 # Those variable values are not likely to be changed in the future, it's safe to keep them hardcoded
 uplugin_ext = ".uplugin"
@@ -18,43 +18,6 @@ project_version_key = "ProjectVersion="
 ddc_folder_name = "DerivedDataCache"
 ue4_editor_relative_path = "Engine/Binaries/Win64/UE4Editor.exe"
 engine_installation_folder_regex = "[0-9].[0-9]{2}-PB-[0-9]{8}"
-
-# TODO: Implement that into ue4versionator. Until doing that, this can stay inside pbunreal module
-def is_versionator_symbols_enabled():
-    if not path.isfile(pbconfig.get('versionator_config_path')):
-        # Config file somehow isn't generated yet, only get a response, but do not write anything into config
-        response = input("Do you want to also download debugging symbols for accurate crash logging? You can change that choice later in .ue4v-user config file [y/n]")
-        if response == "y" or response == "Y":
-            return True
-        else:
-            return False
-
-    try:
-        with open(pbconfig.get('versionator_config_path'), "r") as config_file:
-            for ln in config_file:
-                if "Symbols" in ln or "symbols" in ln:
-                    if "False" in ln or "false" in ln:
-                        return False
-                    elif "True" in ln or "true" in ln:
-                        return True
-                    else:
-                        # Incorrect config
-                        return False
-    except:
-        return False
-
-    # Symbols configuration variable is not on the file, let's add it
-    try:
-        with open(pbconfig.get('versionator_config_path'), "a+") as config_file:   
-            response = input("Do you want to also download debugging symbols for accurate crash logging? You can change that choice later in .ue4v-user config file [y/n]")
-            if response == "y" or response == "Y":
-                config_file.write("\nsymbols = true")
-                return True
-            else:
-                config_file.write("\nsymbols = false")
-                return False
-    except:
-        return False
 
 def get_engine_version_suffix():
     try:
