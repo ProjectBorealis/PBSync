@@ -14,7 +14,6 @@ def get(key):
 
 def generate_config(config_path):
     global config
-    pbsync_version = "0.1.21"
 
     if config_path != None and os.path.isfile(config_path):
         tree = ET.parse(config_path)
@@ -27,7 +26,6 @@ def generate_config(config_path):
         # Read config xml
         try:
             config = {
-                'pbsync_version': pbsync_version,
                 'engine_base_version': root.find('enginebaseversion').text,
                 'supported_git_version': root.find('git/version').text,
                 'supported_lfs_version': root.find('git/lfsversion').text,

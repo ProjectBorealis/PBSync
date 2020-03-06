@@ -14,6 +14,7 @@ import logging
 import PBParser
 import PBTools
 import PBConfig
+import PBVersion
 
 def error_state(fatal_error = False):
     if fatal_error:
@@ -102,7 +103,7 @@ def generate_ddc_command():
     state, err = PBTools.generate_ddc_data()
     logging.info("DDC generate command has exited with " + str(err))
     if state == 0:
-        logging.info("DDC data successfully generated & versioned!")
+        logging.info("DDC data successfully generated!")
     elif state == 1:
         logging.error("Error occured while trying to read project version for DDC data generation. Please get support from #tech-support")
         error_state()
@@ -235,7 +236,7 @@ def main():
 
         logging.info("------------------")
 
-        logging.info("Executing " + str(args.sync) + " sync command for PBSync v" + PBConfig.get('pbsync_version'))
+        logging.info("Executing " + str(args.sync) + " sync command for PBSync v" + PBVersion.pbsync_version)
 
         logging.info("------------------")
 
