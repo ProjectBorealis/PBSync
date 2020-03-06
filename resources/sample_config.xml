@@ -19,12 +19,10 @@
     </ddc>
     <project>
         <uprojectname></uprojectname>
-        <uprojectversionkey></uprojectversionkey>
         <engineversionprefix></engineversionprefix>
         <defaultgameinipath></defaultgameinipath>
         <projectversionkey></projectversionkey>
         <versionatorconfigpath></versionatorconfigpath>
-        <errorfile></errorfile>
     </project>
     <pbget>
         <url></url>

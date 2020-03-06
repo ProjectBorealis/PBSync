@@ -3,18 +3,50 @@ import os.path
 import psutil
 import subprocess
 import shutil
-import time
-import re
 
 # PBSync Imports
-import PBParser
-import PBConfig
+import pbunreal
+import pbconfig
 
-engine_installation_folder_regex = "[0-9].[0-9]{2}-PB-[0-9]{8}"
+error_file = ".pbsync_err"
+
+# True: Error on last run, False: No errors
+def check_error_state():
+    try:
+        with open(error_file, 'r') as error_state_file:
+            error_state = error_state_file.readline(1)
+            if int(error_state) == 0:
+                return False
+            elif int(error_state) == 1:
+                return True
+            else:
+                return False
+    except:
+        return False
+
+def error_state(msg = None, fatal_error = False):
+    if msg != None:
+        logging.error(msg)
+    if fatal_error:
+        # That was a fatal error, until issue is fixed, do not let user run PBSync
+        with open(error_file, 'w') as error_state_file:
+            error_state_file.write("1")
+    out = input("Logs are saved in " + pbconfig.get("log_file_path") + ". Press enter to quit...")
+    sys.exit(1)
+
+def disable_watchman():
+    subprocess.call(["git", "config", "--unset", "core.fsmonitor"])
+    if check_running_process(pbconfig.get('watchman_executable_name')):
+        os.system("taskkill /f /im " + pbconfig.get('watchman_executable_name'))
+
+def enable_watchman():
+    subprocess.call(["git", "config", "core.fsmonitor", "git-watchman/query-watchman"])
+    # Trigger
+    out = subprocess.getoutput(["git", "status"])
 
 def push_build(branch_type):
     # Wrap executable with DRM
-    result = subprocess.call([PBConfig.get('dispatch_executable'), "build", "drm-wrap", str(os.environ['DISPATCH_APP_ID']), PBConfig.get('dispatch_drm')])
+    result = subprocess.call([pbconfig.get('dispatch_executable_path'), "build", "drm-wrap", str(os.environ['DISPATCH_APP_ID']), pbconfig.get('dispatch_drm')])
     if result != 0:
         return False
 
@@ -27,23 +59,8 @@ def push_build(branch_type):
         return False
 
     # Push & Publish the build
-    result = subprocess.call([PBConfig.get('dispatch_executable'), "build", "push", branch_id, PBConfig.get('dispatch_config'), PBConfig.get('dispatch_stagedir'), "-p"])
+    result = subprocess.call([pbconfig.get('dispatch_executable_path'), "build", "push", branch_id, pbconfig.get('dispatch_config'), pbconfig.get('dispatch_stagedir'), "-p"])
     return result == 0
-
-def check_remote_connection():
-    current_url = subprocess.check_output(["git", "remote", "get-url", "origin"])
-    # recent_url = PBConfig.get("git_url")
-
-    # if current_url != recent_url:
-    #     subprocess.call(["git", "remote", "set-url", "origin", recent_url])
-
-    # current_url = subprocess.check_output(["git", "remote", "get-url", "origin"])
-    out = subprocess.check_output(["git", "ls-remote", "--exit-code", "-h"])
-    return not ("fatal" in str(out)), str(current_url)
-
-def check_ue4_file_association():
-    file_assoc_result = subprocess.getoutput(["assoc", ".uproject"])
-    return "Unreal.ProjectFile" in file_assoc_result
 
 def pbget_pull():
     os.chdir("PBGet")
@@ -54,7 +71,7 @@ def pbget_pull():
 
 def pbget_push(apikey):
     os.chdir("PBGet")
-    status = subprocess.call(["PBGet.exe", "push", "--source", PBConfig.get('pbget_url'), "--apikey", apikey])
+    status = subprocess.call(["PBGet.exe", "push", "--source", pbconfig.get('pbget_url'), "--apikey", apikey])
     os.chdir("..")
     return status
 
@@ -68,54 +85,12 @@ def check_running_process(process_name):
     return False
 
 def run_ue4versionator():
-    if PBParser.is_versionator_symbols_enabled():
+    if pbparser.is_versionator_symbols_enabled():
         return subprocess.call(["ue4versionator.exe", "--with-symbols"])
     else:
         return subprocess.call(["ue4versionator.exe"])
 
-def clean_old_engine_installations():
-    current_version = PBParser.get_engine_version_with_prefix()
-    global engine_installation_folder_regex
-    p = re.compile(engine_installation_folder_regex)
-    if current_version != None:
-        engine_install_root = PBParser.get_engine_install_root()
-        if engine_install_root != None and os.path.isdir(engine_install_root):
-            dirs = os.listdir(engine_install_root)
-            for dir in dirs:
-                # Do not remove folders if they do not match with installation folder name pattern
-                # Also do not remove files. Only remove folders
-                full_path = os.path.join(engine_install_root, dir)
-                if dir != current_version and p.match(dir) != None and os.path.isdir(full_path):
-                    print("Removing old engine installation: " + str(full_path) + "...")
-                    try:
-                        shutil.rmtree(full_path)
-                        print("Removal was successful!")
-                    except:
-                        print("Something went wrong while removing engine folder " + str(full_path) + " Please try removing it manually.")
-            return True
-
-    return False
-
-# 0: DDC generation was successful
-# 1: DDC data generation was not successful because of IO errors
-# 2: Generated DDC data is smaller than expected
-def generate_ddc_data():
-    current_version = PBParser.get_engine_version_with_prefix()
-    
-    if current_version != None:
-        engine_install_root = PBParser.get_engine_install_root()
-        installation_dir = os.path.join(engine_install_root, current_version)
-        if os.path.isdir(installation_dir):
-            ue_editor_executable = os.path.join(installation_dir, "Engine/Binaries/Win64/UE4Editor.exe")
-            if os.path.isfile(ue_editor_executable):
-                err = subprocess.call([str(ue_editor_executable), os.path.join(os.getcwd(), PBConfig.get('uproject_path')), "-run=DerivedDataCache", "-fill"])
-                if not check_ddc_data():
-                    return 2, err
-                return 0, err
-    
-    return 1, err
-
-def get_size(start_path):
+def get_path_total_size(start_path):
     total_size = -1
     try:
         for dirpath, dirnames, filenames in os.walk(start_path):
@@ -128,6 +103,3 @@ def get_size(start_path):
         return -1
     return total_size
 
-def check_ddc_data():
-    ddc_path = os.path.join(os.getcwd(), "DerivedDataCache")
-    return (get_size(ddc_path) > PBConfig.get('ddc_expected_min_size'))

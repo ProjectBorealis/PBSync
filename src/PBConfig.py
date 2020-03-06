@@ -43,9 +43,8 @@ def generate_config(config_path):
                 'defaultgame_path': root.find('project/defaultgameinipath').text,
                 'defaultgame_version_key': root.find('project/projectversionkey').text,
                 'versionator_config_path': root.find('project/versionatorconfigpath').text,
-                'error_file': root.find('project/errorfile').text,
                 'pbget_url': root.find('pbget/url').text,
-                'dispatch_executable': root.find('dispatch/executable').text,
+                'dispatch_executable_path': root.find('dispatch/executable').text,
                 'dispatch_config': root.find('dispatch/config').text,
                 'dispatch_drm': root.find('dispatch/drm').text,
                 'dispatch_stagedir': root.find('dispatch/stagedir').text
