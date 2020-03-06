@@ -10,64 +10,12 @@ from pbpy import pbgit
 from pbpy import pbconfig
 from pbpy import pbunreal
 from pbpy import pbversion
+from pbsync import pbsync_version
 
-def main():
-    parser = argparse.ArgumentParser(description="Project Borealis Workspace Synchronization Tool")
+default_config_name = "PBSync.xml"
 
-    parser.add_argument("--sync", help="[force, all, engine, ddc] Main command for the PBSync, synchronizes the project with latest changes in repo, and does some housekeeping")
-    parser.add_argument("--print", help="[current-engine, latest-engine, project] Prints requested version information into console. latest-engine command needs --repository parameter")
-    parser.add_argument("--repository", help="<URL> Required repository url for --print latest-engine and --sync engine commands")
-    parser.add_argument("--autoversion", help="[hotfix, stable, public] Automatic version update for project version")
-    parser.add_argument("--wipe", help="[latest] Wipe the workspace and get latest changes from current branch (Not revertable)")
-    parser.add_argument("--clean", help="[engine] Do cleanup according to specified argument")
-    parser.add_argument("--config", help="Path of config XML file. If not provided, ./PBSync.xml is used as default")
-    parser.add_argument("--push", help="[apikey] Push current binaries into NuGet repository with provided api key. If provided with --autoversion, push will be done after auto versioning.")
-    parser.add_argument("--publish", help="[stable, public] Publishes a playable build with provided build type")
-    args = parser.parse_args()
-
-    # If config parameter is not passed, default to PBSync.xml
-    if args.config == None:
-        args.config = "PBSync.xml"
-
-    def pbsync_config_parser_func (root): return {
-        'engine_base_version': root.find('enginebaseversion').text,
-        'supported_git_version': root.find('git/version').text,
-        'supported_lfs_version': root.find('git/lfsversion').text,
-        'expected_branch_name': root.find('git/expectedbranch').text,
-        'git_hooks_path': root.find('git/hooksfoldername').text,
-        'watchman_executable_name': root.find('git/watchmanexecname').text,
-        'lfs_lock_url': root.find('git/lfslockurl').text,
-        'git_url': root.find('git/url').text,
-        'log_file_path': root.find('log/file').text,
-        'max_log_size': int(root.find('log/maximumsize').text),
-        'ddc_expected_min_size': int(root.find('ddc/expectedminsize').text),
-        'uproject_path': root.find('project/uprojectname').text,
-        'uproject_version_key': root.find('project/uprojectversionkey').text,
-        'engine_version_prefix': root.find('project/engineversionprefix').text,
-        'defaultgame_path': root.find('project/defaultgameinipath').text,
-        'defaultgame_version_key': root.find('project/projectversionkey').text,
-        'versionator_config_path': root.find('project/versionatorconfigpath').text,
-        'pbget_url': root.find('pbget/url').text,
-        'dispatch_executable_path': root.find('dispatch/executable').text,
-        'dispatch_config': root.find('dispatch/config').text,
-        'dispatch_drm': root.find('dispatch/drm').text,
-        'dispatch_stagedir': root.find('dispatch/stagedir').text
-    }
-
-    if pbconfig.generate_config(args.config, pbsync_config_parser_func):
-        # If log file is big enough, remove it
-        if os.path.isfile(pbconfig.get('log_file_path')) and os.path.getsize(pbconfig.get('log_file_path')) >= pbconfig.get('max_log_size'):
-            pbtools.remove_file(pbconfig.get('log_file_path'))
-
-        # Setup logger
-        pblog.setup_logger(pbconfig.get('log_file_path'))
-    else:
-        # Logger is not initialized yet, so use print instead
-        print(str(args.config) + " config file is not valid or not found. Please check integrity of the file")
-        pbtools.error_state()
-
-    # Process arguments
-    if args.sync == "all" or args.sync == "force":
+def sync_handler(sync_val, repository_val = None):
+    if sync_val == "all" or sync_val == "force":
         # Do not progress further if we're in an error state
         if pbtools.check_error_state():
             pbtools.error_state("""Repository is currently in an error state. Please fix issues in your workspace before running PBSync
@@ -82,7 +30,9 @@ def main():
 
         pblog.info("------------------")
 
-        pblog.info("Executing " + str(args.sync) + " sync command for PBSync v" + pbversion.pbsync_version)
+        pblog.info("Executing " + str(sync_val) + " sync command")
+        pblog.info("PBpy Module Version: " + pbversion.ver)
+        pblog.info("PBSync Executable Version: " + pbsync_version.ver)
 
         pblog.info("------------------")
 
@@ -147,7 +97,7 @@ def main():
         pblog.info("------------------")
 
         # Execute synchronization part of script if we're on the expected branch, force sync is enabled
-        if args.sync == "force" or pbgit.compare_with_currnent_branch_name(pbconfig.get('expected_branch_name')):
+        if sync_val == "force" or pbgit.compare_with_currnent_branch_name(pbconfig.get('expected_branch_name')):
             pbtools.resolve_conflicts_and_pull() 
             pblog.info("------------------")
             
@@ -193,11 +143,11 @@ def main():
         else:
             pbtools.error_state(".uproject extension is not correctly set into Unreal Engine. Make sure you have Epic Games Launcher installed. If problem still persists, please get help from #tech-support.")
 
-    elif args.sync == "engine":
-        if args.repository is None:
+    elif sync_val == "engine":
+        if repository_val is None:
             pblog.error("--repository <URL> argument should be provided with --sync engine command")
             sys.exit(1)
-        engine_version = pbunreal.get_latest_available_engine_version(str(args.repository))
+        engine_version = pbunreal.get_latest_available_engine_version(str(repository_val))
         if engine_version is None:
             pblog.error("Error while trying to fetch latest engine version")
             sys.exit(1)
@@ -206,68 +156,149 @@ def main():
             sys.exit(1)
         pblog.info("Successfully changed engine version as " + str(engine_version))
 
-    elif args.sync == "ddc" or args.sync == "DDC":
+    elif sync_val == "ddc" or sync_val == "DDC":
         pbunreal.generate_ddc_data()
 
-    elif args.print == "latest-engine":
-        if args.repository is None:
-            pblog.error("--repository <URL> argument should be provided with --print latest-engine command")
-            sys.exit(1)
-        engine_version = pbunreal.get_latest_available_engine_version(str(args.repository))
-        if engine_version is None:
-            sys.exit(1)
-        pblog.info(engine_version, end ="")
-    
-    elif args.print == "current-engine":
-        engine_version = pbunreal.get_engine_version()
-        if engine_version is None:
-            sys.exit(1)
-        pblog.info(engine_version, end ="")
-    
-    elif args.print == "project":
-        project_version = pbunreal.get_project_version()
-        if project_version is None:
-            sys.exit(1)
-        pblog.info(project_version, end ="")
-    
-    elif not (args.autoversion is None):
-        if pbunreal.project_version_increase(args.autoversion):
-            pblog.info("Successfully increased project version")
-        else:
-            pblog.error("Error occured while trying to increase project version")
-            sys.exit(1)
+    else:
+        pblog.error("Incorrect value provided for sync command")
+        sys.exit(1)
 
-    elif not (args.wipe is None):
+def clean_handler(clean_val):
+    if clean_val == "workspace":
         if pbtools.wipe_workspace():
             pblog.info("Workspace wipe successful")
             input("Press enter to quit...")
         else:
             pblog.error("Something went wrong while wiping the workspace")
             sys.exit(1)
-    
-    elif args.clean == "engine":
+
+    elif clean_val == "engine":
         if not pbtools.clean_old_engine_installations():
             pblog.error("Something went wrong on engine installation root folder clean process")
             sys.exit(1)
-
-    elif not (args.publish is None):
-        if not pbtools.push_build(args.publish):
-            pblog.error("Something went wrong while pushing a new playable build.")
-            sys.exit(1)
-
-    elif not (args.push is None):
-        pass
-    
     else:
-        pbtools.error_state("Please start PBSync from StartProject.bat, or pass proper argument set to the executable")
+        pblog.error("Incorrect value provided for clean command")
+        sys.exit(1)
+
+def print_handler(print_val, repository_val = None):
+    if print_val == "latest-engine":
+        if repository_val is None:
+            pblog.error("--repository <URL> argument should be provided with --print latest-engine command")
+            sys.exit(1)
+        engine_version = pbunreal.get_latest_available_engine_version(str(repository_val))
+        if engine_version is None:
+            sys.exit(1)
+        pblog.info(engine_version, end ="")
+    
+    elif print_val == "current-engine":
+        engine_version = pbunreal.get_engine_version()
+        if engine_version is None:
+            sys.exit(1)
+        pblog.info(engine_version, end ="")
+    
+    elif print_val == "project":
+        project_version = pbunreal.get_project_version()
+        if project_version is None:
+            sys.exit(1)
+        pblog.info(project_version, end ="")
+
+    else:
+        pblog.error("Incorrect value provided for print command")
+        sys.exit(1)
+
+def autoversion_handler(autoversion_val):
+    if pbunreal.project_version_increase(autoversion_val):
+        pblog.info("Successfully increased project version")
+    else:
+        pblog.error("Error occured while trying to increase project version")
+        sys.exit(1)
+
+def publish_handler(publish_val):
+    if not pbtools.push_build(publish_val):
+        pblog.error("Something went wrong while pushing a new playable build.")
+        sys.exit(1)
+
+def push_handler(push_val):
+    project_version = pbunreal.get_project_version()
+    pblog.info("Initiating PBGet to push " + project_version + " binaries...")
+    result = pbtools.pbget_push(str(push_val))
+    if int(result) == 1:
+        pblog.error("Error occured while pushing binaries for " + project_version)
+        sys.exit(1)
+
+def main():
+    parser = argparse.ArgumentParser(description="~~ Project Borealis Workspace Synchronization Tool ~~\nPBpy Module Version: " + pbversion.ver + "\nPBSync Executable Version: " + pbsync_version.ver)
+
+    parser.add_argument("--sync", help="[force, all, engine, ddc] Main command for the PBSync, synchronizes the project with latest changes in repo, and does some housekeeping")
+    parser.add_argument("--print", help="[current-engine, latest-engine, project] Prints requested version information into console. latest-engine command needs --repository parameter")
+    parser.add_argument("--repository", help="<URL> Required repository url for --print latest-engine and --sync engine commands")
+    parser.add_argument("--autoversion", help="[hotfix, stable, public] Automatic version update for project version")
+    parser.add_argument("--wipe", help="[latest] Wipe the workspace and get latest changes from current branch (Not revertable)")
+    parser.add_argument("--clean", help="[engine] Do cleanup according to specified argument")
+    parser.add_argument("--config", help="Path of config XML file. If not provided, ./PBSync.xml is used as default")
+    parser.add_argument("--push", help="[apikey] Push current binaries into NuGet repository with provided api key. If provided with --autoversion, push will be done after auto versioning.")
+    parser.add_argument("--publish", help="[stable, public] Publishes a playable build with provided build type")
+    args = parser.parse_args()
+
+    # If config parameter is not passed, use default config
+    if args.config == None:
+        args.config = default_config_name
+
+    def pbsync_config_parser_func (root): return {
+        'engine_base_version': root.find('enginebaseversion').text,
+        'supported_git_version': root.find('git/version').text,
+        'supported_lfs_version': root.find('git/lfsversion').text,
+        'expected_branch_name': root.find('git/expectedbranch').text,
+        'git_hooks_path': root.find('git/hooksfoldername').text,
+        'watchman_executable_name': root.find('git/watchmanexecname').text,
+        'lfs_lock_url': root.find('git/lfslockurl').text,
+        'git_url': root.find('git/url').text,
+        'log_file_path': root.find('log/file').text,
+        'max_log_size': int(root.find('log/maximumsize').text),
+        'ddc_expected_min_size': int(root.find('ddc/expectedminsize').text),
+        'uproject_path': root.find('project/uprojectname').text,
+        'uproject_version_key': root.find('project/uprojectversionkey').text,
+        'engine_version_prefix': root.find('project/engineversionprefix').text,
+        'defaultgame_path': root.find('project/defaultgameinipath').text,
+        'defaultgame_version_key': root.find('project/projectversionkey').text,
+        'versionator_config_path': root.find('project/versionatorconfigpath').text,
+        'pbget_url': root.find('pbget/url').text,
+        'dispatch_executable_path': root.find('dispatch/executable').text,
+        'dispatch_config': root.find('dispatch/config').text,
+        'dispatch_drm': root.find('dispatch/drm').text,
+        'dispatch_stagedir': root.find('dispatch/stagedir').text
+    }
+
+    if pbconfig.generate_config(args.config, pbsync_config_parser_func):
+        # If log file is big enough, remove it
+        if os.path.isfile(pbconfig.get('log_file_path')) and os.path.getsize(pbconfig.get('log_file_path')) >= pbconfig.get('max_log_size'):
+            pbtools.remove_file(pbconfig.get('log_file_path'))
+
+        # Setup logger
+        pblog.setup_logger(pbconfig.get('log_file_path'))
+    else:
+        # Logger is not initialized yet, so use print instead
+        print(str(args.config) + " config file is not valid or not found. Please check integrity of the file")
+        pbtools.error_state()
+
+    # Process arguments
+    if not (args.sync is None):
+        sync_handler(args.sync)
+
+    if not (args.print is None):
+        print_handler(args.print, args.repository)
+    
+    if not (args.autoversion is None):
+        autoversion_handler(args.autoversion)
+
+    if not (args.clean is None):
+        clean_handler(args.clean)
+
+    if not (args.publish is None):
+        publish_handler(args.publish)
 
     if not (args.push is None):
-        project_version = pbunreal.get_project_version()
-        pblog.info("Initiating PBGet to push " + project_version + " binaries...")
-        result = pbtools.pbget_push(str(args.push))
-        if int(result) == 1:
-            pblog.error("Error occured while pushing binaries for " + project_version)
-            sys.exit(1)
+        push_handler(args.push)
 
 if __name__ == '__main__':
     if "Scripts" in os.getcwd():
