@@ -5,9 +5,11 @@ import os.path
 from pbpy import pbtools
 from pbpy import pbconfig
 
+max_log_size = 10485760
+
 def setup_logger(log_file_path):
    # If log file is big enough, remove it
-  if os.path.isfile(log_file_path) and os.path.getsize(log_file_path) >= pbconfig.get('max_log_size'):
+  if os.path.isfile(log_file_path) and os.path.getsize(log_file_path) >= max_log_size:
       pbtools.remove_file(log_file_path)
 
   # Prepare logger
