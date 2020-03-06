@@ -1,2 +1,2 @@
 set PYTHONOPTIMIZE=2 
-call python -m PyInstaller --onefile --icon=icon.ico PBSync.py
+pipenv run python -m PyInstaller --onefile --icon=resources/icon.ico src/PBSync.py
