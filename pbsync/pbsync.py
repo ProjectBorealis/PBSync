@@ -9,6 +9,18 @@ from pbsync import pbsync_version
 
 default_config_name = "PBSync.xml"
 
+def config_handler(config_var, config_parser_func):
+    if pbconfig.generate_config(config_var, config_parser_func):
+        # If log file is big enough, remove it
+        if os.path.isfile(pbconfig.get('log_file_path')) and os.path.getsize(pbconfig.get('log_file_path')) >= pbconfig.get('max_log_size'):
+            pbtools.remove_file(pbconfig.get('log_file_path'))
+        # Setup logger
+        pblog.setup_logger(pbconfig.get('log_file_path'))
+    else:
+        # Logger is not initialized yet, so use print instead
+        print(str(config_var) + " config file is not valid or not found. Please check integrity of the file")
+        pbtools.error_state()
+
 def sync_handler(sync_val, repository_val = None):
     if sync_val == "all" or sync_val == "force":
         # Do not progress further if we're in an error state
@@ -154,10 +166,6 @@ def sync_handler(sync_val, repository_val = None):
     elif sync_val == "ddc" or sync_val == "DDC":
         pbunreal.generate_ddc_data()
 
-    else:
-        pblog.error("Incorrect value provided for sync command")
-        sys.exit(1)
-
 def clean_handler(clean_val):
     if clean_val == "workspace":
         if pbtools.wipe_workspace():
@@ -171,9 +179,6 @@ def clean_handler(clean_val):
         if not pbtools.clean_old_engine_installations():
             pblog.error("Something went wrong on engine installation root folder clean process")
             sys.exit(1)
-    else:
-        pblog.error("Incorrect value provided for clean command")
-        sys.exit(1)
 
 def print_handler(print_val, repository_val = None):
     if print_val == "latest-engine":
@@ -196,10 +201,6 @@ def print_handler(print_val, repository_val = None):
         if project_version is None:
             sys.exit(1)
         pblog.info(project_version, end ="")
-
-    else:
-        pblog.error("Incorrect value provided for print command")
-        sys.exit(1)
 
 def autoversion_handler(autoversion_val):
     if pbunreal.project_version_increase(autoversion_val):
@@ -224,20 +225,23 @@ def push_handler(push_val):
 def main():
     parser = argparse.ArgumentParser(description="~~ Project Borealis Workspace Synchronization Tool ~~\nPBpy Module Version: " + pbversion.ver + "\nPBSync Executable Version: " + pbsync_version.ver)
 
-    parser.add_argument("--sync", help="[force, all, engine, ddc] Main command for the PBSync, synchronizes the project with latest changes in repo, and does some housekeeping")
-    parser.add_argument("--print", help="[current-engine, latest-engine, project] Prints requested version information into console. latest-engine command needs --repository parameter")
+    parser.add_argument("--sync", help="Main command for the PBSync, synchronizes the project with latest changes in repo, and does some housekeeping",
+    choices=["force", "all", "engine", "ddc"])
+    parser.add_argument("--print", help="Prints requested version information into console. latest-engine command needs --repository parameter",
+    choices=["current-engine", "latest-engine", "project"])
     parser.add_argument("--repository", help="<URL> Required repository url for --print latest-engine and --sync engine commands")
-    parser.add_argument("--autoversion", help="[hotfix, stable, public] Automatic version update for project version")
-    parser.add_argument("--wipe", help="[latest] Wipe the workspace and get latest changes from current branch (Not revertable)")
-    parser.add_argument("--clean", help="[engine] Do cleanup according to specified argument")
-    parser.add_argument("--config", help="Path of config XML file. If not provided, ./PBSync.xml is used as default")
-    parser.add_argument("--push", help="[apikey] Push current binaries into NuGet repository with provided api key. If provided with --autoversion, push will be done after auto versioning.")
-    parser.add_argument("--publish", help="[stable, public] Publishes a playable build with provided build type")
-    args = parser.parse_args()
-
-    # If config parameter is not passed, use default config
-    if args.config == None:
-        args.config = default_config_name
+    parser.add_argument("--autoversion", help="Automatic version update for project version", choices=["hotfix", "stable", "public"])
+    parser.add_argument("--clean", help="""Do cleanup according to specified argument. If engine is provided, old engine installations will be cleared
+    If workspace is provided, workspace will be reset with latest changes from current branch (Not revertable)""", choices=["engine", "workspace"])
+    parser.add_argument("--config", help="Path of config XML file. If not provided, ./" + default_config_name + " is used as default", default=default_config_name)
+    parser.add_argument("--push", help="<apikey> Push current binaries into NuGet repository with provided api key.")
+    parser.add_argument("--publish", help="Publishes a playable build with provided build type", choices=["stable", "public"])
+    
+    if len(sys.argv) > 0:
+        args = parser.parse_args()
+    else:
+        print("At least one valid argument should be passed!")
+        sys.exit(1)
 
     def pbsync_config_parser_func (root): return {
         'engine_base_version': root.find('enginebaseversion').text,
@@ -264,36 +268,23 @@ def main():
         'dispatch_stagedir': root.find('dispatch/stagedir').text
     }
 
-    if pbconfig.generate_config(args.config, pbsync_config_parser_func):
-        # If log file is big enough, remove it
-        if os.path.isfile(pbconfig.get('log_file_path')) and os.path.getsize(pbconfig.get('log_file_path')) >= pbconfig.get('max_log_size'):
-            pbtools.remove_file(pbconfig.get('log_file_path'))
-
-        # Setup logger
-        pblog.setup_logger(pbconfig.get('log_file_path'))
-    else:
-        # Logger is not initialized yet, so use print instead
-        print(str(args.config) + " config file is not valid or not found. Please check integrity of the file")
-        pbtools.error_state()
-
     # Process arguments
+    config_handler(args.config)
+
     if not (args.sync is None):
-        sync_handler(args.sync)
-
-    if not (args.print is None):
+        sync_handler(args.sync, args.repository)
+    elif not (args.print is None):
         print_handler(args.print, args.repository)
-    
-    if not (args.autoversion is None):
+    elif not (args.autoversion is None):
         autoversion_handler(args.autoversion)
-
-    if not (args.clean is None):
+    elif not (args.clean is None):
         clean_handler(args.clean)
-
-    if not (args.publish is None):
+    elif not (args.publish is None):
         publish_handler(args.publish)
-
-    if not (args.push is None):
+    elif not (args.push is None):
         push_handler(args.push)
+    else:
+        pblog.error("At least one valid argument should be passed!")
 
 if __name__ == '__main__':
     if "Scripts" in os.getcwd():
