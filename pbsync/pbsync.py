@@ -4,12 +4,7 @@ import os
 import sys
 import argparse
 
-from pbpy import pbtools
-from pbpy import pblog
-from pbpy import pbgit
-from pbpy import pbconfig
-from pbpy import pbunreal
-from pbpy import pbversion
+from pbpy import *
 from pbsync import pbsync_version
 
 default_config_name = "PBSync.xml"
