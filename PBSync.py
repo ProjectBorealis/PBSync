@@ -1,9 +1,7 @@
 import subprocess
 import os.path
 import os
-import time
 import sys
-import datetime
 from shutil import copy
 import stat
 from shutil import rmtree

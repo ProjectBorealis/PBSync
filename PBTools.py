@@ -59,8 +59,11 @@ def pbget_push(apikey):
     return status
 
 def check_running_process(process_name):
-    if process_name in (p.name() for p in psutil.process_iter()):
-        return True
+    try:
+        if process_name in (p.name() for p in psutil.process_iter()):
+            return True
+    except:
+        pass
     return False
 
 def run_ue4versionator():
