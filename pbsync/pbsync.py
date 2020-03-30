@@ -5,6 +5,7 @@ import sys
 import argparse
 
 from pbpy import pblog
+from pbpy import pbget
 from pbpy import pbtools
 from pbpy import pbunreal
 from pbpy import pbgit
@@ -24,7 +25,7 @@ def config_handler(config_var, config_parser_func):
 def sync_handler(sync_val, repository_val = None):
     if sync_val == "all" or sync_val == "force":
         # Firstly, check our remote connection before doing anything
-        remote_state, remote_url = pbtools.check_remote_connection()
+        remote_state, remote_url = pbgit.check_remote_connection()
         if not remote_state:
             pbtools.error_state("Remote connection was not successful. Please verify you have a valid git remote URL & internet connection. Current git remote URL: " + remote_url)
         else:
@@ -38,51 +39,29 @@ def sync_handler(sync_val, repository_val = None):
 
         pblog.info("------------------")
 
-        git_version_result = pbgit.compare_git_version(pbconfig.get('supported_git_version'))
-        if git_version_result == -2:
-            # Handle parse error first, in case of possibility of getting expection in following get_git_version() calls
-            pblog.error("Git is not installed correctly on your system.")
-            pblog.error("Please install latest Git from https://git-scm.com/download/win")
-            pbtools.error_state()
-        elif git_version_result == 0:
-            pblog.info("Current Git version: " + str(pbgit.get_git_version()))
-        elif git_version_result == -1:
-            pblog.error("Git is not updated to the latest version in your system")
+        detected_git_version = pbgit.get_git_version()
+        if detected_git_version == pbconfig.get('supported_git_version'):
+            pblog.info("Current Valid Git version: " + detected_git_version)
+        else:
+            pblog.error("Git is not updated to the supported version in your system")
             pblog.error("Supported Git Version: " + pbconfig.get('supported_git_version'))
-            pblog.error("Current Git Version: " + str(pbgit.get_git_version()))
-            pblog.error("Please install latest Git from https://git-scm.com/download/win")
+            pblog.error("Current Git Version: " + detected_git_version)
+            pblog.error("Please install supported git version from https://github.com/microsoft/git/releases")
+            pblog.error("Visit https://github.com/ProjectBorealisTeam/pb/wiki/Prerequisites for installation instructions")
             pbtools.error_state()
-        elif git_version_result == 1:
-            pblog.warning("Current Git version is newer than supported one: " + str(pbgit.get_git_version()))
-            pblog.warning("Supported Git version: " + pbconfig.get('supported_git_version'))
+        
+        detected_lfs_version = pbgit.get_lfs_version()
+        if detected_lfs_version == pbconfig.get('supported_lfs_version'):
+            pblog.info("Current Git LFS version: " + detected_lfs_version)
         else:
-            pblog.error("Git is not installed correctly on your system.")
-            pblog.error("Please install latest Git from https://git-scm.com/download/win")
-            pbtools.error_state()
-        lfs_version_result = pbgit.compare_lfs_version(pbconfig.get('supported_lfs_version'))
-        if lfs_version_result == -2:
-            # Handle parse error first, in case of possibility of getting expection in following get_git_version() calls
-            pblog.error("Git LFS is not installed correctly on your system.")
-            pblog.error("Please install latest Git LFS from https://git-lfs.github.com")
-            pbtools.error_state()
-        elif lfs_version_result == 0:
-            pblog.info("Current Git LFS version: " + str(pbgit.get_lfs_version()))
-        elif lfs_version_result == -1:
-            pblog.error("Git LFS is not updated to the latest version in your system")
+            pblog.error("Git LFS is not updated to the supported version in your system")
             pblog.error("Supported Git LFS Version: " + pbconfig.get('supported_lfs_version'))
-            pblog.error("Current Git LFS Version: " + str(pbgit.get_lfs_version()))
-            pblog.error("Please install latest Git LFS from https://git-lfs.github.com")
-            pbtools.error_state()
-        elif lfs_version_result == 1:
-            pblog.warning("Current Git LFS version is newer than supported one: " + pbgit.get_lfs_version())
-            pblog.warning("Supported Git LFS version: " + pbconfig.get('supported_lfs_version'))
-        else:
-            pblog.error("Git LFS is not installed correctly on your system")
+            pblog.error("Current Git LFS Version: " + detected_lfs_version)
             pblog.error("Please install latest Git LFS from https://git-lfs.github.com")
             pbtools.error_state()
 
         pblog.info("------------------")
-
+        
         # Do not execute if Unreal Editor is running
         if pbtools.check_running_process("UE4Editor.exe"):
             pbtools.error_state("Unreal Editor is currently running. Please close it before running PBSync. If editor is not running, but you're somehow getting that error, please restart your system")
@@ -98,15 +77,18 @@ def sync_handler(sync_val, repository_val = None):
 
         pblog.info("------------------")
 
-        # Execute synchronization part of script if we're on the expected branch, force sync is enabled
-        if sync_val == "force" or pbgit.compare_with_currnent_branch_name(pbconfig.get('expected_branch_name')):
+        # Execute synchronization part of script if we're on the expected branch, or force sync is enabled
+        is_on_expected_branch = pbgit.compare_with_current_branch_name(pbconfig.get('expected_branch_name'))
+        if sync_val == "force" or is_on_expected_branch:
             pbtools.resolve_conflicts_and_pull() 
             pblog.info("------------------")
             
-            if pbtools.pbget_pull() != 0:
+            if pbget.pull_binaries():
                 pbtools.error_state("An error occured while running PBGet. It's likely binary files for this release are not pushed yet. Please request help on #tech-support")
+            else:
+                pblog.info("Binaries are pulled successfully")
         else:
-            pblog.warning("Current branch is not set as " + pbconfig.get('expected_branch_name') + ". Auto synchronization will be disabled")
+            pblog.warning("Current branch is not supported for repository synchronizarion: " + pbconfig.get('expected_branch_name') + ". Auto synchronization will be disabled")
 
         pblog.info("------------------")
 
@@ -132,15 +114,15 @@ def sync_handler(sync_val, repository_val = None):
             pblog.info("Engine build " + engine_version + " successfully registered")
             
         # Clean old engine installations, do that only in expected branch
-        if pbgit.compare_with_currnent_branch_name(pbconfig.get('expected_branch_name')):
-            if pbtools.clean_old_engine_installations():
+        if is_on_expected_branch:
+            if pbunreal.clean_old_engine_installations():
                 pblog.info("Old engine installations are successfully cleaned")
             else:
                 pblog.warning("Something went wrong while cleaning old engine installations. You may want to clean them manually.")
 
         pblog.info("------------------")
 
-        if pbtools.check_ue4_file_association():
+        if pbunreal.check_ue4_file_association():
             os.startfile(os.getcwd() + "\\ProjectBorealis.uproject")
         else:
             pbtools.error_state(".uproject extension is not correctly set into Unreal Engine. Make sure you have Epic Games Launcher installed. If problem still persists, please get help from #tech-support.")
@@ -213,11 +195,10 @@ def publish_handler(publish_val, dispatch_exec_path):
         pblog.error("Something went wrong while pushing a new playable build.")
         sys.exit(1)
 
-def push_handler(push_val):
+def push_handler(api_key):
     project_version = pbunreal.get_project_version()
     pblog.info("Initiating PBGet to push " + project_version + " binaries...")
-    result = pbtools.pbget_push(str(push_val), pbconfig.get("pbget_url"))
-    if int(result) == 1:
+    if pbget.push_binaries(str(api_key), pbconfig.get("pbget_url")):
         pblog.error("Error occured while pushing binaries for " + project_version)
         sys.exit(1)
 
@@ -237,24 +218,31 @@ def main():
     parser.add_argument("--push", help="<apikey> Push current binaries into NuGet repository with provided api key.")
     parser.add_argument("--publish", help="Publishes a playable build with provided build type", choices=["stable", "public"])
     
+    parser.add_argument("--debugpath", help="")
+    parser.add_argument("--debugbranch", help="")
+    
     if len(sys.argv) > 0:
         args = parser.parse_args()
     else:
         print("At least one valid argument should be passed!")
         sys.exit(1)
 
+    if not (args.debugpath is None):
+        # Work on provided debug path
+        os.chdir(str(args.debugpath))
+
     # Parser function object for PBSync config file
     def pbsync_config_parser_func (root): return {
         'supported_git_version': root.find('git/version').text,
         'supported_lfs_version': root.find('git/lfsversion').text,
-        'expected_branch_name': root.find('git/expectedbranch').text,
+        'expected_branch_name': root.find('git/expectedbranch').text if args.debugbranch is None else str(args.debugbranch),
         'git_hooks_path': root.find('git/hooksfoldername').text,
         'lfs_lock_url': root.find('git/lfslockurl').text,
         'git_url': root.find('git/url').text,
         'log_file_path': root.find('log/file').text,
         'versionator_config_path': root.find('versionator/configpath').text,
         'engine_base_version': root.find('project/enginebaseversion').text,
-        'uproject_path': root.find('project/uprojectname').text,
+        'uproject_name': root.find('project/uprojectname').text,
         'defaultgame_path': root.find('project/defaultgameinipath').text,
         'pbget_url': root.find('pbget/url').text,
         'dispatch_config': root.find('dispatch/config').text,

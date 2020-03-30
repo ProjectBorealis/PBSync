@@ -1,4 +1,5 @@
 import os
+import sys
 from os import path
 import psutil
 import subprocess
@@ -42,7 +43,7 @@ def remove_file(file_path):
 
 def error_state(msg = None, fatal_error = False):
     if msg != None:
-        logging.error(msg)
+        pblog.error(msg)
     if fatal_error:
         # That was a fatal error, until issue is fixed, do not let user run PBSync
         with open(error_file, 'w') as error_state_file:
@@ -59,21 +60,6 @@ def enable_watchman():
     subprocess.call(["git", "config", "core.fsmonitor", "git-watchman/query-watchman"])
     # Trigger
     out = subprocess.getoutput(["git", "status"])
-
-# Deprecated
-def pbget_pull():
-    os.chdir("PBGet")
-    subprocess.call(["PBGet.exe", "resetcache"])
-    status = subprocess.call(["PBGet.exe", "pull", "--threading", "false"])
-    os.chdir("..")
-    return status
-
-# Deprecated
-def pbget_push(apikey, source_url):
-    os.chdir("PBGet")
-    status = subprocess.call(["PBGet.exe", "push", "--source", source_url, "--apikey", apikey])
-    os.chdir("..")
-    return status
 
 def check_running_process(process_name):
     try:
@@ -153,6 +139,9 @@ def resolve_conflicts_and_pull():
 
     pblog.info("Please wait while getting latest changes on the repository. It may take a while...")
 
+    # Make sure upstream is tracked correctly
+    pbgit.set_tracking_information(pbgit.get_current_branch_name())
+
     pblog.info("Trying to stash the local work...")
     output = subprocess.getoutput(["git", "stash"])
     pblog.info(str(output))
@@ -166,21 +155,21 @@ def resolve_conflicts_and_pull():
     if "failed to merge in the changes" in lower_case_output or "could not apply" in lower_case_output:
         pblog.error("Aborting the rebase. Changes on one of your commits will be overridden by incoming changes. Request help on #tech-support to resolve conflicts, and  please do not run StartProject.bat until issue is solved.")
         pbgit.abort_rebase()
-        pbgit.git_stash_pop()
+        pbgit.stash_pop()
         error_state(True)
     elif "fast-forwarded" in lower_case_output:
-        pbgit.git_stash_pop()
+        pbgit.stash_pop()
         pblog.info("Success, rebased on latest changes without any conflict")
     elif "is up to date" in lower_case_output:
-        pbgit.git_stash_pop()
+        pbgit.stash_pop()
         pblog.info("Success, rebased on latest changes without any conflict")
     elif "rewinding head" in lower_case_output and not("error" in lower_case_output or "conflict" in lower_case_output):
-        pbgit.git_stash_pop()
+        pbgit.stash_pop()
         pblog.info("Success, rebased on latest changes without any conflict")
     else:
         pblog.error("Aborting the rebase, an unknown error occured. Request help on #tech-support to resolve conflicts, and please do not run StartProject.bat until issue is solved.")
         pbgit.abort_rebase()
-        pbgit.git_stash_pop()
+        pbgit.stash_pop()
         error_state(True)
 
     # Run watchman back

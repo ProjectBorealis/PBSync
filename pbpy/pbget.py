@@ -6,22 +6,6 @@ import signal
 import xml.etree.ElementTree as ET
 import _winapi
 import sys
-import argparse
-# PBGet Imports
-import PBParser
-import PBTools
-# Multiprocessing
-from multiprocessing.pool import ThreadPool
-from multiprocessing import Manager
-from multiprocessing import Value
-from multiprocessing import cpu_count
-from multiprocessing import freeze_support
-# Colored Output
-import colorama
-from colorama import Fore, Back, Style
-
-### Globals
-pbget_version = "0.0.9"
 
 binaries_folder_name = "Binaries"
 nuget_source = ""
@@ -33,41 +17,12 @@ package_ext = ".nupkg"
 metadata_ext = ".nuspec"
 
 push_timeout = 3600
-error_state = Value('i', 0)
-warning_state = Value('i', 0)
-no_threading = False
 
 already_installed_log = "is already installed"
 successfully_installed_log = "Successfully installed"
 package_not_installed_log = "is not found in the following primary"
-###################################################################
 
-### LOGGER
-def log_success(message, prefix = True):
-    global warning_state
-    if prefix:
-        print(Fore.GREEN + "SUCCESS: " + message + Style.RESET_ALL)
-    else:
-        print(Fore.GREEN + message + Style.RESET_ALL)
 
-def log_warning(message, prefix = True):
-    global warning_state
-    warning_state = Manager().Value('i', 1)
-    if prefix:
-        print(Fore.YELLOW + "WARNING: " + message + Style.RESET_ALL)
-    else:
-        print(Fore.YELLOW + message + Style.RESET_ALL)
-
-def log_error(message, prefix = True):
-    global error_state
-    error_state = Manager().Value('i', 1)
-    if prefix:
-        print(Fore.RED +  "ERROR: " + message + Style.RESET_ALL)
-    else:
-        print(Fore.RED + message + Style.RESET_ALL)
-############################################################################
-
-### Subprocess commands
 def install_package(package_id, package_version):
     output = subprocess.getoutput(["nuget.exe", "install", package_id, "-Version", package_version, "-NonInteractive"])
 
@@ -97,9 +52,7 @@ def push_package(package_full_name, source_name):
 
 def set_api_key(api_key):
     return subprocess.call(["nuget.exe", "SetApiKey", api_key])
-############################################################################
 
-### Other Functions
 def push_interrupt_handler(signal, frame):
     # Cleanup
     print("Cleaning up temporary .nuget packages...")
@@ -164,7 +117,7 @@ def process_package(package):
         package_id = package.attrib['id']
     except:
         log_error("Can't find id property for " + package + ". This package won't be installed.")
-        return
+        return False
    
     package_version = PBParser.get_plugin_version(package_id)
     if package_version == None:
@@ -176,7 +129,7 @@ def process_package(package):
     # Could not get suffix version, return
     if version_suffix == None:
         log_error("Can't get version suffix for " + package_id + ". This package won't be cleaned.")
-        return
+        return False
 
     package_version = package_version + "-" + version_suffix
 
@@ -184,7 +137,7 @@ def process_package(package):
         package_destination = os.path.join(package.attrib['destination'], binaries_folder_name)
     except:
         log_error("Can't find destination property for " + package_id + ". This package won't be installed.")
-        return
+        return False
     
     PBTools.clean_previous_package_installations(package_id)
 
@@ -194,6 +147,8 @@ def process_package(package):
     else:
         # Try removing faulty junction
         PBTools.remove_faulty_junction(os.path.abspath(package_destination))
+    
+    return True
 
 def push_from_nuscpec(nuspec_file):
     tree = ET.parse(nuspec_file)
@@ -245,48 +200,21 @@ def push_from_nuscpec(nuspec_file):
     log_success("Push successful: " + package_id + "." + package_full_version)
 
     return True
-############################################################################
 
-### Argparser Command Functions
-def command_reset_cache():
-    log_success("\nInitiating PBGet reset cache command...", False)
-    print("\n*************************\n")
+def reset_cache():
     return subprocess.call(["nuget.exe", "locals", "all", "-clear"])
 
 def command_clean():
-    log_success("\nInitiating PBGet clean command...", False)
-    print("\n*************************\n")
-
-    # Do not execute if Unreal Editor is running
-    if PBTools.check_running_process("UE4Editor.exe"):
-        log_error("Unreal Editor is running. Please close it before running pull command")
-        sys.exit(1)
-
     # Parse packages xml file
     config_xml = ET.parse(config_name)
     packages = config_xml.getroot()
 
-    if no_threading:
-        for package in packages.findall("package"):
-            clean_package(package)
-    else:
-        pool = ThreadPool(cpu_count())
+    for package in packages.findall("package"):
+        clean_package(package)
 
-        # Async process packages
-        pool.map_async(clean_package, [package for package in packages.findall("package")])
-
-        # Release threads
-        pool.close()
-        pool.join()
-
-def command_pull():
-    log_success("\nInitiating PBGet pull command...", False)
-    print("\n*************************\n")
-
-    # Do not execute if Unreal Editor is running
-    if PBTools.check_running_process("UE4Editor.exe"):
-        log_error("Unreal Editor is running. Please close it before running pull command")
-        sys.exit(1)
+def pull_binaries():
+    # Reset cache first to prevent problems
+    reset_cache()
 
     # Parse packages xml file
     config_xml = ET.parse(config_name)
@@ -295,49 +223,35 @@ def command_pull():
     print(fmt.format("  ~Package Name~", "~Version~", "~Result~"))
     packages = ignore_existing_installations(config_xml.getroot())
 
-    if no_threading:
-        for package in packages.findall("package"):
-            process_package(package)
-    else:
-        # Async process packages
-        pool = ThreadPool(cpu_count())
-        pool.map_async(process_package, [package for package in packages.findall("package")])
+    error_occured = False
+    for package in packages.findall("package"):
+        if not process_package(package):
+            error_occured = True
+            break
+    
+    return error_occured
 
-        # Release threads
-        pool.close()
-        pool.join()
-
-def command_push():
-    log_success("\nInitiating PBGet push command...", False)
-    print("\n*************************\n")
-
+def push_binaries(apikey, source_url):
     signal.signal(signal.SIGINT, push_interrupt_handler)
     signal.signal(signal.SIGTERM, push_interrupt_handler)
+
+    error_state = False
 
     if push_package_input == "":
         # No package name provided by user
         log_success("All packages will be pushed...", False)
         # Iterate each nuspec file
         for nuspec_file in glob.glob("Nuspec/*.nuspec"):
-            push_from_nuscpec(nuspec_file)
+            if not push_from_nuscpec(nuspec_file):
+                # Set error state to false, but keep pushing other binaries
+                error_state = False
     else:
         log_success("Only " + push_package_input + " will be pushed...", False)
-        push_from_nuscpec("Nuspec/" + push_package_input + ".nuspec")
-############################################################################
+        error_state = push_from_nuscpec("Nuspec/" + push_package_input + ".nuspec")
+
+    return error_state
 
 def main():
-    parser = argparse.ArgumentParser(description='PBGet v' + pbget_version)
-
-    FUNCTION_MAP = {'pull' : command_pull, 'push' : command_push, 'clean' : command_clean, 'resetcache' : command_reset_cache}
-
-    parser.add_argument('command', choices=FUNCTION_MAP.keys())
-    parser.add_argument("--package", "-p", help="Single package name for push command. If not provided, each package having a metadata in Nuspec folder will be pushed instead")
-    parser.add_argument("--apikey", "-k", help="Required api key for push command")
-    parser.add_argument("--source", "-s", help="Source address for push command")
-    parser.add_argument("--threading", "-t", help="[def=true, false] Use threading for specific commands")
-
-    args = parser.parse_args()
-
     if args.command == "push":
         if PBTools.check_input_package(args.package):
             global push_package_input
@@ -354,28 +268,3 @@ def main():
             nuget_source = args.source
         else:
             log_error("A valid source address should be provided with --source argument for push command")
-    
-    if args.threading == "false":
-        # Do not use threads
-        no_threading = True
-
-    if error_state.value == 1:
-        log_error("PBGet " + args.command + " operation completed with errors\n")
-        sys.exit(error_state.value)
-
-    func = FUNCTION_MAP[args.command]
-    func()
-    
-    print("\n*************************\n")
-    if error_state.value == 1:
-        log_error("PBGet " + args.command + " operation completed with errors\n")
-    elif warning_state.value == 1:
-        log_warning("PBGet " + args.command + " operation completed with warnings\n")
-    else:
-        log_success("PBGet " + args.command + " operation completed without errors\n")
-    sys.exit(error_state.value)
-
-if __name__ == '__main__':
-    freeze_support()
-    colorama.init()
-    main()

@@ -1,3 +1,5 @@
+import subprocess
+
 from pbpy import pblog
 from pbpy import pbconfig
 from pbpy import pbtools
@@ -7,31 +9,45 @@ def get_current_branch_name():
     return str(subprocess.getoutput(["git", "branch", "--show-current"]))
 
 def get_git_version():
-    installed_version = subprocess.getoutput(["git", "--version"])
-    installed_version_parsed = re.findall("(\d+)\.(\d+)\.(\d)", str(installed_version))
+    installed_version_split = subprocess.getoutput(["git", "--version"]).split(" ")
 
-    if len(installed_version_parsed) == 0 or len(installed_version_parsed[0]) == 0:
-        return ""
+    list_len = len(installed_version_split)
+    if list_len == 0:
+        return None
+    
+    # Get latest index as full version of git
+    installed_version = str(installed_version_split[list_len - 1])
 
-    return installed_version_parsed[0]
+    if installed_version == "":
+        return None
 
-def compare_with_currnent_branch_name(compared_branch):
+    return installed_version
+
+def compare_with_current_branch_name(compared_branch):
     return get_current_branch_name() == compared_branch
 
 def get_lfs_version():
-    installed_version = subprocess.getoutput(["git-lfs", "--version"])
-    installed_version_parsed = re.findall("(\d+)\.(\d+)\.(\d)", str(installed_version))
-    if len(installed_version_parsed) == 0 or len(installed_version_parsed[0]) == 0:
-        return ""
+    installed_version_split = subprocess.getoutput(["git-lfs", "--version"]).split(" ")
 
-    # Index 0 is lfs version, other matched version is Go compiler version
-    return installed_version_parsed[0]
+    if len(installed_version_split) == 0:
+        return None
+    
+    # Get first index as full version of git-lfs
+    installed_version = str(installed_version_split[0])
+
+    if installed_version == "":
+        return None
+
+    return installed_version
+
+def set_tracking_information(upstream_branch_name: str):
+    subprocess.call(["git", "branch", "--set-upstream-to=origin/" + upstream_branch_name, upstream_branch_name])
 
 def stash_pop():
-    logging.info("Trying to pop stash...")
+    pblog.info("Trying to pop stash...")
 
     output = subprocess.getoutput(["git", "stash", "pop"])
-    logging.info(str(output))
+    pblog.info(str(output))
 
     lower_case_output = str(output).lower()
 
@@ -86,75 +102,3 @@ def setup_config():
   subprocess.call(["git", "config", pbconfig.get('lfs_lock_url'), "true"])
   subprocess.call(["git", "config", "core.hooksPath", pbconfig.get('git_hooks_path')])
   subprocess.call(["git", "config", "include.path", "../.gitconfig"])
-
-# -2: Parse error
-# -1: Old version
-# 0: Expected version
-# 1: Newer version
-def compare_git_version(compared_version):
-    installed_version = get_git_version()
-    if len(installed_version) != 3:
-        return -2
-    
-    expected_version = str(compared_version).split(".")
-    if len(expected_version) != 3:
-        return -2
-
-    if int(installed_version[0]) == int(expected_version[0]) and int(installed_version[1]) == int(expected_version[1]) and int(installed_version[2]) == int(expected_version[2]):
-        # Same version
-        return 0
-    
-    # Not same version:
-    if int(installed_version[0]) < int(expected_version[0]):
-        return -1
-    elif int(installed_version[1]) < int(expected_version[1]):
-        return -1
-    elif int(installed_version[2]) < int(expected_version[2]):
-        return -1
-    
-    # Not older version:
-    if int(installed_version[0]) > int(expected_version[0]):
-        return 1
-    elif int(installed_version[1]) > int(expected_version[1]):
-        return 1
-    elif int(installed_version[2]) > int(expected_version[2]):
-        return 1
-
-    # Something went wrong, return parse error
-    return -2
-
-# -2: Parse error
-# -1: Old version
-# 0: Expected version
-# 1: Newer version
-def compare_lfs_version(compared_version):
-    installed_version = get_lfs_version()
-    if len(installed_version) != 3:
-        return -2
-    
-    expected_version = str(compared_version).split(".")
-    if len(installed_version) != 3:
-        return -2
-    
-    if int(installed_version[0]) == int(expected_version[0]) and int(installed_version[1]) == int(expected_version[1]) and int(installed_version[2]) == int(expected_version[2]):
-        # Same version
-        return 0
-    
-    # Not same version:
-    if int(installed_version[0]) < int(expected_version[0]):
-        return -1
-    elif int(installed_version[1]) < int(expected_version[1]):
-        return -1
-    elif int(installed_version[2]) < int(expected_version[2]):
-        return -1
-    
-    # Not older version:
-    if int(installed_version[0]) > int(expected_version[0]):
-        return 1
-    elif int(installed_version[1]) > int(expected_version[1]):
-        return 1
-    elif int(installed_version[2]) > int(expected_version[2]):
-        return 1
-
-    # Something went wrong, return parse error
-    return -2

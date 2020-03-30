@@ -3,6 +3,7 @@ import re
 from shutil import move
 from shutil import rmtree
 from os import remove
+import os
 import json
 
 from pbpy import pbconfig
@@ -25,9 +26,9 @@ def get_engine_prefix():
 
 def get_engine_date_suffix():
     try:
-        with open(pbconfig.get('uproject_path'), "r") as uproject_file:  
+        with open(pbconfig.get('uproject_name'), "r") as uproject_file:  
             data = json.load(uproject_file)
-            engine_association = data[pbconfig.get('uproject_version_key')]
+            engine_association = data[uproject_version_key]
             build_version = "b" + engine_association[-8:]
             # We're using local build version in .uproject file
             if "}" in build_version:
@@ -53,8 +54,8 @@ def get_project_version():
     try:
         with open(pbconfig.get('defaultgame_path'), "r") as ini_file:
             for ln in ini_file:
-                if ln.startswith(pbconfig.get('defaultgame_version_key')):
-                    return ln.replace(pbconfig.get('defaultgame_version_key'), '').rstrip()
+                if ln.startswith(project_version_key):
+                    return ln.replace(project_version_key, '').rstrip()
     except:
         return None
     return None
@@ -66,7 +67,7 @@ def set_project_version(version_string):
         with open(pbconfig.get('defaultgame_path'), "r") as ini_file:
             with open(temp_path, "wt") as fout:
                 for ln in ini_file:
-                    if pbconfig.get('defaultgame_version_key') in ln:
+                    if project_version_key in ln:
                         fout.write(	"ProjectVersion=" + version_string + "\n")
                     else:
                         fout.write(ln)
@@ -80,15 +81,15 @@ def set_engine_version(version_string):
     temp_path = "tmpEng.txt"
     try:
         # Create a temp file, do the changes there, and replace it with actual file
-        with open(pbconfig.get('uproject_path'), "r") as uproject_file:
+        with open(pbconfig.get('uproject_name'), "r") as uproject_file:
             with open(temp_path, "wt") as fout:
                 for ln in uproject_file:
-                    if pbconfig.get('uproject_version_key') in ln:
+                    if uproject_version_key in ln:
                         fout.write(	"\t\"EngineAssociation\": \"ue4v:" + version_string + "\",\n")
                     else:
                         fout.write(ln)
-        remove(pbconfig.get('uproject_path'))
-        move(temp_path, pbconfig.get('uproject_path'))
+        remove(pbconfig.get('uproject_name'))
+        move(temp_path, pbconfig.get('uproject_name'))
     except:
         return False
     return True
@@ -120,9 +121,9 @@ def project_version_increase(increase_type):
 
 def get_engine_version():
     try:
-        with open(pbconfig.get('uproject_path'), "r") as uproject_file:  
+        with open(pbconfig.get('uproject_name'), "r") as uproject_file:  
             data = json.load(uproject_file)
-            engine_association = data[pbconfig.get('uproject_version_key')]
+            engine_association = data[uproject_version_key]
             build_version = engine_association[-8:]
             
             if "}" in build_version:
@@ -136,7 +137,7 @@ def get_engine_version():
 def get_engine_version_with_prefix():
     engine_ver_number = get_engine_version()
     if engine_ver_number != None:
-        return get_engine_prefix() + engine_ver_number
+        return get_engine_prefix() + "-" + engine_ver_number
     return None
 
 def get_engine_install_root():
@@ -176,7 +177,7 @@ def generate_ddc_data():
         if os.path.isdir(installation_dir):
             ue_editor_executable = os.path.join(installation_dir, ue4_editor_relative_path)
             if os.path.isfile(ue_editor_executable):
-                err = subprocess.call([str(ue_editor_executable), os.path.join(os.getcwd(), pbconfig.get('uproject_path')), "-run=DerivedDataCache", "-fill"])
+                err = subprocess.call([str(ue_editor_executable), os.path.join(os.getcwd(), pbconfig.get('uproject_name')), "-run=DerivedDataCache", "-fill"])
                 pblog.info("DDC generate command has exited with " + str(err))
                 if not check_ddc_folder_created():
                     pbtools.error_state("DDC folder doesn't exist. Please get support from #tech-support")
