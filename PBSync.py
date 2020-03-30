@@ -237,30 +237,17 @@ def main():
 
         logging.info("------------------")
 
-        git_version_result = PBParser.compare_git_version(PBConfig.get('supported_git_version'))
-        if git_version_result == -2:
-            # Handle parse error first, in case of possibility of getting expection in following get_git_version() calls
-            logging.error("Git is not installed correctly on your system.")
-            logging.error("Please install latest Git from https://git-scm.com/download/win")
-            error_state()
-        elif git_version_result == 0:
-            logging.info("Current Git version: " + str(PBParser.get_git_version()))
-        elif git_version_result == -1:
-            logging.error("Git is not updated to the latest version in your system")
+        if PBParser.compare_git_version(PBConfig.get('supported_git_version')):
             logging.error("Supported Git Version: " + PBConfig.get('supported_git_version'))
-            logging.error("Current Git Version: " + str(PBParser.get_git_version()))
-            logging.error("Please install latest Git from https://git-scm.com/download/win")
+            logging.error("Current Git Version: " + str(PBParser.get_git_version_output()))
+            logging.error("Please install supported Git from https://github.com/microsoft/git/releases Visit https://github.com/ProjectBorealisTeam/pb/wiki/Prerequisites for instructions.")
             error_state()
-        elif git_version_result == 1:
-            logging.warning("Current Git version is newer than supported one: " + str(PBParser.get_git_version()))
-            logging.warning("Supported Git version: " + PBConfig.get('supported_git_version'))
         else:
-            logging.error("Git is not installed correctly on your system.")
-            logging.error("Please install latest Git from https://git-scm.com/download/win")
-            error_state()
+            logging.info("Current Git version: " + str(PBParser.get_git_version_output()))
+        
         lfs_version_result = PBParser.compare_lfs_version(PBConfig.get('supported_lfs_version'))
         if lfs_version_result == -2:
-            # Handle parse error first, in case of possibility of getting expection in following get_git_version() calls
+            # Handle parse error first, in case of possibility of getting expection in following get_lfs_version() calls
             logging.error("Git LFS is not installed correctly on your system.")
             logging.error("Please install latest Git LFS from https://git-lfs.github.com")
             error_state()
