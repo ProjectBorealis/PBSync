@@ -5,7 +5,7 @@ import sys
 import argparse
 
 from pbpy import pblog
-from pbpy import pbget
+from pbpy import pbhub
 from pbpy import pbtools
 from pbpy import pbunreal
 from pbpy import pbgit
@@ -82,11 +82,12 @@ def sync_handler(sync_val, repository_val = None):
         if sync_val == "force" or is_on_expected_branch:
             pbtools.resolve_conflicts_and_pull() 
             pblog.info("------------------")
-            
-            if pbget.pull_binaries():
-                pbtools.error_state("An error occured while running PBGet. It's likely binary files for this release are not pushed yet. Please request help on #tech-support")
-            else:
+
+            if pbhub.pull_binaries(pbunreal.get_project_version()):
                 pblog.info("Binaries are pulled successfully")
+            else:
+                pblog.error("An error occured while pulling binaries")
+                
         else:
             pblog.warning("Current branch is not supported for repository synchronizarion: " + pbconfig.get('expected_branch_name') + ". Auto synchronization will be disabled")
 
@@ -244,7 +245,6 @@ def main():
         'engine_base_version': root.find('project/enginebaseversion').text,
         'uproject_name': root.find('project/uprojectname').text,
         'defaultgame_path': root.find('project/defaultgameinipath').text,
-        'pbget_url': root.find('pbget/url').text,
         'dispatch_config': root.find('dispatch/config').text,
         'dispatch_drm': root.find('dispatch/drm').text,
         'dispatch_stagedir': root.find('dispatch/stagedir').text
