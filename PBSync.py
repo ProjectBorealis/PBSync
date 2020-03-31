@@ -238,12 +238,12 @@ def main():
         logging.info("------------------")
 
         if PBParser.compare_git_version(PBConfig.get('supported_git_version')):
+            logging.info("Current Git version: " + str(PBParser.get_git_version_output()))
+        else:
             logging.error("Supported Git Version: " + PBConfig.get('supported_git_version'))
             logging.error("Current Git Version: " + str(PBParser.get_git_version_output()))
             logging.error("Please install supported Git from https://github.com/microsoft/git/releases Visit https://github.com/ProjectBorealisTeam/pb/wiki/Prerequisites for instructions.")
             error_state()
-        else:
-            logging.info("Current Git version: " + str(PBParser.get_git_version_output()))
         
         lfs_version_result = PBParser.compare_lfs_version(PBConfig.get('supported_lfs_version'))
         if lfs_version_result == -2:
