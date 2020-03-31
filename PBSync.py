@@ -169,6 +169,9 @@ def resolve_conflicts_and_pull():
     elif "rewinding head" in lower_case_output and not("error" in lower_case_output or "conflict" in lower_case_output):
         git_stash_pop()
         logging.info("Success, rebased on latest changes without any conflict")
+    elif "successfully rebased and updated" in lower_case_output:
+        git_stash_pop()
+        logging.info("Success, rebased on latest changes without any conflict")
     else:
         logging.error("Aborting the rebase, an unknown error occured. Request help on #tech-support to resolve conflicts, and please do not run StartProject.bat until issue is solved.")
         abort_rebase()
