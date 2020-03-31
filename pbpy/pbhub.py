@@ -14,12 +14,18 @@ hub_config_path = str(Path.home()) + "\\.config\\hub"
 binary_package_name = "Binaries.zip"
 
 def is_pull_binaries_required():
+    if not os.path.isfile(hub_executable_path):
+        return True
     checksum_json_path = pbconfig.get("checksum_file")
     if not os.path.exists(checksum_json_path):
         return True
     return not pbtools.compare_md5_all(checksum_json_path)
 
 def pull_binaries(version_number: str):
+    if not os.path.isfile(hub_executable_path):
+        pblog.error("Hub executable is not found at " + hub_executable_path)
+        return False
+
     # Backward compatibility with old PBGet junctions. If it still exists, remove the junction
     if pbtools.is_junction("Binaries") and not pbtools.remove_junction("Binaries"):
         pblog.error("Something went wrong while removing junction for 'Binaries' folder. You should remove that folder manually to solve the problem")
