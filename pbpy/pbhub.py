@@ -3,12 +3,14 @@ import os.path
 import os
 import sys
 from zipfile import ZipFile
+from pathlib import Path
 
 from pbpy import pblog
 from pbpy import pbtools
 from pbpy import pbconfig
 
 hub_executable_path = "hub\\hub.exe"
+hub_config_path = str(Path.home()) + "\\.config\\hub"
 binary_package_name = "Binaries.zip"
 
 def is_pull_binaries_required():
@@ -31,6 +33,15 @@ def pull_binaries(version_number: str):
             pblog.error(str(e))
             pblog.error("Exception thrown while trying to remove " + binary_package_name + ". Please remove it manually")
             return False
+
+    if not os.path.isfile(hub_config_path):
+        # If user didn't login with hub yet, do it now for once
+        subprocess.call([hub_executable_path, "release", "-L", "1"])
+        if not os.path.isfile(hub_config_path):
+            pblog.error("Failed to login into hub with git credentials. Please check if your provided crendetials are valid.")
+            return False
+        else:
+            pblog.info("Login to hub API was successful")
 
     try:
         output = str(subprocess.getoutput([hub_executable_path, "release", "download", version_number, binary_package_name]))
