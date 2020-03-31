@@ -81,25 +81,26 @@ def sync_handler(sync_val, repository_val = None):
         is_on_expected_branch = pbgit.compare_with_current_branch_name(pbconfig.get('expected_branch_name'))
         if sync_val == "force" or is_on_expected_branch:
             pbtools.resolve_conflicts_and_pull() 
+
             pblog.info("------------------")
 
-            if pbhub.pull_binaries(pbunreal.get_project_version()):
-                pblog.info("Binaries are pulled successfully")
+            project_version = pbunreal.get_project_version()
+            if project_version != None:
+                pblog.info("Current project version: " + project_version)
             else:
-                pblog.error("An error occured while pulling binaries")
-                
+                pbtools.error_state("Something went wrong while fetching project version. Please request help on #tech-support")
+            
+            if pbhub.is_pull_binaries_required():
+                pblog.info("Binaries are not up-to-date, trying to pull new binaries...")
+                if pbhub.pull_binaries(project_version):
+                    pblog.info("Binaries are pulled successfully")
+                else:
+                    pbtools.error_state("An error occured while pulling binaries", True)
+            else:
+                pblog.info("Binaries are up-to-date")   
         else:
             pblog.warning("Current branch is not supported for repository synchronizarion: " + pbconfig.get('expected_branch_name') + ". Auto synchronization will be disabled")
 
-        pblog.info("------------------")
-
-        project_version = pbunreal.get_project_version()
-
-        if project_version != None:
-            pblog.info("Current project version: " + project_version)
-        else:
-            pbtools.error_state("Something went wrong while fetching project version. Please request help on #tech-support")
-        
         pblog.info("------------------")
 
         pblog.info("Checking for engine updates...")
@@ -240,6 +241,7 @@ def main():
         'git_hooks_path': root.find('git/hooksfoldername').text,
         'lfs_lock_url': root.find('git/lfslockurl').text,
         'git_url': root.find('git/url').text,
+        'checksum_file': root.find('git/checksumfile').text,
         'log_file_path': root.find('log/file').text,
         'versionator_config_path': root.find('versionator/configpath').text,
         'engine_base_version': root.find('project/enginebaseversion').text,

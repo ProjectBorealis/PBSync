@@ -1,10 +1,12 @@
 import os
 import sys
 from os import path
+from hashlib import md5
 import psutil
 import subprocess
 import shutil
 import stat
+import json
 
 # PBSync Imports
 from pbpy import pbunreal
@@ -14,6 +16,84 @@ from pbpy import pbgit
 
 error_file = ".pbsync_err"
 watchman_exec_name = "watchman.exe"
+
+def get_md5_hash(file_path):
+    md5_reader = md5()
+    try:
+        with open(file_path, "rb") as f:
+            data = f.read()
+            md5_reader.update(data)
+            return str(md5_reader.hexdigest()).upper()
+    except Exception as e:
+        return None
+
+def compare_md5_single(compared_file_path, md5_json_file_path):
+    current_hash = get_md5_hash(compared_file_path)
+    if current_hash is None:
+        return False
+
+    dict_search_string = ".\\" + compared_file_path
+    hash_dict = get_dict_from_json(md5_json_file_path)
+
+    if hash_dict is None or not (dict_search_string in hash_dict):
+        pblog.error("Key " + dict_search_string + " not found in " + md5_json_file_path)
+        return False
+
+    if hash_dict[dict_search_string] == current_hash:
+        pblog.info("MD5 checksum successful for " + compared_file_path)
+        return True
+    else:
+        pblog.error("MD5 checksum failed for " + compared_file_path)
+        pblog.error("Expected MD5: " + hash_dict[compared_file_path])
+        pblog.error("Current MD5: " + str(current_hash))
+        return False
+
+def compare_md5_all(md5_json_file_path, print_log = False, ignored_extension = ".zip"):
+    hash_dict = get_dict_from_json(md5_json_file_path)
+    if hash_dict is None or len(hash_dict) == 0:
+        return False
+
+    is_success = True
+    for file_path in hash_dict:
+        if ignored_extension in file_path:
+            continue
+        current_md5 = get_md5_hash(file_path)
+        if hash_dict[file_path] == current_md5:
+            if print_log:
+                pblog.info("MD5 checksum successful for " + file_path)
+        else:
+            if print_log:
+                pblog.error("MD5 checksum failed for " + file_path)
+                pblog.error("Expected MD5: " + hash_dict[file_path])
+                pblog.error("Current MD5: " + str(current_md5))
+            is_success = False
+    return is_success
+    
+def get_dict_from_json(json_file_path):
+    try:
+        with open(json_file_path, 'rb') as json_file:
+            json_text = json_file.read()
+            return json.loads(json_text)
+    except Exception as e:
+        pblog.error(str(e))
+        return None
+
+def is_junction(path: str) -> bool:
+    try:
+        return bool(os.readlink(path))
+    except OSError:
+        return False
+
+def remove_junction(destination):
+    if os.path.isdir(destination):
+        try:
+            shutil.rmtree(destination)
+        except:
+            try:
+                os.remove(destination)
+            except:
+                return False
+    return True
 
 # True: Error on last run, False: No errors
 def check_error_state():
