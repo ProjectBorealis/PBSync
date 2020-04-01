@@ -212,20 +212,20 @@ def push_handler(file_name):
         sys.exit(1)
 
 def main():
-    parser = argparse.ArgumentParser(description="~~ Project Borealis Workspace Synchronization Tool ~~\nPBpy Module Version: " + pbversion.pbpy_ver + "\nPBSync Executable Version: " + pbversion.pbsync_ver)
+    parser = argparse.ArgumentParser(description="~~ Project Borealis Workspace Synchronization Tool ~~PBpy Module Version: " + pbversion.pbpy_ver + "PBSync Executable Version: " + pbversion.pbsync_ver)
 
     parser.add_argument("--sync", help="Main command for the PBSync, synchronizes the project with latest changes in repo, and does some housekeeping",
-    choices=["force", "all", "binaries", "engine", "ddc"])
+    choices=["all", "binaries", "engine", "force", "ddc"])
     parser.add_argument("--print", help="Prints requested version information into console. latest-engine command needs --repository parameter",
     choices=["current-engine", "latest-engine", "project"])
-    parser.add_argument("--repository", help="<URL> Required gcloud repository url for --print latest-engine and --sync engine commands")
+    parser.add_argument("--repository", help="Required gcloud repository url for --print latest-engine and --sync engine commands")
     parser.add_argument("--autoversion", help="Automatic version update for project version", choices=["hotfix", "stable", "public"])
     parser.add_argument("--clean", help="""Do cleanup according to specified argument. If engine is provided, old engine installations will be cleared
     If workspace is provided, workspace will be reset with latest changes from current branch (Not revertable)""", choices=["engine", "workspace"])
     parser.add_argument("--config", help="Path of config XML file. If not provided, ./" + default_config_name + " is used as default", default=default_config_name)
     parser.add_argument("--push", help="Push provided file into release of current project version")
     parser.add_argument("--publish", help="Publishes a playable build with provided build type", choices=["stable", "public"])
-    parser.add_argument("--dispatch", help="<PATH_TO_DISPATCH_EXE> Required dispastch executable path for --publish command")
+    parser.add_argument("--dispatch", help="Required dispastch executable path for --publish command")
     parser.add_argument("--debugpath", help="If provided, PBSync will run in provided path")
     parser.add_argument("--debugbranch", help="If provided, PBSync will use provided branch as expected branch")
     
