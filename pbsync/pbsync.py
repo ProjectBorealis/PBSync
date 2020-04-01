@@ -224,7 +224,7 @@ def main():
     If workspace is provided, workspace will be reset with latest changes from current branch (Not revertable)""", choices=["engine", "workspace"])
     parser.add_argument("--config", help="Path of config XML file. If not provided, ./" + default_config_name + " is used as default", default=default_config_name)
     parser.add_argument("--push", help="Push provided file into release of current project version")
-    parser.add_argument("--publish", help="Publishes a playable build with provided build type", choices=["stable", "public"])
+    parser.add_argument("--publish", help="Publishes a playable build with provided build type", choices=["internal", "playtester"])
     parser.add_argument("--dispatch", help="Required dispastch executable path for --publish command")
     parser.add_argument("--debugpath", help="If provided, PBSync will run in provided path")
     parser.add_argument("--debugbranch", help="If provided, PBSync will use provided branch as expected branch")

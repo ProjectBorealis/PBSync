@@ -4,8 +4,8 @@ import subprocess
 from pbpy import pblog
 
 # DISPATCH_APP_ID: App ID. env. variable for dispatch application
-# DISPATCH_ALPHA_BID: Branch ID env. variable for alpha builds
-# DISPATCH_BETA_BID: Branch ID env. variable for beta builds
+# DISPATCH_INTERNAL_BID: Branch ID env. variable for internal builds
+# DISPATCH_PLAYTESTER_BID: Branch ID env. variable for playtester builds
 def push_build(branch_type, dispath_exec_path, dispatch_config, dispatch_stagedir, dispatch_apply_drm_path):
     # Test if our environment variables exist
     try:
@@ -14,17 +14,17 @@ def push_build(branch_type, dispath_exec_path, dispatch_config, dispatch_stagedi
         pblog.error("DISPATCH_APP_ID is not found in environment variables")
         return False
     
-    if branch_type == "stable":
+    if branch_type == "internal":
         try:
-            test = str(os.environ['DISPATCH_ALPHA_BID'])
+            test = str(os.environ['DISPATCH_INTERNAL_BID'])
         except:
-            pblog.error("DISPATCH_ALPHA_BID is not found in environment variables")
+            pblog.error("DISPATCH_INTERNAL_BID is not found in environment variables")
             return False
-    elif branch_type == "public":
+    elif branch_type == "playtester":
         try:
-            test = str(os.environ['DISPATCH_BETA_BID'])
+            test = str(os.environ['DISPATCH_PLAYTESTER_BID'])
         except:
-            pblog.error("DISPATCH_BETA_BID is not found in environment variables")
+            pblog.error("DISPATCH_PLAYTESTER_BID is not found in environment variables")
             return False
     
     # Wrap executable with DRM
@@ -33,10 +33,10 @@ def push_build(branch_type, dispath_exec_path, dispatch_config, dispatch_stagedi
         return False
 
     branch_id = "-1"
-    if branch_type == "stable":
-        branch_id = str(os.environ['DISPATCH_ALPHA_BID'])
-    elif branch_type == "public":
-        branch_id = str(os.environ['DISPATCH_BETA_BID'])
+    if branch_type == "internal":
+        branch_id = str(os.environ['DISPATCH_INTERNAL_BID'])
+    elif branch_type == "playtester":
+        branch_id = str(os.environ['DISPATCH_PLAYTESTER_BID'])
     else:
         return False
 
