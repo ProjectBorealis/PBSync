@@ -174,19 +174,19 @@ def print_handler(print_val, repository_val = None):
         engine_version = pbunreal.get_latest_available_engine_version(str(repository_val))
         if engine_version is None:
             sys.exit(1)
-        pblog.info(engine_version, end ="")
+        print(engine_version, end="")
     
     elif print_val == "current-engine":
         engine_version = pbunreal.get_engine_version()
         if engine_version is None:
             sys.exit(1)
-        pblog.info(engine_version, end ="")
+        print(engine_version, end="")
     
     elif print_val == "project":
         project_version = pbunreal.get_project_version()
         if project_version is None:
             sys.exit(1)
-        pblog.info(project_version, end ="")
+        print(project_version, end="")
 
 def autoversion_handler(autoversion_val):
     if pbunreal.project_version_increase(autoversion_val):
