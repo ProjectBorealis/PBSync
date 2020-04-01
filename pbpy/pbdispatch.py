@@ -10,20 +10,23 @@ def push_build(branch_type, dispath_exec_path, dispatch_config, dispatch_stagedi
     # Test if our environment variables exist
     try:
         test = str(os.environ['DISPATCH_APP_ID'])
-    except:
+    except Exception as e:
+        pblog.exception(str(e))
         pblog.error("DISPATCH_APP_ID is not found in environment variables")
         return False
     
     if branch_type == "internal":
         try:
             test = str(os.environ['DISPATCH_INTERNAL_BID'])
-        except:
+        except Exception as e:
+            pblog.exception(str(e))
             pblog.error("DISPATCH_INTERNAL_BID is not found in environment variables")
             return False
     elif branch_type == "playtester":
         try:
             test = str(os.environ['DISPATCH_PLAYTESTER_BID'])
-        except:
+        except Exception as e:
+            pblog.exception(str(e))
             pblog.error("DISPATCH_PLAYTESTER_BID is not found in environment variables")
             return False
     

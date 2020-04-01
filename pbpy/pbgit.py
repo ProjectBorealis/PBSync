@@ -67,7 +67,7 @@ def check_remote_connection():
     recent_url = pbconfig.get("git_url")
 
     if current_url != recent_url:
-        subprocess.call(["git", "remote", "set-url", "origin", recent_url])
+        out = subprocess.check_output(["git", "remote", "set-url", "origin", recent_url])
 
     current_url = subprocess.check_output(["git", "remote", "get-url", "origin"])
     out = subprocess.check_output(["git", "ls-remote", "--exit-code", "-h"])

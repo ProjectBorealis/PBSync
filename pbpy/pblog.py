@@ -5,7 +5,7 @@ import os.path
 from pbpy import pbtools
 from pbpy import pbconfig
 
-max_log_size = 10485760
+max_log_size = 5000000
 
 def setup_logger(log_file_path):
    # If log file is big enough, remove it
@@ -24,6 +24,9 @@ def setup_logger(log_file_path):
 
 def error(msg):
   logging.error(msg)
+
+def exception(msg):
+  logging.exception(msg)
 
 def warning(msg):
   logging.warning(msg)

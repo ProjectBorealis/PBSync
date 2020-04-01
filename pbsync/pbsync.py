@@ -40,7 +40,7 @@ def sync_handler(sync_val, repository_val = None):
 
         detected_git_version = pbgit.get_git_version()
         if detected_git_version == pbconfig.get('supported_git_version'):
-            pblog.info("Current Valid Git version: " + detected_git_version)
+            pblog.info("Current Git version: " + detected_git_version)
         else:
             pblog.error("Git is not updated to the supported version in your system")
             pblog.error("Supported Git Version: " + pbconfig.get('supported_git_version'))

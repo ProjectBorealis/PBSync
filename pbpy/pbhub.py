@@ -36,7 +36,7 @@ def pull_binaries(version_number: str, pass_checksum = False):
         try:
             os.remove(binary_package_name)
         except Exception as e:
-            pblog.error(str(e))
+            pblog.exception(str(e))
             pblog.error("Exception thrown while trying to remove " + binary_package_name + ". Please remove it manually")
             return False
 
@@ -68,7 +68,7 @@ def pull_binaries(version_number: str, pass_checksum = False):
             pblog.error("Command output: " + output)
             return False
     except Exception as e:
-        pblog.error(str(e))
+        pblog.exception(str(e))
         pblog.error("Exception thrown while trying do pull binaries for " + version_number)
         return False
 
@@ -88,7 +88,7 @@ def pull_binaries(version_number: str, pass_checksum = False):
                 return False
 
     except Exception as e:
-        pblog.error(str(e))
+        pblog.exception(str(e))
         pblog.error("Exception thrown while trying do extract binary package for " + version_number)
         return False
 
@@ -106,6 +106,6 @@ def push_package(version_number, file_name):
         else:
             pblog.error(output)
     except Exception as e:
-        pblog.error(str(e))
+        pblog.exception(str(e))
     pblog.error("Error occured while attaching " + file_name + " into release " + version_number)
     return False

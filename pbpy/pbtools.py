@@ -25,6 +25,7 @@ def get_md5_hash(file_path):
             md5_reader.update(data)
             return str(md5_reader.hexdigest()).upper()
     except Exception as e:
+        pblog.exception(str(e))
         return None
 
 def compare_md5_single(compared_file_path, md5_json_file_path):
@@ -171,7 +172,8 @@ def is_versionator_symbols_enabled():
                     else:
                         # Incorrect config
                         return False
-    except:
+    except Exception as e:
+        pblog.exception(str(e))
         return False
 
     # Symbols configuration variable is not on the file, let's add it
@@ -184,7 +186,8 @@ def is_versionator_symbols_enabled():
             else:
                 config_file.write("\nsymbols = false")
                 return False
-    except:
+    except Exception as e:
+        pblog.exception(str(e))
         return False
 
 # TODO: Implement that into ue4versionator. Until doing that, this can stay inside pbtools module

@@ -34,7 +34,8 @@ def get_engine_date_suffix():
             if "}" in build_version:
                 return None
             return "b" + engine_association[-8:]
-    except:
+    except Exception as e:
+        pblog.exception(str(e))
         return None
     return None
 
@@ -56,7 +57,8 @@ def get_project_version():
             for ln in ini_file:
                 if ln.startswith(project_version_key):
                     return ln.replace(project_version_key, '').rstrip()
-    except:
+    except Exception as e:
+        pblog.exception(str(e))
         return None
     return None
 
@@ -73,7 +75,8 @@ def set_project_version(version_string):
                         fout.write(ln)
         remove(pbconfig.get('defaultgame_path'))
         move(temp_path, pbconfig.get('defaultgame_path'))
-    except:
+    except Exception as e:
+        pblog.exception(str(e))
         return False
     return True
 
@@ -90,7 +93,8 @@ def set_engine_version(version_string):
                         fout.write(ln)
         remove(pbconfig.get('uproject_name'))
         move(temp_path, pbconfig.get('uproject_name'))
-    except:
+    except Exception as e:
+        pblog.exception(str(e))
         return False
     return True
 
@@ -130,7 +134,8 @@ def get_engine_version():
                 # Means we're using local build version in .uproject file
                 return None
             return build_version
-    except:
+    except Exception as e:
+        pblog.exception(str(e))
         return None
     return None
 
@@ -148,7 +153,8 @@ def get_engine_install_root():
                     split_str = ln.split("=")
                     if len(split_str) == 2:
                         return split_str[1].strip()
-    except:
+    except Exception as e:
+        pblog.exception(str(e))
         return None
 
 def get_latest_available_engine_version(bucket_url):
@@ -202,7 +208,8 @@ def clean_old_engine_installations():
                     try:
                         shutil.rmtree(full_path)
                         print("Removal was successful!")
-                    except:
+                    except Exception as e:
+                        pblog.exception(str(e))
                         print("Something went wrong while removing engine folder " + str(full_path) + " Please try removing it manually.")
             return True
 
