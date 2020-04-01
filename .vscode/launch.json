@@ -52,6 +52,14 @@
     ],
     "configurations": [
         {
+            "name": "Print help",
+            "args": ["--help"],
+            "type": "python",
+            "request": "launch",
+            "program": "pbsync/pbsync.py",
+            "console": "integratedTerminal",
+        },
+        {
             "name": "Sync All",
             "args": ["--sync", "all", "--debugpath", "${input:debugPath}", "--debugbranch", "${input:debugBranch}"],
             "type": "python",
