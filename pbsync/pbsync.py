@@ -144,6 +144,14 @@ def sync_handler(sync_val, repository_val = None):
 
     elif sync_val == "ddc" or sync_val == "DDC":
         pbunreal.generate_ddc_data()
+    
+    elif sync_val == "binaries":
+        project_version = pbunreal.get_project_version()
+        if pbhub.pull_binaries(project_version, True):
+            pblog.info("Binaries for " + project_version + " pulled & extracted successfully")
+        else:
+            pblog.error("Failed to pull binaries for " + project_version)
+            sys.exit(1)
 
 def clean_handler(clean_val):
     if clean_val == "workspace":
@@ -197,31 +205,30 @@ def publish_handler(publish_val, dispatch_exec_path):
         pblog.error("Something went wrong while pushing a new playable build.")
         sys.exit(1)
 
-def push_handler(api_key):
+def push_handler(file_name):
     project_version = pbunreal.get_project_version()
-    pblog.info("Initiating PBGet to push " + project_version + " binaries...")
-    if pbget.push_binaries(str(api_key), pbconfig.get("pbget_url")):
-        pblog.error("Error occured while pushing binaries for " + project_version)
+    pblog.info("Attaching " + file_name + " into GitHub release " + project_version)
+    if not pbhub.push_package(project_version, file_name):
+        pblog.error("Error occured while pushing package for release " + project_version)
         sys.exit(1)
 
 def main():
     parser = argparse.ArgumentParser(description="~~ Project Borealis Workspace Synchronization Tool ~~\nPBpy Module Version: " + pbversion.ver + "\nPBSync Executable Version: " + pbsync_version.ver)
 
     parser.add_argument("--sync", help="Main command for the PBSync, synchronizes the project with latest changes in repo, and does some housekeeping",
-    choices=["force", "all", "engine", "ddc"])
+    choices=["force", "all", "binaries", "engine", "ddc"])
     parser.add_argument("--print", help="Prints requested version information into console. latest-engine command needs --repository parameter",
     choices=["current-engine", "latest-engine", "project"])
-    parser.add_argument("--repository", help="<URL> Required repository url for --print latest-engine and --sync engine commands")
-    parser.add_argument("--dispatch", help="<PATH_TO_DISPATCH_EXE> Required dispastch executable path for --publish command")
+    parser.add_argument("--repository", help="<URL> Required gcloud repository url for --print latest-engine and --sync engine commands")
     parser.add_argument("--autoversion", help="Automatic version update for project version", choices=["hotfix", "stable", "public"])
     parser.add_argument("--clean", help="""Do cleanup according to specified argument. If engine is provided, old engine installations will be cleared
     If workspace is provided, workspace will be reset with latest changes from current branch (Not revertable)""", choices=["engine", "workspace"])
     parser.add_argument("--config", help="Path of config XML file. If not provided, ./" + default_config_name + " is used as default", default=default_config_name)
-    parser.add_argument("--push", help="<apikey> Push current binaries into NuGet repository with provided api key.")
+    parser.add_argument("--push", help="Push provided file into release of current project version")
     parser.add_argument("--publish", help="Publishes a playable build with provided build type", choices=["stable", "public"])
-    
-    parser.add_argument("--debugpath", help="")
-    parser.add_argument("--debugbranch", help="")
+    parser.add_argument("--dispatch", help="<PATH_TO_DISPATCH_EXE> Required dispastch executable path for --publish command")
+    parser.add_argument("--debugpath", help="If provided, PBSync will run in provided path")
+    parser.add_argument("--debugbranch", help="If provided, PBSync will use provided branch as expected branch")
     
     if len(sys.argv) > 0:
         args = parser.parse_args()
@@ -238,7 +245,6 @@ def main():
         'supported_git_version': root.find('git/version').text,
         'supported_lfs_version': root.find('git/lfsversion').text,
         'expected_branch_name': root.find('git/expectedbranch').text if args.debugbranch is None else str(args.debugbranch),
-        'git_hooks_path': root.find('git/hooksfoldername').text,
         'lfs_lock_url': root.find('git/lfslockurl').text,
         'git_url': root.find('git/url').text,
         'checksum_file': root.find('git/checksumfile').text,

@@ -21,7 +21,7 @@ def is_pull_binaries_required():
         return True
     return not pbtools.compare_md5_all(checksum_json_path)
 
-def pull_binaries(version_number: str):
+def pull_binaries(version_number: str, pass_checksum = False):
     if not os.path.isfile(hub_executable_path):
         pblog.error("Hub executable is not found at " + hub_executable_path)
         return False
@@ -73,17 +73,18 @@ def pull_binaries(version_number: str):
         return False
 
     try:
-        checksum_json_path = pbconfig.get("checksum_file")
-        if not os.path.exists(checksum_json_path):
-            pblog.error("Checksum json file is not found in " + checksum_json_path)
-            return False
+        if not pass_checksum:
+            checksum_json_path = pbconfig.get("checksum_file")
+            if not os.path.exists(checksum_json_path):
+                pblog.error("Checksum json file is not found at " + checksum_json_path)
+                return False
 
-        if not pbtools.compare_md5_single(binary_package_name, checksum_json_path):
-            return False
+            if not pbtools.compare_md5_single(binary_package_name, checksum_json_path):
+                return False
 
         with ZipFile(binary_package_name, 'r') as zip_file:
             zip_file.extractall()
-            if not pbtools.compare_md5_all(checksum_json_path, True):
+            if not pass_checksum and not pbtools.compare_md5_all(checksum_json_path, True):
                 return False
 
     except Exception as e:
@@ -92,3 +93,19 @@ def pull_binaries(version_number: str):
         return False
 
     return True
+
+def push_package(version_number, file_name):
+    if not os.path.exists(file_name):
+        pblog.error("Provided file " + file_name + " doesn't exist")
+        return False
+    
+    try:
+        output = str(subprocess.getoutput([hub_executable_path, "release", "edit", version_number, "-m", "", "-a", file_name]))
+        if "Attaching 1 asset..." in output:
+            return True
+        else:
+            pblog.error(output)
+    except Exception as e:
+        pblog.error(str(e))
+    pblog.error("Error occured while attaching " + file_name + " into release " + version_number)
+    return False

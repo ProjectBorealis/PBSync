@@ -9,9 +9,9 @@
         <version></version>
         <lfsversion></lfsversion>
         <expectedbranch></expectedbranch>
-        <hooksfoldername></hooksfoldername>
         <lfslockurl></lfslockurl>
         <url></url>
+        <checksumfile></checksumfile>
     </git>
     <versionator>
         <configpath></configpath>
@@ -19,9 +19,6 @@
     <log>
         <file></file>
     </log>
-    <pbget>
-        <url></url>
-    </pbget>
     <dispatch>
         <config></config>
         <stagedir></stagedir>

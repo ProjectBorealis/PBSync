@@ -99,6 +99,6 @@ def abort_rebase():
     out = subprocess.getoutput(["git", "rebase", "--abort"])
 
 def setup_config():
-  subprocess.call(["git", "config", pbconfig.get('lfs_lock_url'), "true"])
-  subprocess.call(["git", "config", "core.hooksPath", pbconfig.get('git_hooks_path')])
-  subprocess.call(["git", "config", "include.path", "../.gitconfig"])
+    subprocess.call(["git", "config", "include.path", "../.gitconfig"])
+    subprocess.call(["git", "config", pbconfig.get('lfs_lock_url'), "true"])
+  
