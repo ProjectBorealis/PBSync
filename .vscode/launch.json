@@ -3,13 +3,124 @@
     // Hover to view descriptions of existing attributes.
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
+    "inputs": [
+        {
+            "id": "gcloudUrl",
+            "description": "Please enter google cloud repository URL",
+            "default": "",
+            "type": "promptString"
+        },
+        {
+            "id": "debugPath",
+            "description": "Please enter working directory for PBSync",
+            "default": "C:\\pb",
+            "type": "promptString"
+        },
+        {
+            "id": "debugBranch",
+            "description": "Please enter branch to be used as expected branch",
+            "default": "pbsync/update",
+            "type": "promptString"
+        },
+        {
+            "id": "dispatchPath",
+            "description": "Please enter path for dispatch executable",
+            "default": "",
+            "type": "promptString"
+        },
+        {
+            "id": "printSelection",
+            "description": "Please choose what do you want to print",
+            "default": "current-engine",
+            "options": ["current-engine", "project"],
+            "type": "pickString"
+        },
+        {
+            "id": "autoversionSelection",
+            "description": "Please choose version increase type",
+            "default": "hotfix",
+            "options": ["hotfix", "stable", "public"],
+            "type": "pickString"
+        },
+        {
+            "id": "publishSelection",
+            "description": "Please choose build type to publish",
+            "default": "stable",
+            "options": ["stable", "public"],
+            "type": "pickString"
+        }
+    ],
     "configurations": [
         {
-            "name": "Python: Current File",
-            "args": ["--sync", "all", "--debugpath", "C:\\pb", "--debugbranch", "pbsync/update"],
+            "name": "Sync All",
+            "args": ["--sync", "all", "--debugpath", "${input:debugPath}", "--debugbranch", "${input:debugBranch}"],
             "type": "python",
             "request": "launch",
-            "program": "${file}",
+            "program": "pbsync/pbsync.py",
+            "console": "integratedTerminal",
+        },
+        {
+            "name": "Push Binaries",
+            "args": ["--push", "Binaries.zip", "--debugpath", "${input:debugPath}"],
+            "type": "python",
+            "request": "launch",
+            "program": "pbsync/pbsync.py",
+            "console": "integratedTerminal",
+        },
+        {
+            "name": "Pull Binaries",
+            "args": ["--sync", "binaries", "--debugpath", "${input:debugPath}"],
+            "type": "python",
+            "request": "launch",
+            "program": "pbsync/pbsync.py",
+            "console": "integratedTerminal",
+        },
+        {
+            "name": "Generate DDC",
+            "args": ["--sync", "ddc", "--debugpath", "${input:debugPath}"],
+            "type": "python",
+            "request": "launch",
+            "program": "pbsync/pbsync.py",
+            "console": "integratedTerminal",
+        },
+        {
+            "name": "Update Engine Version to Latest",
+            "args": ["--sync", "engine", "--repository", "${input:gcloudUrl}", "--debugpath", "${input:debugPath}"],
+            "type": "python",
+            "request": "launch",
+            "program": "pbsync/pbsync.py",
+            "console": "integratedTerminal",
+        },
+        {
+            "name": "Print Latest Engine Version",
+            "args": ["--print", "latest-engine", "--repository", "${input:gcloudUrl}", "--debugpath", "${input:debugPath}"],
+            "type": "python",
+            "request": "launch",
+            "program": "pbsync/pbsync.py",
+            "console": "integratedTerminal",
+        },
+        {
+            "name": "Print Information",
+            "args": ["--print", "${input:printSelection}", "--debugpath", "${input:debugPath}"],
+            "type": "python",
+            "request": "launch",
+            "program": "pbsync/pbsync.py",
+            "console": "integratedTerminal",
+        },
+        {
+            "name": "Project Version Update",
+            "args": ["--autoversion", "${input:autoversionSelection}", "--debugpath", "${input:debugPath}"],
+            "type": "python",
+            "request": "launch",
+            "program": "pbsync/pbsync.py",
+            "console": "integratedTerminal",
+        },
+        {
+            "name": "Publish Dispatch Build",
+            "args": ["--publish", "${input:publishSelection}", "--dispatch", "${input:dispatchPath}", "--debugpath", "${input:debugPath}"],
+            "type": "python",
+            "request": "launch",
+            "program": "pbsync/pbsync.py",
             "console": "integratedTerminal",
         }
     ]
