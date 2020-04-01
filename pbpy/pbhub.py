@@ -50,7 +50,7 @@ def pull_binaries(version_number: str, pass_checksum = False):
             pblog.info("Login to hub API was successful")
 
     try:
-        output = str(subprocess.getoutput([hub_executable_path, "release", "download", version_number, binary_package_name]))
+        output = str(subprocess.getoutput([hub_executable_path, "release", "download", version_number, "-i", binary_package_name]))
         if "Downloading " + binary_package_name in output:
             pass
         elif "Unable to find release with tag name" in output:
@@ -59,13 +59,16 @@ def pull_binaries(version_number: str, pass_checksum = False):
         elif "The file exists" in output:
             pblog.error("File " + binary_package_name + " was not able to be overwritten. Please remove it manually and run PBSync again")
             return False
+        elif "did not match any available assets" in output:
+            pblog.error("Binaries for release " + version_number + " are not pushed into GitHub yet")
+            return False
         elif not output:
             # hub doesn't print any output if package doesn't exist in release
             pblog.error("Failed to find binary package for release " + version_number)
             return False
         else:
             pblog.error("Unknown error occured while pulling binaries for release " + version_number)
-            pblog.error("Command output: " + output)
+            pblog.error("Command output was: " + output)
             return False
     except Exception as e:
         pblog.exception(str(e))
@@ -100,6 +103,7 @@ def push_package(version_number, file_name):
         return False
     
     try:
+        
         output = str(subprocess.getoutput([hub_executable_path, "release", "edit", version_number, "-m", "", "-a", file_name]))
         if "Attaching 1 asset..." in output:
             return True
