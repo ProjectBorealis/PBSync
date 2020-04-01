@@ -8,6 +8,7 @@ verify_ssl = true
 [packages]
 psutil = ">=5.7.0"
 pyinstaller = ">=3.6"
+pipfile = {editable = true,version = "*"}
 
 [requires]
 python_version = "3.8"
