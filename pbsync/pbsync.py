@@ -212,7 +212,7 @@ def push_handler(file_name):
         sys.exit(1)
 
 def main():
-    parser = argparse.ArgumentParser(description="~~ Project Borealis Workspace Synchronization Tool ~~PBpy Module Version: " + pbversion.pbpy_ver + "PBSync Executable Version: " + pbversion.pbsync_ver)
+    parser = argparse.ArgumentParser(description="Project Borealis Workspace Synchronization Tool | PBpy Module Version: " + pbversion.pbpy_ver + " | PBSync Executable Version: " + pbversion.pbsync_ver)
 
     parser.add_argument("--sync", help="Main command for the PBSync, synchronizes the project with latest changes in repo, and does some housekeeping",
     choices=["all", "binaries", "engine", "force", "ddc"])
