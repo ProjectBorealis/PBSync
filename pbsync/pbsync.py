@@ -21,7 +21,7 @@ def config_handler(config_var, config_parser_func):
         print(str(config_var) + " config file is not valid or not found. Please check integrity of the file")
         sys.exit(1)
 
-def sync_handler(sync_val, repository_val = None):
+def sync_handler(sync_val, repository_val = None, bundle_name = None):
     if sync_val == "all" or sync_val == "force":
         # Firstly, check our remote connection before doing anything
         remote_state, remote_url = pbgit.check_remote_connection()
@@ -109,10 +109,22 @@ def sync_handler(sync_val, repository_val = None):
         engine_version =  pbunreal.get_engine_version()
 
         pblog.info("Trying to register current engine build if it exists. Otherwise, required build will be downloaded...")
-        if pbtools.run_ue4versionator() != 0:
-            pbtools.error_state("Something went wrong while registering engine build " + engine_version + ". Please request help on #tech-support")
+        
+        symbols_needed = pbunreal.is_versionator_symbols_enabled()
+
+        bundle_name = None
+        if is_on_expected_branch:
+            # Expected branch should use deveditor bundle
+            bundle_name = pbconfig.get("creative_bundle_name")
         else:
-            pblog.info("Engine build " + engine_version + " successfully registered")
+            # Other users should use editor bundle, which also has debug build support
+            bundle_name = pbconfig.get("default_bundle_name")
+
+        if pbunreal.run_ue4versionator(bundle_name, symbols_needed) != 0:
+            pblog.error("Something went wrong while registering engine build " + bundle_name + "-" + engine_version + ". Please request help on #tech-support")
+            sys.exit(1)
+        else:
+            pblog.info("Engine build " + bundle_name + "-" + engine_version + " successfully registered")
             
         # Clean old engine installations, do that only in expected branch
         if is_on_expected_branch:
@@ -128,7 +140,7 @@ def sync_handler(sync_val, repository_val = None):
         else:
             pbtools.error_state(".uproject extension is not correctly set into Unreal Engine. Make sure you have Epic Games Launcher installed. If problem still persists, please get help from #tech-support.")
 
-    elif sync_val == "engine":
+    elif sync_val == "engineversion":
         if repository_val is None:
             pblog.error("--repository <URL> argument should be provided with --sync engine command")
             sys.exit(1)
@@ -151,6 +163,26 @@ def sync_handler(sync_val, repository_val = None):
         else:
             pblog.error("Failed to pull binaries for " + project_version)
             sys.exit(1)
+
+    elif sync_val == "engine":
+        # Pull engine build with ue4versionator & register it
+        if bundle_name is None:
+            # If --bundle parameter is not provided, use defaults from current git branch
+            is_on_expected_branch = pbgit.compare_with_current_branch_name(pbconfig.get('expected_branch_name'))
+            if is_on_expected_branch:
+                # Expected branch should use deveditor bundle
+                bundle_name = pbconfig.get("creative_bundle_name")
+            else:
+                # Other users should use editor bundle, which also has debug build support
+                bundle_name = pbconfig.get("default_bundle_name")
+        
+        engine_version = pbunreal.get_engine_version()
+
+        if pbunreal.run_ue4versionator(bundle_name, False) != 0:
+            pblog.error("Something went wrong while registering engine build " + bundle_name + "-" + engine_version)
+            sys.exit(1)
+        else:
+            pblog.info("Engine build " + bundle_name + "-" + engine_version + " successfully registered")
 
 def clean_handler(clean_val):
     if clean_val == "workspace":
@@ -215,10 +247,10 @@ def main():
     parser = argparse.ArgumentParser(description="Project Borealis Workspace Synchronization Tool | PBpy Module Version: " + pbversion.pbpy_ver + " | PBSync Executable Version: " + pbversion.pbsync_ver)
 
     parser.add_argument("--sync", help="Main command for the PBSync, synchronizes the project with latest changes in repo, and does some housekeeping",
-    choices=["all", "binaries", "engine", "force", "ddc"])
-    parser.add_argument("--print", help="Prints requested version information into console. latest-engine command needs --repository parameter",
+    choices=["all", "binaries", "engineversion", "engine", "force", "ddc"])
+    parser.add_argument("--printversion", help="Prints requested version information into console. latest-engine command needs --repository parameter",
     choices=["current-engine", "latest-engine", "project"])
-    parser.add_argument("--repository", help="Required gcloud repository url for --print latest-engine and --sync engine commands")
+    parser.add_argument("--repository", help="Required gcloud repository url for --printversion latest-engine and --sync engine commands")
     parser.add_argument("--autoversion", help="Automatic version update for project version", choices=["hotfix", "stable", "public"])
     parser.add_argument("--clean", help="""Do cleanup according to specified argument. If engine is provided, old engine installations will be cleared
     If workspace is provided, workspace will be reset with latest changes from current branch (Not revertable)""", choices=["engine", "workspace"])
@@ -226,6 +258,7 @@ def main():
     parser.add_argument("--push", help="Push provided file into release of current project version")
     parser.add_argument("--publish", help="Publishes a playable build with provided build type", choices=["internal", "playtester"])
     parser.add_argument("--dispatch", help="Required dispastch executable path for --publish command")
+    parser.add_argument("--bundle", help="Required archive bundle name for --sync engine command. If not provided, ue4versionator will download without a bundle name")
     parser.add_argument("--debugpath", help="If provided, PBSync will run in provided path")
     parser.add_argument("--debugbranch", help="If provided, PBSync will use provided branch as expected branch")
     
@@ -249,6 +282,8 @@ def main():
         'checksum_file': root.find('git/checksumfile').text,
         'log_file_path': root.find('log/file').text,
         'versionator_config_path': root.find('versionator/configpath').text,
+        'default_bundle_name': root.find('versionator/defaultbundle').text,
+        'creative_bundle_name': root.find('versionator/creativebundle').text,
         'engine_base_version': root.find('project/enginebaseversion').text,
         'uproject_name': root.find('project/uprojectname').text,
         'defaultgame_path': root.find('project/defaultgameinipath').text,
@@ -268,7 +303,7 @@ def main():
 
     # Parse args
     if not (args.sync is None):
-        sync_handler(args.sync, args.repository)
+        sync_handler(args.sync, args.repository, args.bundle)
     elif not (args.print is None):
         print_handler(args.print, args.repository)
     elif not (args.autoversion is None):

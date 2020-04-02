@@ -214,3 +214,55 @@ def clean_old_engine_installations():
             return True
 
     return False
+
+# TODO: Implement that into ue4versionator. Until doing that, this can stay inside pbtool module
+def is_versionator_symbols_enabled():
+    if not path.isfile(pbconfig.get('versionator_config_path')):
+        # Config file somehow isn't generated yet, only get a response, but do not write anything into config
+        response = input("Do you want to also download debugging symbols for accurate crash logging? You can change that choice later in .ue4v-user config file [y/n]")
+        if response == "y" or response == "Y":
+            return True
+        else:
+            return False
+
+    try:
+        with open(pbconfig.get('versionator_config_path'), "r") as config_file:
+            for ln in config_file:
+                if "Symbols" in ln or "symbols" in ln:
+                    if "False" in ln or "false" in ln:
+                        return False
+                    elif "True" in ln or "true" in ln:
+                        return True
+                    else:
+                        # Incorrect config
+                        return False
+    except Exception as e:
+        pblog.exception(str(e))
+        return False
+
+    # Symbols configuration variable is not on the file, let's add it
+    try:
+        with open(pbconfig.get('versionator_config_path'), "a+") as config_file:   
+            response = input("Do you want to also download debugging symbols for accurate crash logging? You can change that choice later in .ue4v-user config file [y/n]")
+            if response == "y" or response == "Y":
+                config_file.write("\nsymbols = true")
+                return True
+            else:
+                config_file.write("\nsymbols = false")
+                return False
+    except Exception as e:
+        pblog.exception(str(e))
+        return False
+
+# TODO: Implement that into ue4versionator. Until doing that, this can stay inside pbtools module
+def run_ue4versionator(bundle_name = None, download_symbols = False):
+    command_set = ["ue4versionator.exe"]
+
+    if not (bundle_name is None):
+        command_set.append("--bundle")
+        command_set.append(str(bundle_name))
+
+    if download_symbols:
+        command_set.append("--with-symbols")
+    
+    return subprocess.call(command_set)

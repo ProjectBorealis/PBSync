@@ -48,6 +48,13 @@
             "default": "stable",
             "options": ["stable", "public"],
             "type": "pickString"
+        },
+        {
+            "id": "bundleSelection",
+            "description": "Please choose what engine bundle you want to use",
+            "default": "editor",
+            "options": ["editor", "deveditor", "ci"],
+            "type": "pickString"
         }
     ],
     "configurations": [
@@ -84,6 +91,14 @@
             "console": "integratedTerminal",
         },
         {
+            "name": "Pull Engine Build",
+            "args": ["--sync", "engine", "--bundle", "${input:bundleSelection}", "--debugpath", "${input:debugPath}"],
+            "type": "python",
+            "request": "launch",
+            "program": "pbsync/pbsync.py",
+            "console": "integratedTerminal",
+        },
+        {
             "name": "Generate DDC",
             "args": ["--sync", "ddc", "--debugpath", "${input:debugPath}"],
             "type": "python",
@@ -93,7 +108,7 @@
         },
         {
             "name": "Update Engine Version to Latest",
-            "args": ["--sync", "engine", "--repository", "${input:gcloudUrl}", "--debugpath", "${input:debugPath}"],
+            "args": ["--sync", "engineversion", "--repository", "${input:gcloudUrl}", "--debugpath", "${input:debugPath}"],
             "type": "python",
             "request": "launch",
             "program": "pbsync/pbsync.py",
@@ -101,7 +116,7 @@
         },
         {
             "name": "Print Latest Engine Version",
-            "args": ["--print", "latest-engine", "--repository", "${input:gcloudUrl}", "--debugpath", "${input:debugPath}"],
+            "args": ["--printversion", "latest-engine", "--repository", "${input:gcloudUrl}", "--debugpath", "${input:debugPath}"],
             "type": "python",
             "request": "launch",
             "program": "pbsync/pbsync.py",
@@ -109,7 +124,7 @@
         },
         {
             "name": "Print Information",
-            "args": ["--print", "${input:printSelection}", "--debugpath", "${input:debugPath}"],
+            "args": ["--printversion", "${input:printSelection}", "--debugpath", "${input:debugPath}"],
             "type": "python",
             "request": "launch",
             "program": "pbsync/pbsync.py",

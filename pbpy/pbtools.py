@@ -151,52 +151,6 @@ def check_running_process(process_name):
         pass
     return False
 
-# TODO: Implement that into ue4versionator. Until doing that, this can stay inside pbtool module
-def is_versionator_symbols_enabled():
-    if not path.isfile(pbconfig.get('versionator_config_path')):
-        # Config file somehow isn't generated yet, only get a response, but do not write anything into config
-        response = input("Do you want to also download debugging symbols for accurate crash logging? You can change that choice later in .ue4v-user config file [y/n]")
-        if response == "y" or response == "Y":
-            return True
-        else:
-            return False
-
-    try:
-        with open(pbconfig.get('versionator_config_path'), "r") as config_file:
-            for ln in config_file:
-                if "Symbols" in ln or "symbols" in ln:
-                    if "False" in ln or "false" in ln:
-                        return False
-                    elif "True" in ln or "true" in ln:
-                        return True
-                    else:
-                        # Incorrect config
-                        return False
-    except Exception as e:
-        pblog.exception(str(e))
-        return False
-
-    # Symbols configuration variable is not on the file, let's add it
-    try:
-        with open(pbconfig.get('versionator_config_path'), "a+") as config_file:   
-            response = input("Do you want to also download debugging symbols for accurate crash logging? You can change that choice later in .ue4v-user config file [y/n]")
-            if response == "y" or response == "Y":
-                config_file.write("\nsymbols = true")
-                return True
-            else:
-                config_file.write("\nsymbols = false")
-                return False
-    except Exception as e:
-        pblog.exception(str(e))
-        return False
-
-# TODO: Implement that into ue4versionator. Until doing that, this can stay inside pbtools module
-def run_ue4versionator():
-    if is_versionator_symbols_enabled():
-        return subprocess.call(["ue4versionator.exe", "--with-symbols"])
-    else:
-        return subprocess.call(["ue4versionator.exe"])
-
 def wipe_workspace():
     current_branch = pbgit.get_current_branch_name()
     response = input("This command will wipe your workspace and get latest changes from " + current_branch + ". Are you sure? [y/N]")

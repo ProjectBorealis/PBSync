@@ -1,27 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <config>
     <project>
-        <enginebaseversion></enginebaseversion>
-        <uprojectname></uprojectname>
-        <defaultgameinipath></defaultgameinipath>
+        <enginebaseversion>4.24</enginebaseversion>
+        <uprojectname>SampleProject.uproject</uprojectname>
+        <defaultgameinipath>Config/DefaultGame.ini</defaultgameinipath>
     </project>
     <git>
-        <version></version>
-        <lfsversion></lfsversion>
-        <expectedbranch></expectedbranch>
-        <lfslockurl></lfslockurl>
-        <url></url>
-        <checksumfile></checksumfile>
+        <version>2.26.0.vfs.1.1</version>
+        <lfsversion>git-lfs/2.10.0</lfsversion>
+        <expectedbranch>CreativeBranchName</expectedbranch>
+        <lfslockurl>lfs.https://github.com/GithubUser/samplerepository.git/info/lfs.locksverify</lfslockurl>
+        <url>https://github.com/GithubUser/samplerepository.git</url>
+        <checksumfile>.md5</checksumfile>
     </git>
     <versionator>
-        <configpath></configpath>
+        <configpath>.ue4v-user</configpath>
+        <defaultbundle>editor</defaultbundle>
+        <creativebundle>deveditor</creativebundle>
     </versionator>
     <log>
-        <file></file>
+        <file>pbsync_log.txt</file>
     </log>
     <dispatch>
-        <config></config>
-        <stagedir></stagedir>
-        <drm></drm>
+        <config>Dispatch/DispatchConfig.json</config>
+        <stagedir>Saved/StagedBuilds</stagedir>
+        <drm>Saved/StagedBuilds/WindowsNoEditor/SampleProject/Binaries/Win64/SampleProject-Win64-Shipping.exe</drm>
     </dispatch>
 </config>
