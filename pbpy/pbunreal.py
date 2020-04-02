@@ -123,7 +123,7 @@ def project_version_increase(increase_type):
     print("Project version will be increased to " + new_version)
     return set_project_version(new_version)
 
-def get_engine_version():
+def get_engine_version(only_date = True):
     try:
         with open(pbconfig.get('uproject_name'), "r") as uproject_file:  
             data = json.load(uproject_file)
@@ -133,6 +133,10 @@ def get_engine_version():
             if "}" in build_version:
                 # Means we're using local build version in .uproject file
                 return None
+
+            if not only_date:
+                build_version = pbconfig.get("enginebaseversion") + "-" + engine_version_prefix + "-" + build_version
+            
             return build_version
     except Exception as e:
         pblog.exception(str(e))
