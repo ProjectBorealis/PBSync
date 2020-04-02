@@ -10,8 +10,10 @@ from pbpy import pbtools
 from pbpy import pbunreal
 from pbpy import pbgit
 from pbpy import pbconfig
-from pbpy import pbversion
+from pbpy import pbpy_version
 from pbpy import pbdispatch
+
+import pbsync_version
 
 default_config_name = "PBSync.xml"
 
@@ -33,8 +35,8 @@ def sync_handler(sync_val, repository_val = None, bundle_name = None):
         pblog.info("------------------")
 
         pblog.info("Executing " + str(sync_val) + " sync command")
-        pblog.info("PBpy Module Version: " + pbversion.pbpy_ver)
-        pblog.info("PBSync Executable Version: " + pbversion.pbsync_ver)
+        pblog.info("PBpy Module Version: " + pbpy_version.ver)
+        pblog.info("PBSync Executable Version: " + pbsync_version.ver)
 
         pblog.info("------------------")
 
@@ -243,7 +245,7 @@ def push_handler(file_name):
         sys.exit(1)
 
 def main():
-    parser = argparse.ArgumentParser(description="Project Borealis Workspace Synchronization Tool | PBpy Module Version: " + pbversion.pbpy_ver + " | PBSync Executable Version: " + pbversion.pbsync_ver)
+    parser = argparse.ArgumentParser(description="Project Borealis Workspace Synchronization Tool | PBpy Module Version: " + pbpy_version.ver + " | PBSync Executable Version: " + pbsync_version.ver)
 
     parser.add_argument("--sync", help="Main command for the PBSync, synchronizes the project with latest changes in repo, and does some housekeeping",
     choices=["all", "binaries", "engineversion", "engine", "force", "ddc"])
