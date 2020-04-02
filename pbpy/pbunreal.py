@@ -135,7 +135,7 @@ def get_engine_version(only_date = True):
                 return None
 
             if not only_date:
-                build_version = pbconfig.get("enginebaseversion") + "-" + engine_version_prefix + "-" + build_version
+                build_version = pbconfig.get("engine_base_version") + "-" + engine_version_prefix + "-" + build_version
             
             return build_version
     except Exception as e:
