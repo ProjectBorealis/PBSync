@@ -14,8 +14,9 @@
         <checksumfile>.md5</checksumfile>
     </git>
     <versionator>
-        <configpath>.ue4v-user</configpath>
-        <bundle>editor</defaultbundle>
+        <userconfig>.ue4v-user</configpath>
+        <ciconfig>.ue4v-user-ci</configpath>
+        <defaultbundle>editor</defaultbundle>
     </versionator>
     <log>
         <file>pbsync_log.txt</file>

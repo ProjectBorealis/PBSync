@@ -20,7 +20,6 @@ ddc_folder_name = "DerivedDataCache"
 ue4_editor_relative_path = "Engine/Binaries/Win64/UE4Editor.exe"
 engine_installation_folder_regex = "[0-9].[0-9]{2}-PB-[0-9]{8}"
 engine_version_prefix = "PB"
-versionator_ci_config_name = ".ue4v-user-ci"
 
 def get_engine_prefix():
     return pbconfig.get('engine_base_version') + "-" + engine_version_prefix
@@ -152,7 +151,7 @@ def get_engine_version_with_prefix():
 
 def get_engine_install_root():
     try:
-        with open(pbconfig.get('versionator_config_path'), "r") as config_file:
+        with open(pbconfig.get('ue4v_user_config'), "r") as config_file:
             for ln in config_file:
                 if "download_dir" in ln:
                     split_str = ln.split("=")
@@ -221,7 +220,7 @@ def clean_old_engine_installations():
     return False
 
 def is_versionator_symbols_enabled():
-    if not path.isfile(pbconfig.get('versionator_config_path')):
+    if not path.isfile(pbconfig.get('ue4v_user_config')):
         # Config file somehow isn't generated yet, only get a response, but do not write anything into config
         response = input("Do you want to also download debugging symbols for accurate crash logging? You can change that choice later in .ue4v-user config file [y/n]")
         if response == "y" or response == "Y":
@@ -230,7 +229,7 @@ def is_versionator_symbols_enabled():
             return False
 
     try:
-        with open(pbconfig.get('versionator_config_path'), "r") as config_file:
+        with open(pbconfig.get('ue4v_user_config'), "r") as config_file:
             for ln in config_file:
                 if "Symbols" in ln or "symbols" in ln:
                     if "False" in ln or "false" in ln:
@@ -246,7 +245,7 @@ def is_versionator_symbols_enabled():
 
     # Symbols configuration variable is not on the file, let's add it
     try:
-        with open(pbconfig.get('versionator_config_path'), "a+") as config_file:   
+        with open(pbconfig.get('ue4v_user_config'), "a+") as config_file:   
             response = input("Do you want to also download debugging symbols for accurate crash logging? You can change that choice later in .ue4v-user config file [y/n]")
             if response == "y" or response == "Y":
                 config_file.write("\nsymbols = true")
@@ -269,8 +268,8 @@ def run_ue4versionator(bundle_name = None, download_symbols = False):
         command_set.append("--with-symbols")
     
     if pbconfig.get("is_ci"):
-        # If we're CI, use versionator_ci_config_name
+        # If we're CI, use another config file
         command_set.append("-user-config")
-        command_set.append(versionator_ci_config_name)
+        command_set.append(pbconfig.get("ue4v_ci_config"))
 
     return subprocess.call(command_set)

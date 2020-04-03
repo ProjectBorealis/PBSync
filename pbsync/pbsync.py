@@ -116,7 +116,7 @@ def sync_handler(sync_val: str, repository_val = None, requested_bundle_name = N
         pblog.info("Trying to register current engine build if it exists. Otherwise, required build will be downloaded...")
         
         symbols_needed = pbunreal.is_versionator_symbols_enabled()
-        bundle_name = pbconfig.get("bundle")
+        bundle_name = pbconfig.get("ue4v_default_bundle")
         
         if pbunreal.run_ue4versionator(bundle_name, symbols_needed) != 0:
             pblog.error("Something went wrong while registering engine build " + bundle_name + "-" + engine_version + ". Please request help on #tech-support")
@@ -165,7 +165,7 @@ def sync_handler(sync_val: str, repository_val = None, requested_bundle_name = N
     elif sync_val == "engine":
         # Pull engine build with ue4versionator & register it
         if requested_bundle_name is None:
-            requested_bundle_name = pbconfig.get("bundle")
+            requested_bundle_name = pbconfig.get("ue4v_default_bundle")
         
         engine_version = pbunreal.get_engine_version(False)
         if pbunreal.run_ue4versionator(requested_bundle_name, False) != 0:
@@ -271,8 +271,9 @@ def main():
         'git_url': root.find('git/url').text,
         'checksum_file': root.find('git/checksumfile').text,
         'log_file_path': root.find('log/file').text,
-        'versionator_config_path': root.find('versionator/configpath').text,
-        'bundle': root.find('versionator/bundle').text,
+        'ue4v_user_config': root.find('versionator/userconfig').text,
+        'ue4v_ci_config': root.find('versionator/ciconfig').text,
+        'ue4v_default_bundle': root.find('versionator/defaultbundle').text,
         'engine_base_version': root.find('project/enginebaseversion').text,
         'uproject_name': root.find('project/uprojectname').text,
         'defaultgame_path': root.find('project/defaultgameinipath').text,
