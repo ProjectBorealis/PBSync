@@ -31,6 +31,15 @@ def generate_config(config_path, parser_func):
             print("Config exception: {0}".format(e))
             return False
 
+        # Add CI information
+        is_ci = True
+        try:
+            test = str(os.environ['PBSYNC_CI'])
+        except Exception as e:
+            is_ci = False
+
+        config["is_ci"] = is_ci
+
         return True
         
     return False

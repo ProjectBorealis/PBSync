@@ -23,7 +23,10 @@ def config_handler(config_var, config_parser_func):
         print(str(config_var) + " config file is not valid or not found. Please check integrity of the file")
         sys.exit(1)
 
-def sync_handler(sync_val, repository_val = None, requested_bundle_name = None):
+def sync_handler(sync_val: str, repository_val = None, requested_bundle_name = None):
+    
+    sync_val = sync_val.lower()
+
     if sync_val == "all" or sync_val == "force":
         # Firstly, check our remote connection before doing anything
         remote_state, remote_url = pbgit.check_remote_connection()
@@ -148,7 +151,7 @@ def sync_handler(sync_val, repository_val = None, requested_bundle_name = None):
             sys.exit(1)
         pblog.info("Successfully changed engine version as " + str(engine_version))
 
-    elif sync_val == "ddc" or sync_val == "DDC":
+    elif sync_val == "ddc":
         pbunreal.generate_ddc_data()
     
     elif sync_val == "binaries":

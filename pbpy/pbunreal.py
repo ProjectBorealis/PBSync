@@ -20,6 +20,7 @@ ddc_folder_name = "DerivedDataCache"
 ue4_editor_relative_path = "Engine/Binaries/Win64/UE4Editor.exe"
 engine_installation_folder_regex = "[0-9].[0-9]{2}-PB-[0-9]{8}"
 engine_version_prefix = "PB"
+versionator_ci_config_name = ".ue4v-user-ci"
 
 def get_engine_prefix():
     return pbconfig.get('engine_base_version') + "-" + engine_version_prefix
@@ -219,7 +220,6 @@ def clean_old_engine_installations():
 
     return False
 
-# TODO: Implement that into ue4versionator. Until doing that, this can stay inside pbtool module
 def is_versionator_symbols_enabled():
     if not path.isfile(pbconfig.get('versionator_config_path')):
         # Config file somehow isn't generated yet, only get a response, but do not write anything into config
@@ -258,7 +258,6 @@ def is_versionator_symbols_enabled():
         pblog.exception(str(e))
         return False
 
-# TODO: Implement that into ue4versionator. Until doing that, this can stay inside pbtools module
 def run_ue4versionator(bundle_name = None, download_symbols = False):
     command_set = ["ue4versionator.exe"]
 
@@ -269,4 +268,9 @@ def run_ue4versionator(bundle_name = None, download_symbols = False):
     if download_symbols:
         command_set.append("--with-symbols")
     
+    if pbconfig.get("is_ci"):
+        # If we're CI, use versionator_ci_config_name
+        command_set.append("-user-config")
+        command_set.append(versionator_ci_config_name)
+
     return subprocess.call(command_set)
