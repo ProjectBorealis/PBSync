@@ -185,7 +185,7 @@ def clean_handler(clean_val):
             pblog.error("Something went wrong on engine installation root folder clean process")
             sys.exit(1)
 
-def print_handler(print_val, repository_val = None):
+def printversion_handler(print_val, repository_val = None):
     if print_val == "latest-engine":
         if repository_val is None:
             pblog.error("--repository <URL> argument should be provided with --print latest-engine command")
@@ -290,8 +290,8 @@ def main():
     # Parse args
     if not (args.sync is None):
         sync_handler(args.sync, args.repository, args.bundle)
-    elif not (args.print is None):
-        print_handler(args.print, args.repository)
+    elif not (args.printversion is None):
+        printversion_handler(args.printversion, args.repository)
     elif not (args.autoversion is None):
         autoversion_handler(args.autoversion)
     elif not (args.clean is None):
