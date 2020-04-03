@@ -23,7 +23,7 @@ def config_handler(config_var, config_parser_func):
         print(str(config_var) + " config file is not valid or not found. Please check integrity of the file")
         sys.exit(1)
 
-def sync_handler(sync_val, repository_val = None, bundle_name = None):
+def sync_handler(sync_val, repository_val = None, requested_bundle_name = None):
     if sync_val == "all" or sync_val == "force":
         # Firstly, check our remote connection before doing anything
         remote_state, remote_url = pbgit.check_remote_connection()
@@ -113,15 +113,8 @@ def sync_handler(sync_val, repository_val = None, bundle_name = None):
         pblog.info("Trying to register current engine build if it exists. Otherwise, required build will be downloaded...")
         
         symbols_needed = pbunreal.is_versionator_symbols_enabled()
-
-        bundle_name = None
-        if is_on_expected_branch:
-            # Expected branch should use deveditor bundle
-            bundle_name = pbconfig.get("creative_bundle_name")
-        else:
-            # Other users should use editor bundle, which also has debug build support
-            bundle_name = pbconfig.get("default_bundle_name")
-
+        bundle_name = pbconfig.get("bundle")
+        
         if pbunreal.run_ue4versionator(bundle_name, symbols_needed) != 0:
             pblog.error("Something went wrong while registering engine build " + bundle_name + "-" + engine_version + ". Please request help on #tech-support")
             sys.exit(1)
@@ -168,22 +161,15 @@ def sync_handler(sync_val, repository_val = None, bundle_name = None):
 
     elif sync_val == "engine":
         # Pull engine build with ue4versionator & register it
-        if bundle_name is None:
-            # If --bundle parameter is not provided, use defaults from current git branch
-            is_on_expected_branch = pbgit.compare_with_current_branch_name(pbconfig.get('expected_branch_name'))
-            if is_on_expected_branch:
-                # Expected branch should use deveditor bundle
-                bundle_name = pbconfig.get("creative_bundle_name")
-            else:
-                # Other users should use editor bundle, which also has debug build support
-                bundle_name = pbconfig.get("default_bundle_name")
+        if requested_bundle_name is None:
+            requested_bundle_name = pbconfig.get("bundle")
         
         engine_version = pbunreal.get_engine_version(False)
-        if pbunreal.run_ue4versionator(bundle_name, False) != 0:
-            pblog.error("Something went wrong while registering engine build " + bundle_name + "-" + engine_version)
+        if pbunreal.run_ue4versionator(requested_bundle_name, False) != 0:
+            pblog.error("Something went wrong while registering engine build " + requested_bundle_name + "-" + engine_version)
             sys.exit(1)
         else:
-            pblog.info("Engine build " + bundle_name + "-" + engine_version + " successfully registered")
+            pblog.info("Engine build " + requested_bundle_name + "-" + engine_version + " successfully registered")
 
 def clean_handler(clean_val):
     if clean_val == "workspace":

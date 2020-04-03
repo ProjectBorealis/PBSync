@@ -15,8 +15,7 @@
     </git>
     <versionator>
         <configpath>.ue4v-user</configpath>
-        <defaultbundle>editor</defaultbundle>
-        <creativebundle>deveditor</creativebundle>
+        <bundle>editor</defaultbundle>
     </versionator>
     <log>
         <file>pbsync_log.txt</file>

@@ -53,7 +53,7 @@
             "id": "bundleSelection",
             "description": "Please choose what engine bundle you want to use",
             "default": "editor",
-            "options": ["editor", "deveditor", "ciengine"],
+            "options": ["editor", "ciengine"],
             "type": "pickString"
         }
     ],
