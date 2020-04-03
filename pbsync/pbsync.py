@@ -245,7 +245,7 @@ def main():
     parser.add_argument("--push", help="Push provided file into release of current project version")
     parser.add_argument("--publish", help="Publishes a playable build with provided build type", choices=["internal", "playtester"])
     parser.add_argument("--dispatch", help="Required dispastch executable path for --publish command")
-    parser.add_argument("--bundle", help="Required archive bundle name for --sync engine command. If not provided, ue4versionator will download without a bundle name")
+    parser.add_argument("--bundle", help="Required archive bundle name for --sync engine command. If not provided, ue4versionator will use bundle provided in config file")
     parser.add_argument("--debugpath", help="If provided, PBSync will run in provided path")
     parser.add_argument("--debugbranch", help="If provided, PBSync will use provided branch as expected branch")
     
@@ -269,8 +269,7 @@ def main():
         'checksum_file': root.find('git/checksumfile').text,
         'log_file_path': root.find('log/file').text,
         'versionator_config_path': root.find('versionator/configpath').text,
-        'default_bundle_name': root.find('versionator/defaultbundle').text,
-        'creative_bundle_name': root.find('versionator/creativebundle').text,
+        'bundle': root.find('versionator/bundle').text,
         'engine_base_version': root.find('project/enginebaseversion').text,
         'uproject_name': root.find('project/uprojectname').text,
         'defaultgame_path': root.find('project/defaultgameinipath').text,
