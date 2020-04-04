@@ -8,7 +8,7 @@ PyInstaller is required for executable generation, and it should be built from s
 
 - Clone https://github.com/pyinstaller/pyinstaller
 - In bootloader folder, run `./waf all` command. This will generate bootloader files by using your system. This highly decreases false positive virus detection probability of your generated PBSync.exe
-- On pyinstaller folder, run python setup.py install
+- On pyinstaller folder, run `python setup.py install`
 
 ## Distribution
 
