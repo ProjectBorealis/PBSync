@@ -4,11 +4,11 @@ Advanced workspace synchronization tool for Unreal Engine projects hosted on git
 
 ## Setup
 
-pipenv is required for dependency management. After installing pipenv, run the command below to prepare python virtual environment:
+PyInstaller is required for executable generation, and it should be built from source to prevent false positive virus detections of generated PBSync executable.
 
-`pipenv install -e Pipfile`
-
-After preparation is done, you can open the root folder with Visual Studio Code. There are lots of debug configurations pre-defined in the project, so you can easily start working with the source code. 
+- Clone https://github.com/pyinstaller/pyinstaller
+- In bootloader folder, run `./waf all` command. This will generate bootloader files by using your system. This highly decreases false positive virus detection probability of your generated PBSync.exe
+- On pyinstaller folder, run python setup.py install
 
 ## Distribution
 
