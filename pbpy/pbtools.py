@@ -205,7 +205,7 @@ def resolve_conflicts_and_pull():
         pblog.info("Success, rebased on latest changes without any conflict")
     elif "successfully rebased and updated" in lower_case_output:
         pbgit.stash_pop()
-        logging.info("Success, rebased on latest changes without any conflict")
+        pblog.info("Success, rebased on latest changes without any conflict")
     else:
         pblog.error("Aborting the rebase, an unknown error occured. Request help on #tech-support to resolve conflicts, and please do not run StartProject.bat until issue is solved.")
         pbgit.abort_rebase()
