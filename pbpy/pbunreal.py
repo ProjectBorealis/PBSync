@@ -220,7 +220,7 @@ def clean_old_engine_installations():
     return False
 
 def is_versionator_symbols_enabled():
-    if not path.isfile(pbconfig.get('ue4v_user_config')):
+    if not os.path.isfile(pbconfig.get('ue4v_user_config')):
         # Config file somehow isn't generated yet, only get a response, but do not write anything into config
         response = input("Do you want to also download debugging symbols for accurate crash logging? You can change that choice later in .ue4v-user config file [y/n]")
         if response == "y" or response == "Y":
