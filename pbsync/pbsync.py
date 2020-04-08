@@ -251,6 +251,7 @@ def main():
     parser.add_argument("--bundle", help="Required archive bundle name for --sync engine command. If not provided, ue4versionator will use bundle provided in config file")
     parser.add_argument("--debugpath", help="If provided, PBSync will run in provided path")
     parser.add_argument("--debugbranch", help="If provided, PBSync will use provided branch as expected branch")
+    parser.add_argument("--wipe", help="Obsolote wipe command, replaced with --clean workspace")
     
     if len(sys.argv) > 0:
         args = parser.parse_args()
@@ -304,6 +305,8 @@ def main():
         publish_handler(args.publish, args.dispatch)
     elif not (args.push is None):
         push_handler(args.push)
+    elif not (args.wipe is None):
+        clean_handler("workspace")
     else:
         pblog.error("At least one valid argument should be passed!")
 
