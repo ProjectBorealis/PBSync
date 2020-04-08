@@ -19,7 +19,7 @@
         {
             "id": "debugBranch",
             "description": "Please enter branch to be used as expected branch",
-            "default": "pbsync/update",
+            "default": "master",
             "type": "promptString"
         },
         {
