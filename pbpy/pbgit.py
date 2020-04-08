@@ -101,4 +101,29 @@ def abort_rebase():
 def setup_config():
     subprocess.call(["git", "config", "include.path", "../.gitconfig"])
     subprocess.call(["git", "config", pbconfig.get('lfs_lock_url'), "true"])
-  
+
+    # Temporary code to clear previous git config variables:
+    clear_config_list = [
+        "core.hookspath",
+        "core.autocrlf",
+        "core.multipackindex",
+        "core.fsmonitor",
+        "commit.template",
+        "merge.diffstyle",
+        "push.default",
+        "blame.coloring",
+        "fetch.prune",
+        "fetch.prunetags",
+        "help.autocorrect",
+        "index.threads",
+        "pack.threads",
+        "pack.usesparse",
+        "protocol.version",
+        "pull.rebase",
+        "repack.writebitmaps",
+        "rerere.autoupdate",
+        "rerere.enabled"
+    ]
+
+    for cfg in clear_config_list:
+        subprocess.call(["git", "config", "--unset", cfg])
