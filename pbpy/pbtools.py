@@ -137,11 +137,6 @@ def disable_watchman():
     if check_running_process(watchman_exec_name):
         os.system("taskkill /f /im " + watchman_exec_name)
 
-def enable_watchman():
-    subprocess.call(["git", "config", "core.fsmonitor", "git-watchman/query-watchman"])
-    # Trigger
-    out = subprocess.getoutput(["git", "status"])
-
 def check_running_process(process_name):
     try:
         if process_name in (p.name() for p in psutil.process_iter()):
@@ -164,7 +159,6 @@ def wipe_workspace():
     result = subprocess.call(["git", "reset", "--hard", "origin/" + str(current_branch)])
     subprocess.call(["git", "clean", "-fd"])
     subprocess.call(["git", "pull"])
-    enable_watchman()
     return result == 0
 
 def resolve_conflicts_and_pull():
@@ -211,6 +205,3 @@ def resolve_conflicts_and_pull():
         pbgit.abort_rebase()
         pbgit.stash_pop()
         error_state(True)
-
-    # Run watchman back
-    enable_watchman()
