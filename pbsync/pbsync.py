@@ -275,6 +275,7 @@ def main():
         'ue4v_user_config': root.find('versionator/userconfig').text,
         'ue4v_ci_config': root.find('versionator/ciconfig').text,
         'ue4v_default_bundle': root.find('versionator/defaultbundle').text,
+        'ue4v_ci_bundle': root.find('versionator/cibundle').text,
         'engine_base_version': root.find('project/enginebaseversion').text,
         'uproject_name': root.find('project/uprojectname').text,
         'defaultgame_path': root.find('project/defaultgameinipath').text,

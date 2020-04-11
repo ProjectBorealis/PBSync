@@ -5,6 +5,7 @@ from shutil import rmtree
 from os import remove
 import os
 import json
+import glob
 
 from pbpy import pbconfig
 from pbpy import pbtools
@@ -163,12 +164,22 @@ def get_engine_install_root():
 
 def get_latest_available_engine_version(bucket_url):
     output = subprocess.getoutput(["gsutil", "ls", bucket_url])
-    versions = re.findall("[4].[0-9]{2}-PB-[0-9]{8}", str(output))
+
+    build_type = pbconfig.get("ue4v_default_bundle")
+    if pbconfig.get("is_ci"):
+        build_type = pbconfig.get("ue4v_ci_bundle") # We should get latest version of ciengine instead
+
+    regex_prefix = build_type + "-" + pbconfig.get("engine_base_version") + "-" + engine_version_prefix # e.g, "4.24-PB"
+    versions = re.findall(regex_prefix + "-[0-9]{8}", str(output))
     if len(versions) == 0:
         return None
     # Find the latest version by sorting
     versions.sort()
-    return str(versions[len(versions) - 1])
+
+    # Strip the build type prefix back
+    result = str(versions[len(versions) - 1])
+    result = result.replace(build_type + "-", '')
+    return result
 
 def check_ue4_file_association():
     file_assoc_result = subprocess.getoutput(["assoc", uproject_ext])
