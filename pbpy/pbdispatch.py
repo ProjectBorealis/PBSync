@@ -3,6 +3,8 @@ import subprocess
 
 from pbpy import pblog
 
+default_drm_exec_name = "ProjectBorealis.exe"
+
 # DISPATCH_APP_ID: App ID. env. variable for dispatch application
 # DISPATCH_INTERNAL_BID: Branch ID env. variable for internal builds
 # DISPATCH_PLAYTESTER_BID: Branch ID env. variable for playtester builds
@@ -30,8 +32,17 @@ def push_build(branch_type, dispath_exec_path, dispatch_config, dispatch_stagedi
             pblog.error("DISPATCH_PLAYTESTER_BID is not found in environment variables")
             return False
     
+    executable_path = None
+    for file in os.listdir(dispatch_apply_drm_path):
+        if file.endswith(".exe"):
+            executable_path = os.path.join(dispatch_apply_drm_path, str(file))
+
+    if executable_path is None:
+        pblog.error("Executable to apply DRM cannot found in " + dispatch_apply_drm_path)
+        return False
+
     # Wrap executable with DRM
-    result = subprocess.call([dispath_exec_path, "build", "drm-wrap", str(os.environ['DISPATCH_APP_ID']), dispatch_apply_drm_path])
+    result = subprocess.call([dispath_exec_path, "build", "drm-wrap", str(os.environ['DISPATCH_APP_ID']), executable_path])
     if result != 0:
         return False
 
