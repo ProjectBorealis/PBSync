@@ -4,6 +4,7 @@ import subprocess
 from pbpy import pblog
 
 default_drm_exec_name = "ProjectBorealis.exe"
+exec_max_allowed_size = 104857600 # 100mb
 
 # DISPATCH_APP_ID: App ID. env. variable for dispatch application
 # DISPATCH_INTERNAL_BID: Branch ID env. variable for internal builds
@@ -40,6 +41,13 @@ def push_build(branch_type, dispath_exec_path, dispatch_config, dispatch_stagedi
     if executable_path is None:
         pblog.error("Executable to apply DRM cannot found in " + dispatch_apply_drm_path)
         return False
+
+    if os.path.getsize(executable_path) > exec_max_allowed_size:
+        executable_path = dispatch_apply_drm_path
+        for i in range(3):
+            executable_path = os.path.join(executable_path, "..")
+        executable_path = os.path.abspath(executable_path)
+        executable_path = os.path.join(executable_path, default_drm_exec_name)
 
     # Wrap executable with DRM
     result = subprocess.call([dispath_exec_path, "build", "drm-wrap", str(os.environ['DISPATCH_APP_ID']), executable_path])
