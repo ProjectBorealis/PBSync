@@ -110,10 +110,9 @@ def remove_junction(destination):
                 return False
     return True
 
-# True: Error on last run, False: No errors
-
 
 def check_error_state():
+    # True: Error on last run, False: No errors
     try:
         with open(error_file, 'r') as error_state_file:
             error_state = error_state_file.readline(1)

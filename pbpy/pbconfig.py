@@ -13,10 +13,9 @@ def get(key):
 
     return config.get(str(key))
 
-# Generalized config generator. parser_func is responsible with returnning a valid config object
-
 
 def generate_config(config_path, parser_func):
+    # Generalized config generator. parser_func is responsible with returnning a valid config object
     global config
 
     if config_path != None and os.path.isfile(config_path):
