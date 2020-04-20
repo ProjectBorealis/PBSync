@@ -17,6 +17,7 @@ from pbpy import pbgit
 error_file = ".pbsync_err"
 watchman_exec_name = "watchman.exe"
 
+
 def get_md5_hash(file_path):
     md5_reader = md5()
     try:
@@ -28,6 +29,7 @@ def get_md5_hash(file_path):
         pblog.exception(str(e))
         return None
 
+
 def compare_md5_single(compared_file_path, md5_json_file_path):
     current_hash = get_md5_hash(compared_file_path)
     if current_hash is None:
@@ -37,7 +39,8 @@ def compare_md5_single(compared_file_path, md5_json_file_path):
     hash_dict = get_dict_from_json(md5_json_file_path)
 
     if hash_dict is None or not (dict_search_string in hash_dict):
-        pblog.error("Key " + dict_search_string + " not found in " + md5_json_file_path)
+        pblog.error("Key " + dict_search_string +
+                    " not found in " + md5_json_file_path)
         return False
 
     if hash_dict[dict_search_string] == current_hash:
@@ -49,13 +52,21 @@ def compare_md5_single(compared_file_path, md5_json_file_path):
         pblog.error("Current MD5: " + str(current_hash))
         return False
 
-def compare_md5_all(md5_json_file_path, print_log = False, ignored_extension = ".zip"):
+
+def compare_md5_all(md5_json_file_path, print_log=False, ignored_extension=".zip"):
     hash_dict = get_dict_from_json(md5_json_file_path)
     if hash_dict is None or len(hash_dict) == 0:
         return False
 
     is_success = True
     for file_path in hash_dict:
+        if not os.path.isfile(file_path):
+            # If file doesn't exist, that means we fail the checksum
+            if print_log:
+                pblog.error("MD5 checksum failed for " + file_path)
+                pblog.error("File does not exist")
+            return False
+
         if ignored_extension in file_path:
             continue
         current_md5 = get_md5_hash(file_path)
@@ -69,7 +80,8 @@ def compare_md5_all(md5_json_file_path, print_log = False, ignored_extension = "
                 pblog.error("Current MD5: " + str(current_md5))
             is_success = False
     return is_success
-    
+
+
 def get_dict_from_json(json_file_path):
     try:
         with open(json_file_path, 'rb') as json_file:
@@ -79,11 +91,13 @@ def get_dict_from_json(json_file_path):
         pblog.error(str(e))
         return None
 
+
 def is_junction(path: str) -> bool:
     try:
         return bool(os.readlink(path))
     except OSError:
         return False
+
 
 def remove_junction(destination):
     if os.path.isdir(destination):
@@ -97,6 +111,8 @@ def remove_junction(destination):
     return True
 
 # True: Error on last run, False: No errors
+
+
 def check_error_state():
     try:
         with open(error_file, 'r') as error_state_file:
@@ -110,11 +126,12 @@ def check_error_state():
     except:
         return False
 
+
 def remove_file(file_path):
     try:
         os.remove(file_path)
     except:
-        os.chmod(file_path, stat.S_IRWXU| stat.S_IRWXG| stat.S_IRWXO) # 0777
+        os.chmod(file_path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)  # 0777
         try:
             os.remove(file_path)
         except Exception as e:
@@ -122,20 +139,24 @@ def remove_file(file_path):
             pass
     return not os.path.isfile(file_path)
 
-def error_state(msg = None, fatal_error = False):
+
+def error_state(msg=None, fatal_error=False):
     if msg != None:
         pblog.error(msg)
     if fatal_error:
         # That was a fatal error, until issue is fixed, do not let user run PBSync
         with open(error_file, 'w') as error_state_file:
             error_state_file.write("1")
-    out = input("Logs are saved in " + pbconfig.get("log_file_path") + ". Press enter to quit...")
+    out = input("Logs are saved in " +
+                pbconfig.get("log_file_path") + ". Press enter to quit...")
     sys.exit(1)
+
 
 def disable_watchman():
     subprocess.call(["git", "config", "--unset", "core.fsmonitor"])
     if check_running_process(watchman_exec_name):
         os.system("taskkill /f /im " + watchman_exec_name)
+
 
 def check_running_process(process_name):
     try:
@@ -146,20 +167,24 @@ def check_running_process(process_name):
         pass
     return False
 
+
 def wipe_workspace():
     current_branch = pbgit.get_current_branch_name()
-    response = input("This command will wipe your workspace and get latest changes from " + current_branch + ". Are you sure? [y/N]")
-    
+    response = input("This command will wipe your workspace and get latest changes from " +
+                     current_branch + ". Are you sure? [y/N]")
+
     if response != "y" and response != "Y":
         return False
 
     pbgit.abort_all()
     disable_watchman()
     subprocess.call(["git", "fetch", "origin", str(current_branch)])
-    result = subprocess.call(["git", "reset", "--hard", "origin/" + str(current_branch)])
+    result = subprocess.call(
+        ["git", "reset", "--hard", "origin/" + str(current_branch)])
     subprocess.call(["git", "clean", "-fd"])
     subprocess.call(["git", "pull"])
     return result == 0
+
 
 def resolve_conflicts_and_pull():
     # Disable watchman for now
@@ -168,7 +193,8 @@ def resolve_conflicts_and_pull():
     output = subprocess.getoutput(["git", "status"])
     pblog.info(str(output))
 
-    pblog.info("Please wait while getting latest changes on the repository. It may take a while...")
+    pblog.info(
+        "Please wait while getting latest changes on the repository. It may take a while...")
 
     # Make sure upstream is tracked correctly
     pbgit.set_tracking_information(pbgit.get_current_branch_name())
@@ -177,7 +203,8 @@ def resolve_conflicts_and_pull():
     output = subprocess.getoutput(["git", "stash"])
     pblog.info(str(output))
 
-    pblog.info("Trying to rebase workspace with latest changes on the repository...")
+    pblog.info(
+        "Trying to rebase workspace with latest changes on the repository...")
     output = subprocess.getoutput(["git", "pull", "--rebase"])
     pblog.info(str(output))
 
