@@ -2,6 +2,7 @@ import subprocess
 import os.path
 import os
 import sys
+import shutil
 from zipfile import ZipFile
 from pathlib import Path
 
@@ -75,6 +76,14 @@ def pull_binaries(version_number: str, pass_checksum = False):
         pblog.error("Exception thrown while trying do pull binaries for " + version_number)
         return False
 
+    # Temp fix for Binaries folder with unnecessary content
+    if os.path.isdir("Binaries"):
+        try:
+            shutil.rmtree("Binaries")
+        except Exception as e:
+            pblog.exception(str(e))
+            pblog.error("Exception thrown while trying do clean Binaries folder")
+            return False
     try:
         if not pass_checksum:
             checksum_json_path = pbconfig.get("checksum_file")
