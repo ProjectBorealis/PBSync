@@ -17,7 +17,7 @@
         <userconfig>.ue4v-user</configpath>
         <ciconfig>.ue4v-user-ci</configpath>
         <defaultbundle>editor</defaultbundle>
-        <cibundle>ciengine</cibundle>
+        <cibundle>ci-engine</cibundle>
     </versionator>
     <log>
         <file>pbsync_log.txt</file>
