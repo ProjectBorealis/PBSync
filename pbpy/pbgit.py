@@ -8,13 +8,15 @@ from pbpy import pbtools
 def get_current_branch_name():
     return str(subprocess.getoutput(["git", "branch", "--show-current"]))
 
+
 def get_git_version():
-    installed_version_split = subprocess.getoutput(["git", "--version"]).split(" ")
+    installed_version_split = subprocess.getoutput(
+        ["git", "--version"]).split(" ")
 
     list_len = len(installed_version_split)
     if list_len == 0:
         return None
-    
+
     # Get latest index as full version of git
     installed_version = str(installed_version_split[list_len - 1])
 
@@ -23,15 +25,18 @@ def get_git_version():
 
     return installed_version
 
+
 def compare_with_current_branch_name(compared_branch):
     return get_current_branch_name() == compared_branch
 
+
 def get_lfs_version():
-    installed_version_split = subprocess.getoutput(["git-lfs", "--version"]).split(" ")
+    installed_version_split = subprocess.getoutput(
+        ["git-lfs", "--version"]).split(" ")
 
     if len(installed_version_split) == 0:
         return None
-    
+
     # Get first index as full version of git-lfs
     installed_version = str(installed_version_split[0])
 
@@ -40,8 +45,11 @@ def get_lfs_version():
 
     return installed_version
 
+
 def set_tracking_information(upstream_branch_name: str):
-    subprocess.call(["git", "branch", "--set-upstream-to=origin/" + upstream_branch_name, upstream_branch_name])
+    subprocess.call(["git", "branch", "--set-upstream-to=origin/" +
+                     upstream_branch_name, upstream_branch_name])
+
 
 def stash_pop():
     pblog.info("Trying to pop stash...")
@@ -62,16 +70,21 @@ def stash_pop():
         pbtools.error_state("""Git stash pop is failed due to unknown error. Request help on #tech-support to resolve possible conflicts, 
         and  please do not run StartProject.bat until issue is solved.""", True)
 
+
 def check_remote_connection():
-    current_url = subprocess.check_output(["git", "remote", "get-url", "origin"])
+    current_url = subprocess.check_output(
+        ["git", "remote", "get-url", "origin"])
     recent_url = pbconfig.get("git_url")
 
     if current_url != recent_url:
-        out = subprocess.check_output(["git", "remote", "set-url", "origin", recent_url])
+        out = subprocess.check_output(
+            ["git", "remote", "set-url", "origin", recent_url])
 
-    current_url = subprocess.check_output(["git", "remote", "get-url", "origin"])
+    current_url = subprocess.check_output(
+        ["git", "remote", "get-url", "origin"])
     out = subprocess.check_output(["git", "ls-remote", "--exit-code", "-h"])
     return not ("fatal" in str(out)), str(current_url)
+
 
 def check_credentials():
     output = str(subprocess.getoutput(["git", "config", "user.name"]))
@@ -84,9 +97,11 @@ def check_credentials():
         user_mail = input("Please enter your Github e-mail: ")
         subprocess.call(["git", "config", "user.email", user_mail])
 
+
 def sync_file(file_path):
     sync_head = "origin/" + get_current_branch_name()
     return subprocess.call(["git", "checkout", "-f", sync_head, "--", file_path])
+
 
 def abort_all():
     # Abort everything
@@ -94,9 +109,11 @@ def abort_all():
     out = subprocess.getoutput(["git", "rebase", "--abort"])
     out = subprocess.getoutput(["git", "am", "--abort"])
 
+
 def abort_rebase():
     # Abort rebase
     out = subprocess.getoutput(["git", "rebase", "--abort"])
+
 
 def setup_config():
     subprocess.call(["git", "config", "include.path", "../.gitconfig"])

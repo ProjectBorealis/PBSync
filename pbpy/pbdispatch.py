@@ -4,11 +4,13 @@ import subprocess
 from pbpy import pblog
 
 default_drm_exec_name = "ProjectBorealis.exe"
-exec_max_allowed_size = 104857600 # 100mb
+exec_max_allowed_size = 104857600  # 100mb
 
 # DISPATCH_APP_ID: App ID. env. variable for dispatch application
 # DISPATCH_INTERNAL_BID: Branch ID env. variable for internal builds
 # DISPATCH_PLAYTESTER_BID: Branch ID env. variable for playtester builds
+
+
 def push_build(branch_type, dispath_exec_path, dispatch_config, dispatch_stagedir, dispatch_apply_drm_path):
     # Test if our environment variables exist
     try:
@@ -17,29 +19,32 @@ def push_build(branch_type, dispath_exec_path, dispatch_config, dispatch_stagedi
         pblog.exception(str(e))
         pblog.error("DISPATCH_APP_ID is not found in environment variables")
         return False
-    
+
     if branch_type == "internal":
         try:
             test = str(os.environ['DISPATCH_INTERNAL_BID'])
         except Exception as e:
             pblog.exception(str(e))
-            pblog.error("DISPATCH_INTERNAL_BID is not found in environment variables")
+            pblog.error(
+                "DISPATCH_INTERNAL_BID is not found in environment variables")
             return False
     elif branch_type == "playtester":
         try:
             test = str(os.environ['DISPATCH_PLAYTESTER_BID'])
         except Exception as e:
             pblog.exception(str(e))
-            pblog.error("DISPATCH_PLAYTESTER_BID is not found in environment variables")
+            pblog.error(
+                "DISPATCH_PLAYTESTER_BID is not found in environment variables")
             return False
-    
+
     executable_path = None
     for file in os.listdir(dispatch_apply_drm_path):
         if file.endswith(".exe"):
             executable_path = os.path.join(dispatch_apply_drm_path, str(file))
 
     if executable_path is None:
-        pblog.error("Executable to apply DRM cannot found in " + dispatch_apply_drm_path)
+        pblog.error("Executable to apply DRM cannot found in " +
+                    dispatch_apply_drm_path)
         return False
 
     if os.path.getsize(executable_path) > exec_max_allowed_size:
@@ -50,7 +55,8 @@ def push_build(branch_type, dispath_exec_path, dispatch_config, dispatch_stagedi
         executable_path = os.path.join(executable_path, default_drm_exec_name)
 
     # Wrap executable with DRM
-    result = subprocess.call([dispath_exec_path, "build", "drm-wrap", str(os.environ['DISPATCH_APP_ID']), executable_path])
+    result = subprocess.call([dispath_exec_path, "build", "drm-wrap",
+                              str(os.environ['DISPATCH_APP_ID']), executable_path])
     if result != 0:
         return False
 
@@ -63,5 +69,6 @@ def push_build(branch_type, dispath_exec_path, dispatch_config, dispatch_stagedi
         return False
 
     # Push & Publish the build
-    result = subprocess.call([dispath_exec_path, "build", "push", branch_id, dispatch_config, dispatch_stagedir, "-p"])
+    result = subprocess.call([dispath_exec_path, "build", "push",
+                              branch_id, dispatch_config, dispatch_stagedir, "-p"])
     return result == 0
