@@ -13,7 +13,7 @@ from pbpy import pbconfig
 from pbpy import pbpy_version
 from pbpy import pbdispatch
 
-from pbsync import pbsync_version
+import pbsync_version
 
 default_config_name = "PBSync.xml"
 
