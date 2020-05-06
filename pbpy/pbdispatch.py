@@ -43,8 +43,7 @@ def push_build(branch_type, dispath_exec_path, dispatch_config, dispatch_stagedi
             executable_path = os.path.join(dispatch_apply_drm_path, str(file))
 
     if executable_path is None:
-        pblog.error("Executable to apply DRM cannot found in " +
-                    dispatch_apply_drm_path)
+        pblog.error("Executable {0} not found while attempting to apply DRM wrapper.".format(dispatch_apply_drm_path))
         return False
 
     if os.path.getsize(executable_path) > exec_max_allowed_size:

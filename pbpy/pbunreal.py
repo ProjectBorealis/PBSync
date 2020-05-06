@@ -40,7 +40,6 @@ def get_engine_date_suffix():
     except Exception as e:
         pblog.exception(str(e))
         return None
-    return None
 
 
 def get_plugin_version(plugin_name):
@@ -49,7 +48,8 @@ def get_plugin_version(plugin_name):
         with open(uplugin_path, "r") as uplugin_file:
             data = json.load(uplugin_file)
             version = data[uplugin_version_key]
-            # Some plugins have strange versions with only major and minor versions, add patch version for compatibility with nuget
+            # Some plugins have strange versions with only major and minor versions, add patch version for
+            # compatibility with package managers
             if version.count('.') == 1:
                 version = version + ".0"
             return version
@@ -154,12 +154,11 @@ def get_engine_version(only_date=True):
     except Exception as e:
         pblog.exception(str(e))
         return None
-    return None
 
 
 def get_engine_version_with_prefix():
     engine_ver_number = get_engine_version()
-    if engine_ver_number != None:
+    if engine_ver_number is not None:
         return get_engine_prefix() + "-" + engine_ver_number
     return None
 
@@ -178,7 +177,7 @@ def get_engine_install_root():
 
 
 def get_latest_available_engine_version(bucket_url):
-    output = subprocess.getoutput(["gsutil", "ls", bucket_url])
+    output = subprocess.getoutput("gsutil ls {0}".format(bucket_url))
 
     build_type = pbconfig.get("ue4v_default_bundle")
     if pbconfig.get("is_ci"):
@@ -201,7 +200,7 @@ def get_latest_available_engine_version(bucket_url):
 
 
 def check_ue4_file_association():
-    file_assoc_result = subprocess.getoutput(["assoc", uproject_ext])
+    file_assoc_result = subprocess.getoutput("assoc {0}".format(uproject_ext))
     return "Unreal.ProjectFile" in file_assoc_result
 
 
@@ -214,7 +213,7 @@ def generate_ddc_data():
     pblog.info(
         "Generating DDC data, please wait... (This may take up to one hour only for the initial run)")
     current_version = get_engine_version_with_prefix()
-    if current_version != None:
+    if current_version is not None:
         engine_install_root = get_engine_install_root()
         installation_dir = os.path.join(engine_install_root, current_version)
         if os.path.isdir(installation_dir):
@@ -237,15 +236,15 @@ def generate_ddc_data():
 def clean_old_engine_installations():
     current_version = get_engine_version_with_prefix()
     p = re.compile(engine_installation_folder_regex)
-    if current_version != None:
+    if current_version is not None:
         engine_install_root = get_engine_install_root()
-        if engine_install_root != None and os.path.isdir(engine_install_root):
-            dirs = os.listdir(engine_install_root)
-            for dir in dirs:
+        if engine_install_root is not None and os.path.isdir(engine_install_root):
+            folders = os.listdir(engine_install_root)
+            for folder in folders:
                 # Do not remove folders if they do not match with installation folder name pattern
                 # Also do not remove files. Only remove folders
-                full_path = os.path.join(engine_install_root, dir)
-                if dir != current_version and p.match(dir) != None and os.path.isdir(full_path):
+                full_path = os.path.join(engine_install_root, folder)
+                if folder != current_version and p.match(folder) is not None and os.path.isdir(full_path):
                     print("Removing old engine installation: " +
                           str(full_path) + "...")
                     try:
@@ -264,7 +263,7 @@ def is_versionator_symbols_enabled():
     if not os.path.isfile(pbconfig.get('ue4v_user_config')):
         # Config file somehow isn't generated yet, only get a response, but do not write anything into config
         response = input(
-            "Do you want to also download debugging symbols for accurate crash logging? You can change that choice later in .ue4v-user config file [y/n]")
+            "Do you want to download debugging symbols for accurate crash logging? You can change this setting later in the .ue4v-user config file. [y/n]")
         if response == "y" or response == "Y":
             return True
         else:
@@ -289,7 +288,7 @@ def is_versionator_symbols_enabled():
     try:
         with open(pbconfig.get('ue4v_user_config'), "a+") as config_file:
             response = input(
-                "Do you want to also download debugging symbols for accurate crash logging? You can change that choice later in .ue4v-user config file [y/n]")
+                "Do you want to download debugging symbols for accurate crash logging? You can change this setting later in the .ue4v-user config file. [y/n]")
             if response == "y" or response == "Y":
                 config_file.write("\nsymbols = true")
                 return True

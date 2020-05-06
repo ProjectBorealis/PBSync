@@ -3,25 +3,24 @@ import logging
 import os.path
 
 from pbpy import pbtools
-from pbpy import pbconfig
 
-max_log_size = 5000000
+max_log_size = 5 * 1000 * 1000
 
 
 def setup_logger(log_file_path):
-   # If log file is big enough, remove it
+    # If log file is big enough, remove it
     if os.path.isfile(log_file_path) and os.path.getsize(log_file_path) >= max_log_size:
         pbtools.remove_file(log_file_path)
 
     # Prepare logger
-    logFormatter = logging.Formatter(
+    log_formatter = logging.Formatter(
         "%(asctime)s [%(levelname)-5.5s]  %(message)s", datefmt='%d-%b-%y %H:%M:%S')
-    fileHandler = logging.FileHandler(log_file_path)
-    fileHandler.setFormatter(logFormatter)
-    logging.getLogger().addHandler(fileHandler)
-    consoleHandler = logging.StreamHandler()
-    consoleHandler.setFormatter(logFormatter)
-    logging.getLogger().addHandler(consoleHandler)
+    file_handler = logging.FileHandler(log_file_path)
+    file_handler.setFormatter(log_formatter)
+    logging.getLogger().addHandler(file_handler)
+    console_handler = logging.StreamHandler()
+    console_handler.setFormatter(log_formatter)
+    logging.getLogger().addHandler(console_handler)
     logging.getLogger().setLevel(logging.DEBUG)
 
 

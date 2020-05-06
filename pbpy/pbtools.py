@@ -9,7 +9,6 @@ import stat
 import json
 
 # PBSync Imports
-from pbpy import pbunreal
 from pbpy import pbconfig
 from pbpy import pblog
 from pbpy import pbgit
@@ -92,9 +91,9 @@ def get_dict_from_json(json_file_path):
         return None
 
 
-def is_junction(path: str) -> bool:
+def is_junction(file_path: str) -> bool:
     try:
-        return bool(os.readlink(path))
+        return bool(os.readlink(file_path))
     except OSError:
         return False
 
@@ -115,10 +114,10 @@ def check_error_state():
     # True: Error on last run, False: No errors
     try:
         with open(error_file, 'r') as error_state_file:
-            error_state = error_state_file.readline(1)
-            if int(error_state) == 0:
+            error_code = error_state_file.readline(1)
+            if int(error_code) == 0:
                 return False
-            elif int(error_state) == 1:
+            elif int(error_code) == 1:
                 return True
             else:
                 return False
@@ -140,7 +139,7 @@ def remove_file(file_path):
 
 
 def error_state(msg=None, fatal_error=False):
-    if msg != None:
+    if msg is not None:
         pblog.error(msg)
     if fatal_error:
         # That was a fatal error, until issue is fixed, do not let user run PBSync
@@ -162,7 +161,7 @@ def check_running_process(process_name):
         if process_name in (p.name() for p in psutil.process_iter()):
             return True
     except:
-        # An exception occured while checking, assume the program is not running
+        # An exception occurred while checking, assume the program is not running
         pass
     return False
 
@@ -189,7 +188,7 @@ def resolve_conflicts_and_pull():
     # Disable watchman for now
     disable_watchman()
 
-    output = subprocess.getoutput(["git", "status"])
+    output = subprocess.getoutput("git status")
     pblog.info(str(output))
 
     pblog.info(
@@ -198,36 +197,32 @@ def resolve_conflicts_and_pull():
     # Make sure upstream is tracked correctly
     pbgit.set_tracking_information(pbgit.get_current_branch_name())
 
-    pblog.info("Trying to stash the local work...")
-    output = subprocess.getoutput(["git", "stash"])
-    pblog.info(str(output))
-
     pblog.info(
         "Trying to rebase workspace with latest changes on the repository...")
-    output = subprocess.getoutput(["git", "pull", "--rebase"])
+    output = subprocess.getoutput("git pull --rebase --autostash")
     pblog.info(str(output))
 
     lower_case_output = str(output).lower()
 
     if "failed to merge in the changes" in lower_case_output or "could not apply" in lower_case_output:
-        pblog.error("Aborting the rebase. Changes on one of your commits will be overridden by incoming changes. Request help on #tech-support to resolve conflicts, and  please do not run StartProject.bat until issue is solved.")
+        pblog.error(
+            "Aborting the rebase. Changes on one of your commits will be overridden by incoming changes. Request help in #tech-support to resolve conflicts, and please do not run StartProject.bat until the issue is resolved.")
         pbgit.abort_rebase()
-        pbgit.stash_pop()
         error_state(True)
     elif "fast-forwarded" in lower_case_output:
-        pbgit.stash_pop()
-        pblog.info("Success, rebased on latest changes without any conflict")
+        pblog.info("Success, rebased on latest changes without any conflicts")
     elif "is up to date" in lower_case_output:
-        pbgit.stash_pop()
-        pblog.info("Success, rebased on latest changes without any conflict")
-    elif "rewinding head" in lower_case_output and not("error" in lower_case_output or "conflict" in lower_case_output):
-        pbgit.stash_pop()
-        pblog.info("Success, rebased on latest changes without any conflict")
+        pblog.info("Success, rebased on latest changes without any conflicts")
+    elif "rewinding head" in lower_case_output and not (
+            "error" in lower_case_output or "conflict" in lower_case_output):
+        pblog.info("Success, rebased on latest changes without any conflicts")
     elif "successfully rebased and updated" in lower_case_output:
-        pbgit.stash_pop()
-        pblog.info("Success, rebased on latest changes without any conflict")
+        pblog.info("Success, rebased on latest changes without any conflicts")
     else:
-        pblog.error("Aborting the rebase, an unknown error occured. Request help on #tech-support to resolve conflicts, and please do not run StartProject.bat until issue is solved.")
+        pblog.error(
+            "Aborting the rebase because of an unknown error. Request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.")
         pbgit.abort_rebase()
-        pbgit.stash_pop()
         error_state(True)
+
+    pblog.info("Cleaning up unused repository assets...")
+    output = subprocess.getoutput("git-lfs prune -c")

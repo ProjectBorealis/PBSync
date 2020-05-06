@@ -1,7 +1,6 @@
 import subprocess
 import os.path
 import os
-import sys
 import shutil
 from zipfile import ZipFile
 from pathlib import Path
@@ -57,7 +56,7 @@ def pull_binaries(version_number: str, pass_checksum=False):
 
     try:
         output = str(subprocess.getoutput(
-            [hub_executable_path, "release", "download", version_number, "-i", binary_package_name]))
+            "{0} release download {1} -i {2}".format(hub_executable_path, version_number, binary_package_name)))
         if "Downloading " + binary_package_name in output:
             pass
         elif "Unable to find release with tag name" in output:
@@ -97,7 +96,9 @@ def pull_binaries(version_number: str, pass_checksum=False):
                 "Exception thrown while trying do clean Binaries folder")
             return False
     try:
-        if not pass_checksum:
+        if pass_checksum:
+            checksum_json_path = None
+        else:
             checksum_json_path = pbconfig.get("checksum_file")
             if not os.path.exists(checksum_json_path):
                 pblog.error(
@@ -109,8 +110,10 @@ def pull_binaries(version_number: str, pass_checksum=False):
 
         with ZipFile(binary_package_name, 'r') as zip_file:
             zip_file.extractall()
-            if not pass_checksum and not pbtools.compare_md5_all(checksum_json_path, True):
-                return False
+            if pass_checksum:
+                return True
+            elif not pbtools.compare_md5_all(checksum_json_path, True):
+                return True
 
     except Exception as e:
         pblog.exception(str(e))
@@ -129,7 +132,7 @@ def push_package(version_number, file_name):
     try:
 
         output = str(subprocess.getoutput(
-            [hub_executable_path, "release", "edit", version_number, "-m", "", "-a", file_name]))
+            "{0} release edit {1} -ma {2}".format(hub_executable_path, version_number, file_name)))
         if "Attaching 1 asset..." in output:
             return True
         else:

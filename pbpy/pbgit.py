@@ -6,12 +6,12 @@ from pbpy import pbtools
 
 
 def get_current_branch_name():
-    return str(subprocess.getoutput(["git", "branch", "--show-current"]))
+    return str(subprocess.getoutput("git branch --show-current"))
 
 
 def get_git_version():
     installed_version_split = subprocess.getoutput(
-        ["git", "--version"]).split(" ")
+        "git --version").split(" ")
 
     list_len = len(installed_version_split)
     if list_len == 0:
@@ -32,7 +32,7 @@ def compare_with_current_branch_name(compared_branch):
 
 def get_lfs_version():
     installed_version_split = subprocess.getoutput(
-        ["git-lfs", "--version"]).split(" ")
+        "git-lfs --version").split(" ")
 
     if len(installed_version_split) == 0:
         return None
@@ -54,21 +54,21 @@ def set_tracking_information(upstream_branch_name: str):
 def stash_pop():
     pblog.info("Trying to pop stash...")
 
-    output = subprocess.getoutput(["git", "stash", "pop"])
+    output = subprocess.getoutput("git stash pop")
     pblog.info(str(output))
 
     lower_case_output = str(output).lower()
 
     if "auto-merging" in lower_case_output and "conflict" in lower_case_output and "should have been pointers" in lower_case_output:
-        pbtools.error_state("""Git stash pop is failed. Some of your stashed local changes would be overwritten by incoming changes.
-        Request help on #tech-support to resolve conflicts, and  please do not run StartProject.bat until issue is solved.""", True)
+        pbtools.error_state("""git stash pop failed. Some of your stashed local changes would be overwritten by incoming changes.
+        Request help in #tech-support to resolve conflicts, and please do not run StartProject.bat until the issue is resolved.""", True)
     elif "dropped refs" in lower_case_output:
         return
     elif "no stash entries found" in lower_case_output:
         return
     else:
-        pbtools.error_state("""Git stash pop is failed due to unknown error. Request help on #tech-support to resolve possible conflicts, 
-        and  please do not run StartProject.bat until issue is solved.""", True)
+        pbtools.error_state("""git stash pop failed due to an unknown error. Request help in #tech-support to resolve possible conflicts, 
+        and please do not run StartProject.bat until the issue is resolved.""", True)
 
 
 def check_remote_connection():
@@ -87,32 +87,33 @@ def check_remote_connection():
 
 
 def check_credentials():
-    output = str(subprocess.getoutput(["git", "config", "user.name"]))
-    if output == "" or output == None:
-        user_name = input("Please enter your Github username: ")
-        subprocess.call(["git", "config", "user.name", user_name])
+    output = str(subprocess.getoutput("git config user.name"))
+    if output == "" or output is None:
+        user_name = input("Please enter your GitHub username: ")
+        subprocess.call(["git config", "user.name", user_name])
 
-    output = str(subprocess.getoutput(["git", "config", "user.email"]))
-    if output == "" or output == None:
-        user_mail = input("Please enter your Github e-mail: ")
+    output = str(subprocess.getoutput("git config user.email"))
+    if output == "" or output is None:
+        user_mail = input("Please enter your GitHub email: ")
         subprocess.call(["git", "config", "user.email", user_mail])
 
 
 def sync_file(file_path):
     sync_head = "origin/" + get_current_branch_name()
-    return subprocess.call(["git", "checkout", "-f", sync_head, "--", file_path])
+    return subprocess.call(["git", "restore", "-qWSs", sync_head, "--", file_path])
 
 
 def abort_all():
     # Abort everything
-    out = subprocess.getoutput(["git", "merge", "--abort"])
-    out = subprocess.getoutput(["git", "rebase", "--abort"])
-    out = subprocess.getoutput(["git", "am", "--abort"])
+    out = subprocess.getoutput("git merge --abort")
+    out = subprocess.getoutput("git rebase --abort")
+    out = subprocess.getoutput("git am --abort")
+    out = subprocess.getoutput("rm -rf .git/rebase-apply")
 
 
 def abort_rebase():
     # Abort rebase
-    out = subprocess.getoutput(["git", "rebase", "--abort"])
+    out = subprocess.getoutput("git rebase --abort")
 
 
 def setup_config():
