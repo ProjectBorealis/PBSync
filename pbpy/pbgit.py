@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import subprocess
 
 from pbpy import pblog
@@ -6,12 +7,14 @@ from pbpy import pbtools
 
 
 def get_current_branch_name():
-    return str(subprocess.getoutput("git branch --show-current"))
+    try:
+        return pbtools.run_with_output(["git", "branch", "--show-current"]).stdout
+    except subprocess.CalledProcessError:
+        pblog.error("Unknown error occurred.")
 
 
 def get_git_version():
-    installed_version_split = subprocess.getoutput(
-        "git --version").split(" ")
+    installed_version_split = pbtools.run_with_output(["git", "--version"]).stdout.split(" ")
 
     list_len = len(installed_version_split)
     if list_len == 0:
@@ -31,8 +34,7 @@ def compare_with_current_branch_name(compared_branch):
 
 
 def get_lfs_version():
-    installed_version_split = subprocess.getoutput(
-        "git-lfs --version").split(" ")
+    installed_version_split = pbtools.run_with_output(["git-lfs", "--version"]).stdout.split(" ")
 
     if len(installed_version_split) == 0:
         return None
@@ -47,43 +49,19 @@ def get_lfs_version():
 
 
 def set_tracking_information(upstream_branch_name: str):
-    subprocess.call(["git", "branch", "--set-upstream-to=origin/" +
-                     upstream_branch_name, upstream_branch_name])
-
-
-def stash_pop():
-    pblog.info("Trying to pop stash...")
-
-    output = subprocess.getoutput("git stash pop")
-    pblog.info(str(output))
-
-    lower_case_output = str(output).lower()
-
-    if "auto-merging" in lower_case_output and "conflict" in lower_case_output and "should have been pointers" in lower_case_output:
-        pbtools.error_state("""git stash pop failed. Some of your stashed local changes would be overwritten by incoming changes.
-        Request help in #tech-support to resolve conflicts, and please do not run StartProject.bat until the issue is resolved.""", True)
-    elif "dropped refs" in lower_case_output:
-        return
-    elif "no stash entries found" in lower_case_output:
-        return
-    else:
-        pbtools.error_state("""git stash pop failed due to an unknown error. Request help in #tech-support to resolve possible conflicts, 
-        and please do not run StartProject.bat until the issue is resolved.""", True)
+    pbtools.run_with_output(["git", "branch", f"--set-upstream-to=origin/{upstream_branch_name}", upstream_branch_name])
 
 
 def check_remote_connection():
-    current_url = subprocess.check_output(
-        ["git", "remote", "get-url", "origin"])
+    current_url = pbtools.run_with_output(["git", "remote", "get-url", "origin"]).stdout
     recent_url = pbconfig.get("git_url")
 
     if current_url != recent_url:
-        out = subprocess.check_output(
-            ["git", "remote", "set-url", "origin", recent_url])
+        subprocess.run(["git", "remote", "set-url", "origin", recent_url])
 
-    current_url = subprocess.check_output(
-        ["git", "remote", "get-url", "origin"])
-    out = subprocess.check_output(["git", "ls-remote", "--exit-code", "-h"])
-    return not ("fatal" in str(out)), str(current_url)
+    current_url = pbtools.run_with_output(["git", "remote", "get-url", "origin"]).stdout
+    out = subprocess.run(["git", "ls-remote", "--exit-code", "-h"]).returncode
+    return out == 0, str(current_url)
 
 
 def check_credentials():
@@ -99,7 +77,7 @@ def check_credentials():
 
 
 def sync_file(file_path):
-    sync_head = "origin/" + get_current_branch_name()
+    sync_head = f"origin/{get_current_branch_name()}"
     return subprocess.call(["git", "restore", "-qWSs", sync_head, "--", file_path])
 
 

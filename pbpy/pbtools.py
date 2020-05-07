@@ -1,6 +1,6 @@
+# -*- coding: utf-8 -*-
 import os
 import sys
-from os import path
 from hashlib import md5
 import psutil
 import subprocess
@@ -15,6 +15,13 @@ from pbpy import pbgit
 
 error_file = ".pbsync_err"
 watchman_exec_name = "watchman.exe"
+
+
+def run_with_output(*cmd):
+    try:
+        return subprocess.run(*cmd, capture_output=True, text=True)
+    except subprocess.CalledProcessError:
+        raise
 
 
 def get_md5_hash(file_path):
@@ -102,10 +109,10 @@ def remove_junction(destination):
     if os.path.isdir(destination):
         try:
             shutil.rmtree(destination)
-        except:
+        except Exception:
             try:
                 os.remove(destination)
-            except:
+            except Exception:
                 return False
     return True
 
@@ -113,7 +120,7 @@ def remove_junction(destination):
 def check_error_state():
     # True: Error on last run, False: No errors
     try:
-        with open(error_file, 'r') as error_state_file:
+        with open(error_file) as error_state_file:
             error_code = error_state_file.readline(1)
             if int(error_code) == 0:
                 return False
@@ -121,14 +128,14 @@ def check_error_state():
                 return True
             else:
                 return False
-    except:
+    except Exception:
         return False
 
 
 def remove_file(file_path):
     try:
         os.remove(file_path)
-    except:
+    except Exception:
         os.chmod(file_path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)  # 0777
         try:
             os.remove(file_path)
@@ -145,8 +152,7 @@ def error_state(msg=None, fatal_error=False):
         # That was a fatal error, until issue is fixed, do not let user run PBSync
         with open(error_file, 'w') as error_state_file:
             error_state_file.write("1")
-    out = input("Logs are saved in " +
-                pbconfig.get("log_file_path") + ". Press enter to quit...")
+    pblog.info(f"Logs are saved in {pbconfig.get('log_file_path')}. Press enter to quit...")
     sys.exit(1)
 
 
@@ -160,7 +166,7 @@ def check_running_process(process_name):
     try:
         if process_name in (p.name() for p in psutil.process_iter()):
             return True
-    except:
+    except Exception:
         # An exception occurred while checking, assume the program is not running
         pass
     return False
@@ -225,4 +231,4 @@ def resolve_conflicts_and_pull():
         error_state(True)
 
     pblog.info("Cleaning up unused repository assets...")
-    output = subprocess.getoutput("git-lfs prune -c")
+    subprocess.getoutput("git-lfs prune -c")

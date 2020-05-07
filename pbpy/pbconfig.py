@@ -1,6 +1,7 @@
+# -*- coding: utf-8 -*-
 import os
 import sys
-import xml.etree.ElementTree as et
+from xml.etree.ElementTree import parse
 
 # Singleton Config
 config = None
@@ -8,7 +9,7 @@ config = None
 
 def get(key):
     if key is None or config is None or config.get(str(key)) is None:
-        print("Invalid config get request: " + str(key))
+        print(f"Invalid config get request: {key}")
         sys.exit(1)
 
     return config.get(str(key))
@@ -19,7 +20,7 @@ def generate_config(config_path, parser_func):
     global config
 
     if config_path is not None and os.path.isfile(config_path):
-        tree = et.parse(config_path)
+        tree = parse(config_path)
         if tree is None:
             return False
         root = tree.getroot()
@@ -30,7 +31,7 @@ def generate_config(config_path, parser_func):
         try:
             config = parser_func(root)
         except Exception as e:
-            print("Config exception: {0}".format(e))
+            print(f"Config exception: {e}")
             return False
 
         # Add CI information

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import subprocess
 import os.path
 import os
@@ -35,27 +36,26 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         remote_state, remote_url = pbgit.check_remote_connection()
         if not remote_state:
             pbtools.error_state(
-                "Remote connection was not successful. Please verify that you have a valid git remote URL & internet connection. Current git remote URL: " + remote_url)
+                f"Remote connection was not successful. Please verify that you have a valid git remote URL & internet connection. Current git remote URL: {remote_url}")
         else:
             pblog.info("Remote connection is up")
 
         pblog.info("------------------")
 
-        pblog.info("Executing " + str(sync_val) + " sync command")
-        pblog.info("PBpy Library Version: " + pbpy_version.ver)
-        pblog.info("PBSync Program Version: " + pbsync_version.ver)
+        pblog.info(f"Executing {sync_val} sync command")
+        pblog.info(f"PBpy Library Version: {pbpy_version.ver}")
+        pblog.info(f"PBSync Program Version: {pbsync_version.ver}")
 
         pblog.info("------------------")
 
         detected_git_version = pbgit.get_git_version()
         if detected_git_version == pbconfig.get('supported_git_version'):
-            pblog.info("Current Git version: " + detected_git_version)
+            pblog.info(f"Current Git version: {detected_git_version}")
         else:
             pblog.error(
                 "Git is not updated to the supported version in your system")
-            pblog.error("Supported Git Version: " +
-                        pbconfig.get('supported_git_version'))
-            pblog.error("Current Git Version: " + detected_git_version)
+            pblog.error(f"Supported Git Version: {pbconfig.get('supported_git_version')}")
+            pblog.error(f"Current Git Version: {detected_git_version}")
             pblog.error(
                 "Please install supported git version from https://github.com/microsoft/git/releases")
             pblog.error(
@@ -64,13 +64,12 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
         detected_lfs_version = pbgit.get_lfs_version()
         if detected_lfs_version == pbconfig.get('supported_lfs_version'):
-            pblog.info("Current Git LFS version: " + detected_lfs_version)
+            pblog.info(f"Current Git LFS version: {detected_lfs_version}")
         else:
             pblog.error(
                 "Git LFS is not updated to the supported version in your system")
-            pblog.error("Supported Git LFS Version: " +
-                        pbconfig.get('supported_lfs_version'))
-            pblog.error("Current Git LFS Version: " + detected_lfs_version)
+            pblog.error(f"Supported Git LFS Version: {pbconfig.get('supported_lfs_version')}")
+            pblog.error(f"Current Git LFS Version: {detected_lfs_version}")
             pblog.error(
                 "Please install latest Git LFS from https://git-lfs.github.com")
             pbtools.error_state()
@@ -103,7 +102,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
             project_version = pbunreal.get_project_version()
             if project_version is not None:
-                pblog.info("Current project version: " + project_version)
+                pblog.info(f"Current project version: {project_version}")
             else:
                 pbtools.error_state(
                     "Something went wrong while fetching project version. Please request help in #tech-support.")
@@ -119,8 +118,8 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             else:
                 pblog.info("Binaries are up-to-date")
         else:
-            pblog.warning("Current branch is not supported for repository synchronization: {0}. Auto synchronization "
-                          "will be disabled".format(pbconfig.get('expected_branch_name')))
+            pblog.warning(f"Current branch is not supported for repository synchronization: {pbconfig.get('expected_branch_name')}. Auto synchronization "
+                          "will be disabled")
 
         pblog.info("------------------")
 
@@ -199,7 +198,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             requested_bundle_name = pbconfig.get("ue4v_default_bundle")
 
         engine_version = pbunreal.get_engine_version(False)
-        if pbunreal.run_ue4versionator(requested_bundle_name, False) != 0:
+        if pbunreal.run_ue4versionator(requested_bundle_name) != 0:
             pblog.error("Something went wrong while registering engine build " +
                         requested_bundle_name + "-" + engine_version)
             sys.exit(1)
@@ -344,9 +343,9 @@ def main():
 
     # Do not process further if we're in an error state
     if pbtools.check_error_state():
-        pbtools.error_state("""Repository is currently in an error state. Please fix the issues in your workspace 
-        before running PBSync.\nIf you have already fixed the problem, you may remove {0} from your project folder & 
-        run StartProject bat file again.""".format(pbtools.error_file), True)
+        pbtools.error_state(f"""Repository is currently in an error state. Please fix the issues in your workspace 
+        before running PBSync.\nIf you have already fixed the problem, you may remove {pbtools.error_file} from your project folder & 
+        run StartProject bat file again.""", True)
 
     # Parse args
     if not (args.sync is None):

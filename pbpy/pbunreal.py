@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import subprocess
 import re
 from shutil import move
@@ -24,41 +25,41 @@ engine_version_prefix = "PB"
 
 
 def get_engine_prefix():
-    return pbconfig.get('engine_base_version') + "-" + engine_version_prefix
+    return f"{pbconfig.get('engine_base_version')}-{engine_version_prefix}"
 
 
 def get_engine_date_suffix():
     try:
-        with open(pbconfig.get('uproject_name'), "r") as uproject_file:
+        with open(pbconfig.get('uproject_name')) as uproject_file:
             data = json.load(uproject_file)
             engine_association = data[uproject_version_key]
-            build_version = "b" + engine_association[-8:]
+            build_version = f"b{engine_association[-8:]}"
             # We're using local build version in .uproject file
             if "}" in build_version:
                 return None
-            return "b" + engine_association[-8:]
+            return f"b{engine_association[-8:]}"
     except Exception as e:
         pblog.exception(str(e))
         return None
 
 
 def get_plugin_version(plugin_name):
-    plugin_root = "Plugins/" + plugin_name
-    for uplugin_path in glob.glob(plugin_root + "/*" + uplugin_ext):
-        with open(uplugin_path, "r") as uplugin_file:
+    plugin_root = f"Plugins/{plugin_name}"
+    for uplugin_path in glob.glob(f"{plugin_root}/*{uplugin_ext}"):
+        with open(uplugin_path) as uplugin_file:
             data = json.load(uplugin_file)
             version = data[uplugin_version_key]
             # Some plugins have strange versions with only major and minor versions, add patch version for
             # compatibility with package managers
             if version.count('.') == 1:
-                version = version + ".0"
+                version += ".0"
             return version
     return None
 
 
 def get_project_version():
     try:
-        with open(pbconfig.get('defaultgame_path'), "r") as ini_file:
+        with open(pbconfig.get('defaultgame_path')) as ini_file:
             for ln in ini_file:
                 if ln.startswith(project_version_key):
                     return ln.replace(project_version_key, '').rstrip()
@@ -72,11 +73,11 @@ def set_project_version(version_string):
     temp_path = "tmpProj.txt"
     # Create a temp file, do the changes there, and replace it with actual file
     try:
-        with open(pbconfig.get('defaultgame_path'), "r") as ini_file:
+        with open(pbconfig.get('defaultgame_path')) as ini_file:
             with open(temp_path, "wt") as fout:
                 for ln in ini_file:
                     if project_version_key in ln:
-                        fout.write(	"ProjectVersion=" + version_string + "\n")
+                        fout.write(f"ProjectVersion={version_string}\n")
                     else:
                         fout.write(ln)
         remove(pbconfig.get('defaultgame_path'))
@@ -91,7 +92,7 @@ def set_engine_version(version_string):
     temp_path = "tmpEng.txt"
     try:
         # Create a temp file, do the changes there, and replace it with actual file
-        with open(pbconfig.get('uproject_name'), "r") as uproject_file:
+        with open(pbconfig.get('uproject_name')) as uproject_file:
             with open(temp_path, "wt") as fout:
                 for ln in uproject_file:
                     if uproject_version_key in ln:
@@ -110,7 +111,6 @@ def set_engine_version(version_string):
 def project_version_increase(increase_type):
     increase_type = increase_type.lower()
     project_version = get_project_version()
-    new_version = ""
     if project_version is None:
         return False
 
@@ -137,7 +137,7 @@ def project_version_increase(increase_type):
 
 def get_engine_version(only_date=True):
     try:
-        with open(pbconfig.get('uproject_name'), "r") as uproject_file:
+        with open(pbconfig.get('uproject_name')) as uproject_file:
             data = json.load(uproject_file)
             engine_association = data[uproject_version_key]
             build_version = engine_association[-8:]
@@ -165,7 +165,7 @@ def get_engine_version_with_prefix():
 
 def get_engine_install_root():
     try:
-        with open(pbconfig.get('ue4v_user_config'), "r") as config_file:
+        with open(pbconfig.get('ue4v_user_config')) as config_file:
             for ln in config_file:
                 if "download_dir" in ln:
                     split_str = ln.split("=")
@@ -177,7 +177,7 @@ def get_engine_install_root():
 
 
 def get_latest_available_engine_version(bucket_url):
-    output = subprocess.getoutput("gsutil ls {0}".format(bucket_url))
+    output = subprocess.getoutput(f"gsutil ls {bucket_url}")
 
     build_type = pbconfig.get("ue4v_default_bundle")
     if pbconfig.get("is_ci"):
@@ -200,7 +200,7 @@ def get_latest_available_engine_version(bucket_url):
 
 
 def check_ue4_file_association():
-    file_assoc_result = subprocess.getoutput("assoc {0}".format(uproject_ext))
+    file_assoc_result = subprocess.getoutput(f"assoc {uproject_ext}")
     return "Unreal.ProjectFile" in file_assoc_result
 
 
@@ -230,7 +230,7 @@ def generate_ddc_data():
                 pblog.info("DDC data successfully generated!")
                 return
     pbtools.error_state(
-        "Error occured while trying to read project version for DDC data generation. Please get support from #tech-support")
+        "Error occurred while trying to read project version for DDC data generation. Please get support from #tech-support")
 
 
 def clean_old_engine_installations():
@@ -270,7 +270,7 @@ def is_versionator_symbols_enabled():
             return False
 
     try:
-        with open(pbconfig.get('ue4v_user_config'), "r") as config_file:
+        with open(pbconfig.get('ue4v_user_config')) as config_file:
             for ln in config_file:
                 if "Symbols" in ln or "symbols" in ln:
                     if "False" in ln or "false" in ln:

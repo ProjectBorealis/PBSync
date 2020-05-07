@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import subprocess
 import os.path
 import os
@@ -25,7 +26,7 @@ def is_pull_binaries_required():
 
 def pull_binaries(version_number: str, pass_checksum=False):
     if not os.path.isfile(hub_executable_path):
-        pblog.error("Hub executable is not found at " + hub_executable_path)
+        pblog.error(f"Hub executable is not found at {hub_executable_path}")
         return False
 
     # Backward compatibility with old PBGet junctions. If it still exists, remove the junction
@@ -40,8 +41,7 @@ def pull_binaries(version_number: str, pass_checksum=False):
             os.remove(binary_package_name)
         except Exception as e:
             pblog.exception(str(e))
-            pblog.error("Exception thrown while trying to remove " +
-                        binary_package_name + ". Please remove it manually")
+            pblog.error(f"Exception thrown while trying to remove {binary_package_name}. Please remove it manually")
             return False
 
     if not os.path.isfile(hub_config_path):
@@ -49,14 +49,13 @@ def pull_binaries(version_number: str, pass_checksum=False):
         subprocess.call([hub_executable_path, "release", "-L", "1"])
         if not os.path.isfile(hub_config_path):
             pblog.error(
-                "Failed to login into hub with git credentials. Please check if your provided crendetials are valid.")
+                "Failed to login into hub with git credentials. Please check if your provided credentials are valid.")
             return False
         else:
             pblog.info("Login to hub API was successful")
 
     try:
-        output = str(subprocess.getoutput(
-            "{0} release download {1} -i {2}".format(hub_executable_path, version_number, binary_package_name)))
+        output = str(subprocess.getoutput(f"{hub_executable_path} release download {version_number} -i {binary_package_name}"))
         if "Downloading " + binary_package_name in output:
             pass
         elif "Unable to find release with tag name" in output:
@@ -77,7 +76,7 @@ def pull_binaries(version_number: str, pass_checksum=False):
             return False
         else:
             pblog.error(
-                "Unknown error occured while pulling binaries for release " + version_number)
+                "Unknown error occurred while pulling binaries for release " + version_number)
             pblog.error("Command output was: " + output)
             return False
     except Exception as e:
@@ -108,7 +107,7 @@ def pull_binaries(version_number: str, pass_checksum=False):
             if not pbtools.compare_md5_single(binary_package_name, checksum_json_path):
                 return False
 
-        with ZipFile(binary_package_name, 'r') as zip_file:
+        with ZipFile(binary_package_name) as zip_file:
             zip_file.extractall()
             if pass_checksum:
                 return True
@@ -131,14 +130,13 @@ def push_package(version_number, file_name):
 
     try:
 
-        output = str(subprocess.getoutput(
-            "{0} release edit {1} -ma {2}".format(hub_executable_path, version_number, file_name)))
+        output = str(subprocess.getoutput(f"{hub_executable_path} release edit {version_number} -ma {file_name}"))
         if "Attaching 1 asset..." in output:
             return True
         else:
             pblog.error(output)
     except Exception as e:
         pblog.exception(str(e))
-    pblog.error("Error occured while attaching " +
+    pblog.error("Error occurred while attaching " +
                 file_name + " into release " + version_number)
     return False
