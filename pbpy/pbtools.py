@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
+import time
 from hashlib import md5
 import psutil
 import subprocess
@@ -190,12 +191,19 @@ def wipe_workspace():
     return result == 0
 
 
-def resolve_conflicts_and_pull():
+def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
+    def should_attempt_auto_resolve():
+        return retry_count <= max_retries
+
+    if retry_count:
+        # wait a little bit if retrying (exponential)
+        time.sleep(0.25 * (1 << retry_count))
+
     # Disable watchman for now
     disable_watchman()
 
-    output = subprocess.getoutput("git status")
-    pblog.info(str(output))
+    out = subprocess.getoutput("git status")
+    pblog.info(str(out))
 
     pblog.info(
         "Please wait while getting latest changes on the repository. It may take a while...")
@@ -205,28 +213,51 @@ def resolve_conflicts_and_pull():
 
     pblog.info(
         "Trying to rebase workspace with latest changes on the repository...")
-    output = subprocess.getoutput("git pull --rebase --autostash")
-    pblog.info(str(output))
+    result = run_with_output("git", "pull", "--rebase", "--autostash")
+    code = result.returncode
+    out = result.stdout
+    pblog.info(out)
+    err = result.stderr
+    error = code != 0
+    if err is not None and err != "":
+        pblog.error(err)
+        error = True
 
-    lower_case_output = str(output).lower()
+    out = out.lower()
 
-    if "failed to merge in the changes" in lower_case_output or "could not apply" in lower_case_output:
-        pblog.error(
-            "Aborting the rebase. Changes on one of your commits will be overridden by incoming changes. Request help in #tech-support to resolve conflicts, and please do not run StartProject.bat until the issue is resolved.")
-        pbgit.abort_rebase()
-        error_state(True)
-    elif "fast-forwarded" in lower_case_output:
+    if not error:
         pblog.info("Success, rebased on latest changes without any conflicts")
-    elif "is up to date" in lower_case_output:
+    elif "fast-forwarded" in out:
         pblog.info("Success, rebased on latest changes without any conflicts")
-    elif "rewinding head" in lower_case_output and not (
-            "error" in lower_case_output or "conflict" in lower_case_output):
+    elif "is up to date" in out:
         pblog.info("Success, rebased on latest changes without any conflicts")
-    elif "successfully rebased and updated" in lower_case_output:
+    elif "rewinding head" in out and not (
+            "error" in out or "conflict" in out):
         pblog.info("Success, rebased on latest changes without any conflicts")
+    elif "successfully rebased and updated" in out:
+        pblog.info("Success, rebased on latest changes without any conflicts")
+    elif "unmerged files" in out or "merge_head exists" in out or "failed to merge in the changes" in out or "could not apply" in out:
+        error_state(fatal_error=True)
+    elif "unborn" in out:
+        if should_attempt_auto_resolve():
+            pblog.error("Unborn branch detected. Attempting to resolve.")
+            resolve_conflicts_and_pull(++retry_count)
+        else:
+            pblog.error("You are on an unborn branch. Please request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.")
+            error_state(fatal_error=True)
+    elif "no remote" in out or "no such remote" in out or "refspecs without repo" in out:
+        if should_attempt_auto_resolve():
+            pblog.error("Remote repository not found. Retrying...")
+            resolve_conflicts_and_pull(++retry_count, 2)
+        else:
+            pblog.error("The remote repository could not be found. Please request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.")
+            error_state(fatal_error=True)
+    elif "cannot open" in out:
+        if should_attempt_auto_resolve():
+            pblog.error("Git file info could not be read. Retrying...")
+            resolve_conflicts_and_pull(++retry_count, 3)
     else:
-        pblog.error(
-            "Aborting the rebase because of an unknown error. Request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.")
+        pblog.error("Aborting the repo update because of an unknown error. Request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.")
         pbgit.abort_rebase()
         error_state(True)
 
