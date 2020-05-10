@@ -206,7 +206,7 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
     out = get_combined_output(["git", "status"])
     pblog.info(out)
 
-    pblog.info("Please wait while getting latest changes on the repository. It may take a while...")
+    pblog.info("Please wait while getting the latest changes from the repository. It may take a while...")
 
     # Make sure upstream is tracked correctly
     pbgit.set_tracking_information(pbgit.get_current_branch_name())
@@ -241,7 +241,7 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         error_state(fatal_error=True)
     elif "unborn" in out:
         if should_attempt_auto_resolve():
-            pblog.error("Unborn branch detected. Attempting to resolve.")
+            pblog.error("Unborn branch detected. Retrying...")
             resolve_conflicts_and_pull(++retry_count)
         else:
             pblog.error("You are on an unborn branch. Please request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.")
