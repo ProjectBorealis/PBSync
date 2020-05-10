@@ -47,7 +47,7 @@ def get_lfs_version():
 
 
 def set_tracking_information(upstream_branch_name: str):
-    subprocess.run(["git", "branch", f"--set-upstream-to=origin/{upstream_branch_name}", upstream_branch_name])
+    pbtools.run_with_output(["git", "branch", f"--set-upstream-to=origin/{upstream_branch_name}", upstream_branch_name])
 
 
 def stash_pop():
@@ -77,7 +77,7 @@ def check_remote_connection():
     recent_url = pbconfig.get("git_url")
 
     if current_url != recent_url:
-        subprocess.run(["git", "remote", "set-url", "origin", recent_url])
+        pbtools.run_with_output(["git", "remote", "set-url", "origin", recent_url])
 
     current_url = pbtools.run_with_output(["git", "remote", "get-url", "origin"]).stdout
     out = pbtools.run_with_output(["git", "ls-remote", "--exit-code", "-h"]).returncode
@@ -88,17 +88,17 @@ def check_credentials():
     output = pbtools.run_with_output(["git", "config", "user.name"]).stdout
     if output == "" or output is None:
         user_name = input("Please enter your GitHub username: ")
-        subprocess.run(["git",  "config", "user.name", user_name])
+        pbtools.run_with_output(["git", "config", "user.name", user_name])
 
     output = pbtools.run_with_output(["git", "config", "user.email"]).stdout
     if output == "" or output is None:
         user_mail = input("Please enter your GitHub email: ")
-        subprocess.run(["git", "config", "user.email", user_mail])
+        pbtools.run_with_output(["git", "config", "user.email", user_mail])
 
 
 def sync_file(file_path):
     sync_head = f"origin/{get_current_branch_name()}"
-    return subprocess.run(["git", "restore", "-qWSs", sync_head, "--", file_path]).returncode
+    return pbtools.run_with_output(["git", "restore", "-qWSs", sync_head, "--", file_path]).returncode
 
 
 def abort_all():
@@ -116,8 +116,8 @@ def abort_rebase():
 
 
 def setup_config():
-    subprocess.run(["git", "config", "include.path", "../.gitconfig"])
-    subprocess.run(["git", "config", pbconfig.get('lfs_lock_url'), "true"])
+    pbtools.run_with_output(["git", "config", "include.path", "../.gitconfig"])
+    pbtools.run_with_output(["git", "config", pbconfig.get('lfs_lock_url'), "true"])
 
     # Temporary code to clear previous git config variables:
     clear_config_list = [
@@ -143,4 +143,4 @@ def setup_config():
     ]
 
     for cfg in clear_config_list:
-        subprocess.run(["git", "config", "--unset", cfg])
+        pbtools.run_with_output(["git", "config", "--unset", cfg])

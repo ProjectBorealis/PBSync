@@ -1,7 +1,7 @@
 import os
 import subprocess
 
-from pbpy import pblog
+from pbpy import pblog, pbtools
 
 default_drm_exec_name = "ProjectBorealis.exe"
 exec_max_allowed_size = 104857600  # 100mb
@@ -48,11 +48,10 @@ def push_build(branch_type, dispath_exec_path, dispatch_config, dispatch_stagedi
         executable_path = os.path.join(executable_path, default_drm_exec_name)
 
     # Wrap executable with DRM
-    result = subprocess.run([dispath_exec_path, "build", "drm-wrap", app_id, executable_path]).returncode
+    result = pbtools.run_with_output([dispath_exec_path, "build", "drm-wrap", app_id, executable_path]).returncode
     if result != 0:
         return False
 
     # Push & Publish the build
-    result = subprocess.run([dispath_exec_path, "build", "push",
-                             branch_id, dispatch_config, dispatch_stagedir, "-p"]).returncode
+    result = pbtools.run_with_output([dispath_exec_path, "build", "push", branch_id, dispatch_config, dispatch_stagedir, "-p"]).returncode
     return result == 0
