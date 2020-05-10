@@ -81,7 +81,9 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                 "Unreal Editor is currently running. Please close it before running PBSync. It may be listed only in Task Manager as a background process. As a last resort, you should log off and log in again.")
 
         pblog.info("Fetching recent changes on the repository...")
-        subprocess.call(["git", "fetch", "origin"])
+        subprocess.run(["git", "fetch", "origin", "promoted"])
+        subprocess.run(["git", "fetch", "origin", "master"])
+        subprocess.run(["git", "fetch", "origin", "trunk"])
 
         # Do some housekeeping for git configuration
         pbgit.setup_config()

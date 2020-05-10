@@ -1,3 +1,5 @@
+import os
+import shutil
 import subprocess
 
 from pbpy import pblog
@@ -48,7 +50,29 @@ def get_lfs_version():
 
 
 def set_tracking_information(upstream_branch_name: str):
-    pbtools.run_with_output(["git", "branch", f"--set-upstream-to=origin/{upstream_branch_name}", upstream_branch_name])
+    subprocess.run(["git", "branch", f"--set-upstream-to=origin/{upstream_branch_name}", upstream_branch_name])
+
+
+def stash_pop():
+    pblog.info("Trying to pop stash...")
+
+    run = pbtools.run_with_output(["git", "stash", "pop"])
+    pblog.info(run.stdout)
+    pblog.error(run.stderr)
+
+    output = run.stdout + "\n" + run.stderr
+    lower_case_output = output.lower()
+
+    if "auto-merging" in lower_case_output and "conflict" in lower_case_output and "should have been pointers" in lower_case_output:
+        pbtools.error_state("""git stash pop failed. Some of your stashed local changes would be overwritten by incoming changes.
+        Request help in #tech-support to resolve conflicts, and please do not run StartProject.bat until the issue is resolved.""", True)
+    elif "dropped refs" in lower_case_output:
+        return
+    elif "no stash entries found" in lower_case_output:
+        return
+    else:
+        pbtools.error_state("""git stash pop failed due to an unknown error. Request help in #tech-support to resolve possible conflicts, 
+        and please do not run StartProject.bat until the issue is resolved.""", True)
 
 
 def check_remote_connection():
@@ -60,42 +84,43 @@ def check_remote_connection():
 
     current_url = pbtools.run_with_output(["git", "remote", "get-url", "origin"]).stdout
     out = subprocess.run(["git", "ls-remote", "--exit-code", "-h"]).returncode
-    return out == 0, str(current_url)
+    return out == 0, current_url
 
 
 def check_credentials():
-    output = str(subprocess.getoutput("git config user.name"))
+    output = pbtools.run_with_output(["git", "config", "user.name"]).stdout
     if output == "" or output is None:
         user_name = input("Please enter your GitHub username: ")
-        subprocess.call(["git config", "user.name", user_name])
+        subprocess.run(["git config", "user.name", user_name])
 
-    output = str(subprocess.getoutput("git config user.email"))
+    output = pbtools.run_with_output(["git", "config", "user.email"]).stdout
     if output == "" or output is None:
         user_mail = input("Please enter your GitHub email: ")
-        subprocess.call(["git", "config", "user.email", user_mail])
+        subprocess.run(["git", "config", "user.email", user_mail])
 
 
 def sync_file(file_path):
     sync_head = f"origin/{get_current_branch_name()}"
-    return subprocess.call(["git", "restore", "-qWSs", sync_head, "--", file_path])
+    return subprocess.run(["git", "restore", "-qWSs", sync_head, "--", file_path]).returncode
 
 
 def abort_all():
     # Abort everything
-    out = subprocess.getoutput("git merge --abort")
-    out = subprocess.getoutput("git rebase --abort")
-    out = subprocess.getoutput("git am --abort")
-    out = subprocess.getoutput("rm -rf .git/rebase-apply")
+    subprocess.run(["git", "merge", "--abort"])
+    subprocess.run(["git", "rebase", "--abort"])
+    subprocess.run(["git", "am", "--abort"])
+    # Just in case
+    shutil.rmtree(os.path.join(os.getcwd(), ".git", "rebase-apply"))
 
 
 def abort_rebase():
     # Abort rebase
-    out = subprocess.getoutput("git rebase --abort")
+    subprocess.run(["git", "rebase", "--abort"])
 
 
 def setup_config():
-    subprocess.call(["git", "config", "include.path", "../.gitconfig"])
-    subprocess.call(["git", "config", pbconfig.get('lfs_lock_url'), "true"])
+    subprocess.run(["git", "config", "include.path", "../.gitconfig"])
+    subprocess.run(["git", "config", pbconfig.get('lfs_lock_url'), "true"])
 
     # Temporary code to clear previous git config variables:
     clear_config_list = [
@@ -121,4 +146,4 @@ def setup_config():
     ]
 
     for cfg in clear_config_list:
-        subprocess.call(["git", "config", "--unset", cfg])
+        subprocess.run(["git", "config", "--unset", cfg])

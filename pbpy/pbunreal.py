@@ -176,7 +176,7 @@ def get_engine_install_root():
 
 
 def get_latest_available_engine_version(bucket_url):
-    output = subprocess.getoutput(f"gsutil ls {bucket_url}")
+    output = pbtools.get_combined_output(["gsutil", "ls", bucket_url])
 
     build_type = pbconfig.get("ue4v_default_bundle")
     if pbconfig.get("is_ci"):
@@ -199,7 +199,7 @@ def get_latest_available_engine_version(bucket_url):
 
 
 def check_ue4_file_association():
-    file_assoc_result = subprocess.getoutput(f"assoc {uproject_ext}")
+    file_assoc_result = pbtools.get_combined_output(["assoc", uproject_ext])
     return "Unreal.ProjectFile" in file_assoc_result
 
 
@@ -219,8 +219,8 @@ def generate_ddc_data():
             ue_editor_executable = os.path.join(
                 installation_dir, ue4_editor_relative_path)
             if os.path.isfile(ue_editor_executable):
-                err = subprocess.call([str(ue_editor_executable), os.path.join(
-                    os.getcwd(), pbconfig.get('uproject_name')), "-run=DerivedDataCache", "-fill"])
+                err = subprocess.run([str(ue_editor_executable), os.path.join(
+                    os.getcwd(), pbconfig.get('uproject_name')), "-run=DerivedDataCache", "-fill"]).returncode
                 pblog.info("DDC generate command has exited with " + str(err))
                 if not check_ddc_folder_created():
                     pbtools.error_state(
@@ -314,4 +314,4 @@ def run_ue4versionator(bundle_name=None, download_symbols=False):
         command_set.append("-user-config")
         command_set.append(pbconfig.get("ue4v_ci_config"))
 
-    return subprocess.call(command_set)
+    return subprocess.run(command_set).returncode

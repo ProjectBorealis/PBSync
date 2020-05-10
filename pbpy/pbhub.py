@@ -46,7 +46,7 @@ def pull_binaries(version_number: str, pass_checksum=False):
 
     if not os.path.isfile(hub_config_path):
         # If user didn't login with hub yet, do it now for once
-        subprocess.call([hub_executable_path, "release", "-L", "1"])
+        subprocess.run([hub_executable_path, "release", "-L", "1"])
         if not os.path.isfile(hub_config_path):
             pblog.error(
                 "Failed to login into hub with git credentials. Please check if your provided credentials are valid.")
@@ -55,24 +55,21 @@ def pull_binaries(version_number: str, pass_checksum=False):
             pblog.info("Login to hub API was successful")
 
     try:
-        output = str(subprocess.getoutput(f"{hub_executable_path} release download {version_number} -i {binary_package_name}"))
+        output = pbtools.get_combined_output([hub_executable_path, "release", "download", version_number, "-i", binary_package_name])
         if "Downloading " + binary_package_name in output:
             pass
         elif "Unable to find release with tag name" in output:
             pblog.error("Failed to find release tag " + version_number)
             return False
         elif "The file exists" in output:
-            pblog.error("File " + binary_package_name +
-                        " was not able to be overwritten. Please remove it manually and run PBSync again")
+            pblog.error("File " + binary_package_name + " was not able to be overwritten. Please remove it manually and run PBSync again")
             return False
         elif "did not match any available assets" in output:
-            pblog.error("Binaries for release " + version_number +
-                        " are not pushed into GitHub yet")
+            pblog.error("Binaries for release " + version_number + " are not pushed into GitHub yet")
             return False
         elif not output:
             # hub doesn't print any output if package doesn't exist in release
-            pblog.error(
-                "Failed to find binary package for release " + version_number)
+            pblog.error("Failed to find binary package for release " + version_number)
             return False
         else:
             pblog.error(
@@ -129,8 +126,7 @@ def push_package(version_number, file_name):
         return False
 
     try:
-
-        output = str(subprocess.getoutput(f"{hub_executable_path} release edit {version_number} -ma {file_name}"))
+        output = pbtools.get_combined_output([hub_executable_path, "release", "edit", version_number, "-ma", file_name])
         if "Attaching 1 asset..." in output:
             return True
         else:

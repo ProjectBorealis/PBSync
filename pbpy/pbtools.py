@@ -18,10 +18,15 @@ watchman_exec_name = "watchman.exe"
 
 
 def run_with_output(*cmd):
-    try:
-        return subprocess.run(*cmd, capture_output=True, text=True)
-    except subprocess.CalledProcessError:
-        raise
+    return subprocess.run(*cmd, capture_output=True, text=True)
+
+
+def run_with_combined_output(*cmd):
+    return subprocess.run(*cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+
+def get_combined_output(*cmd):
+    return run_with_combined_output(*cmd).stderr
 
 
 def get_md5_hash(file_path):
@@ -157,7 +162,7 @@ def error_state(msg=None, fatal_error=False):
 
 
 def disable_watchman():
-    subprocess.call(["git", "config", "--unset", "core.fsmonitor"])
+    subprocess.run(["git", "config", "--unset", "core.fsmonitor"])
     if check_running_process(watchman_exec_name):
         os.system("taskkill /f /im " + watchman_exec_name)
 
@@ -182,11 +187,10 @@ def wipe_workspace():
 
     pbgit.abort_all()
     disable_watchman()
-    subprocess.call(["git", "fetch", "origin", str(current_branch)])
-    result = subprocess.call(
-        ["git", "reset", "--hard", "origin/" + str(current_branch)])
-    subprocess.call(["git", "clean", "-fd"])
-    subprocess.call(["git", "pull"])
+    subprocess.run(["git", "fetch", "origin", str(current_branch)])
+    result = subprocess.run(["git", "reset", "--hard", "origin/" + str(current_branch)]).returncode
+    subprocess.run(["git", "clean", "-fd"])
+    subprocess.run(["git", "pull"])
     return result == 0
 
 
@@ -201,27 +205,27 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
     # Disable watchman for now
     disable_watchman()
 
-    out = subprocess.getoutput("git status")
-    pblog.info(str(out))
+    out = get_combined_output(["git", "status"])
+    pblog.info(out)
 
-    pblog.info(
-        "Please wait while getting latest changes on the repository. It may take a while...")
+    pblog.info("Please wait while getting latest changes on the repository. It may take a while...")
 
     # Make sure upstream is tracked correctly
     pbgit.set_tracking_information(pbgit.get_current_branch_name())
 
-    pblog.info(
-        "Trying to rebase workspace with latest changes on the repository...")
-    result = run_with_output("git", "pull", "--rebase", "--autostash")
+    pblog.info("Trying to rebase workspace with latest changes on the repository...")
+    # TODO: autostash handling
+    # result = run_with_output("git", "pull", "--rebase", "--autostash")
+    result = run_with_output("git", "pull", "--rebase", "--no-autostash")
     code = result.returncode
-    out = result.stdout
-    pblog.info(out)
+    pblog.info(result.stdout)
     err = result.stderr
     error = code != 0
     if err is not None and err != "":
         pblog.error(err)
         error = True
 
+    out = result.stdout + "\n" + result.stderr
     out = out.lower()
 
     if not error:
@@ -258,7 +262,8 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
     else:
         pblog.error("Aborting the repo update because of an unknown error. Request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.")
         pbgit.abort_rebase()
-        error_state(True)
+        error_state(fatal_error=True)
 
-    pblog.info("Cleaning up unused repository assets...")
-    subprocess.getoutput("git-lfs prune -c")
+    # TODO: background prune
+    # pblog.info("Cleaning up unused repository assets...")
+    # subprocess.run(["git-lfs", "prune", "-c"])
