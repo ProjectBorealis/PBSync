@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import subprocess
 
 from pbpy import pblog
