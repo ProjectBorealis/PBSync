@@ -8,10 +8,7 @@ from pbpy import pbtools
 
 
 def get_current_branch_name():
-    try:
-        return pbtools.run_with_output(["git", "branch", "--show-current"]).stdout
-    except subprocess.CalledProcessError:
-        pblog.error("Unknown error occurred.")
+    return pbtools.run_with_output(["git", "branch", "--show-current"]).stdout
 
 
 def get_git_version():
