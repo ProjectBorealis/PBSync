@@ -32,7 +32,7 @@ def compare_with_current_branch_name(compared_branch):
 
 
 def get_lfs_version():
-    installed_version_split = pbtools.run_with_output(["git-lfs", "--version"]).stdout.split(" ")
+    installed_version_split = pbtools.run_with_output(["git", "lfs", "--version"]).stdout.split(" ")
 
     if len(installed_version_split) == 0:
         return None
@@ -88,7 +88,7 @@ def check_credentials():
     output = pbtools.run_with_output(["git", "config", "user.name"]).stdout
     if output == "" or output is None:
         user_name = input("Please enter your GitHub username: ")
-        subprocess.run(["git config", "user.name", user_name])
+        subprocess.run(["git",  "config", "user.name", user_name])
 
     output = pbtools.run_with_output(["git", "config", "user.email"]).stdout
     if output == "" or output is None:

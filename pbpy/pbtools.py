@@ -266,4 +266,4 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
 
     # TODO: background prune
     # pblog.info("Cleaning up unused repository assets...")
-    # subprocess.run(["git-lfs", "prune", "-c"])
+    # subprocess.run(["git", "lfs", "prune", "-c"])
