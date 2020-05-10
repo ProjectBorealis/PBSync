@@ -218,11 +218,9 @@ def clean_handler(clean_val):
 def printversion_handler(print_val, repository_val=None):
     if print_val == "latest-engine":
         if repository_val is None:
-            pblog.error(
-                "--repository <URL> argument should be provided with --print latest-engine command")
+            pblog.error("--repository <URL> argument should be provided with --print latest-engine command")
             sys.exit(1)
-        engine_version = pbunreal.get_latest_available_engine_version(
-            str(repository_val))
+        engine_version = pbunreal.get_latest_available_engine_version(str(repository_val))
         if engine_version is None:
             sys.exit(1)
         print(engine_version, end="")

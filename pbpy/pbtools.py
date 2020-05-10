@@ -211,10 +211,14 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
     # Make sure upstream is tracked correctly
     pbgit.set_tracking_information(pbgit.get_current_branch_name())
 
+    pblog.info("Trying to stash the local work...")
+    output = run_with_combined_output(["git", "stash"])
+    pblog.info(output)
     pblog.info("Trying to rebase workspace with latest changes on the repository...")
+    result = run_with_output(["git", "pull", "--rebase", "--no-autostash"])
     # TODO: autostash handling
-    # result = run_with_output("git", "pull", "--rebase", "--autostash")
-    result = run_with_output("git", "pull", "--rebase", "--no-autostash")
+    # pblog.info("Trying to rebase workspace with latest changes on the repository...")
+    # result = run_with_output(["git", "pull", "--rebase", "--autostash"])
     code = result.returncode
     pblog.info(result.stdout)
     err = result.stderr
@@ -227,17 +231,26 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
     out = out.lower()
 
     if not error:
+        pbgit.stash_pop()
         pblog.info("Success, rebased on latest changes without any conflicts")
     elif "fast-forwarded" in out:
+        pbgit.stash_pop()
         pblog.info("Success, rebased on latest changes without any conflicts")
     elif "is up to date" in out:
+        pbgit.stash_pop()
         pblog.info("Success, rebased on latest changes without any conflicts")
-    elif "rewinding head" in out and not (
-            "error" in out or "conflict" in out):
+    elif "rewinding head" in out and not ("error" in out or "conflict" in out):
+        pbgit.stash_pop()
         pblog.info("Success, rebased on latest changes without any conflicts")
     elif "successfully rebased and updated" in out:
+        pbgit.stash_pop()
         pblog.info("Success, rebased on latest changes without any conflicts")
-    elif "unmerged files" in out or "merge_head exists" in out or "failed to merge in the changes" in out or "could not apply" in out:
+    elif "failed to merge in the changes" in out or "could not apply" in out:
+        pblog.error("Aborting the rebase. Changes on one of your commits will be overridden by incoming changes. Request help in #tech-support to resolve conflicts, and please do not run StartProject.bat until the issue is resolved.")
+        pbgit.abort_rebase()
+        pbgit.stash_pop()
+        error_state(fatal_error=True)
+    elif "unmerged files" in out or "merge_head exists" in out:
         error_state(fatal_error=True)
     elif "unborn" in out:
         if should_attempt_auto_resolve():
