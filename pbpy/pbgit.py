@@ -57,7 +57,7 @@ def stash_pop():
     pblog.info(run.stdout)
     pblog.error(run.stderr)
 
-    output = run.stdout + "\n" + run.stderr
+    output = f"{run.stdout}\n{run.stderr}"
     lower_case_output = output.lower()
 
     if "auto-merging" in lower_case_output and "conflict" in lower_case_output and "should have been pointers" in lower_case_output:

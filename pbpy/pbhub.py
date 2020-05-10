@@ -11,7 +11,7 @@ from pbpy import pbtools
 from pbpy import pbconfig
 
 hub_executable_path = "hub\\hub.exe"
-hub_config_path = str(Path.home()) + "\\.config\\hub"
+hub_config_path = f"{Path.home()}\\.config\\hub"
 binary_package_name = "Binaries.zip"
 
 
@@ -56,30 +56,30 @@ def pull_binaries(version_number: str, pass_checksum=False):
 
     try:
         output = pbtools.get_combined_output([hub_executable_path, "release", "download", version_number, "-i", binary_package_name])
-        if "Downloading " + binary_package_name in output:
+        if f"Downloading {binary_package_name}" in output:
             pass
         elif "Unable to find release with tag name" in output:
-            pblog.error("Failed to find release tag " + version_number)
+            pblog.error(f"Failed to find release tag {version_number}")
             return False
         elif "The file exists" in output:
-            pblog.error("File " + binary_package_name + " was not able to be overwritten. Please remove it manually and run PBSync again")
+            pblog.error(f"File {binary_package_name} was not able to be overwritten. Please remove it manually and run PBSync again")
             return False
         elif "did not match any available assets" in output:
-            pblog.error("Binaries for release " + version_number + " are not pushed into GitHub yet")
+            pblog.error("Binaries for release {version_number} are not pushed into GitHub yet")
             return False
         elif not output:
             # hub doesn't print any output if package doesn't exist in release
-            pblog.error("Failed to find binary package for release " + version_number)
+            pblog.error(f"Failed to find binary package for release {version_number}")
             return False
         else:
             pblog.error(
-                "Unknown error occurred while pulling binaries for release " + version_number)
-            pblog.error("Command output was: " + output)
+                f"Unknown error occurred while pulling binaries for release {version_number}")
+            pblog.error(f"Command output was: {output}")
             return False
     except Exception as e:
         pblog.exception(str(e))
         pblog.error(
-            "Exception thrown while trying do pull binaries for " + version_number)
+            f"Exception thrown while trying do pull binaries for {version_number}")
         return False
 
     # Temp fix for Binaries folder with unnecessary content
@@ -98,7 +98,7 @@ def pull_binaries(version_number: str, pass_checksum=False):
             checksum_json_path = pbconfig.get("checksum_file")
             if not os.path.exists(checksum_json_path):
                 pblog.error(
-                    "Checksum json file is not found at " + checksum_json_path)
+                    f"Checksum json file is not found at {checksum_json_path}")
                 return False
 
             if not pbtools.compare_md5_single(binary_package_name, checksum_json_path):
@@ -114,7 +114,7 @@ def pull_binaries(version_number: str, pass_checksum=False):
     except Exception as e:
         pblog.exception(str(e))
         pblog.error(
-            "Exception thrown while trying do extract binary package for " + version_number)
+            f"Exception thrown while trying do extract binary package for {version_number}")
         return False
 
     return True
@@ -122,7 +122,7 @@ def pull_binaries(version_number: str, pass_checksum=False):
 
 def push_package(version_number, file_name):
     if not os.path.exists(file_name):
-        pblog.error("Provided file " + file_name + " doesn't exist")
+        pblog.error(f"Provided file {file_name} doesn't exist")
         return False
 
     try:
@@ -133,6 +133,5 @@ def push_package(version_number, file_name):
             pblog.error(output)
     except Exception as e:
         pblog.exception(str(e))
-    pblog.error("Error occurred while attaching " +
-                file_name + " into release " + version_number)
+    pblog.error(f"Error occurred while attaching {file_name} into release {version_number}")
     return False

@@ -95,8 +95,7 @@ def set_engine_version(version_string):
             with open(temp_path, "wt") as fout:
                 for ln in uproject_file:
                     if uproject_version_key in ln:
-                        fout.write(
-                            "\t\"EngineAssociation\": \"ue4v:" + version_string + "\",\n")
+                        fout.write(f"\t\"EngineAssociation\": \"ue4v:{version_string}\",\n")
                     else:
                         fout.write(ln)
         remove(pbconfig.get('uproject_name'))
@@ -117,20 +116,18 @@ def project_version_increase(increase_type):
     version_split = project_version.split('.')
 
     if len(version_split) != 3:
-        print("Incorrect project version detected")
+        pblog.error("Incorrect project version detected")
         return False
     if increase_type == "hotfix":
-        new_version = version_split[0] + "." + \
-            version_split[1] + "." + str(int(version_split[2]) + 1)
+        new_version = f"{version_split[0] }.{version_split[1]}.{str(int(version_split[2]) + 1)}"
     elif increase_type == "stable":
-        new_version = version_split[0] + "." + \
-            str(int(version_split[1]) + 1) + ".0"
+        new_version = f"{version_split[0] }.{str(int(version_split[1]) + 1)}.0"
     elif increase_type == "public":
-        new_version = str(int(version_split[2]) + 1) + ".0.0"
+        new_version = f"{str(int(version_split[2]) + 1)}.0.0"
     else:
         return False
 
-    print("Project version will be increased to " + new_version)
+    pblog.info(f"Project version will be increased to {new_version}")
     return set_project_version(new_version)
 
 
@@ -146,8 +143,7 @@ def get_engine_version(only_date=True):
                 return None
 
             if not only_date:
-                build_version = pbconfig.get(
-                    "engine_base_version") + "-" + engine_version_prefix + "-" + build_version
+                build_version = f"{pbconfig.get('engine_base_version')}-{engine_version_prefix}-{build_version}"
 
             return build_version
     except Exception as e:
@@ -158,7 +154,7 @@ def get_engine_version(only_date=True):
 def get_engine_version_with_prefix():
     engine_ver_number = get_engine_version()
     if engine_ver_number is not None:
-        return get_engine_prefix() + "-" + engine_ver_number
+        return f"{get_engine_prefix()}-{engine_ver_number}"
     return None
 
 
@@ -183,10 +179,9 @@ def get_latest_available_engine_version(bucket_url):
         # We should get latest version of ciengine instead
         build_type = pbconfig.get("ue4v_ci_bundle")
 
-    regex_prefix = build_type + "-" + \
-        pbconfig.get("engine_base_version") + "-" + \
-        engine_version_prefix  # e.g, "4.24-PB"
-    versions = re.findall(regex_prefix + "-[0-9]{8}", str(output))
+    # e.g, "engine-4.24-PB"
+    regex_prefix = f"{build_type}-{pbconfig.get('engine_base_version')}-{engine_version_prefix}"
+    versions = re.findall(f"{regex_prefix}-[0-9]{8}", str(output))
     if len(versions) == 0:
         return None
     # Find the latest version by sorting
@@ -194,7 +189,7 @@ def get_latest_available_engine_version(bucket_url):
 
     # Strip the build type prefix back
     result = str(versions[len(versions) - 1])
-    result = result.replace(build_type + "-", '')
+    result = result.replace(f"{build_type}-", '')
     return result
 
 
@@ -209,8 +204,7 @@ def check_ddc_folder_created():
 
 
 def generate_ddc_data():
-    pblog.info(
-        "Generating DDC data, please wait... (This may take up to one hour only for the initial run)")
+    pblog.info("Generating DDC data, please wait... (This may take up to one hour only for the initial run)")
     current_version = get_engine_version_with_prefix()
     if current_version is not None:
         engine_install_root = get_engine_install_root()
@@ -221,7 +215,10 @@ def generate_ddc_data():
             if os.path.isfile(ue_editor_executable):
                 err = subprocess.run([str(ue_editor_executable), os.path.join(
                     os.getcwd(), pbconfig.get('uproject_name')), "-run=DerivedDataCache", "-fill"]).returncode
-                pblog.info("DDC generate command has exited with " + str(err))
+                if err == 0:
+                    pblog.info(f"DDC generate command has exited with {err}")
+                else:
+                    pblog.error(f"DDC generate command has exited with {err}")
                 if not check_ddc_folder_created():
                     pbtools.error_state(
                         "DDC folder doesn't exist. Please get support from #tech-support")
@@ -244,15 +241,13 @@ def clean_old_engine_installations():
                 # Also do not remove files. Only remove folders
                 full_path = os.path.join(engine_install_root, folder)
                 if folder != current_version and p.match(folder) is not None and os.path.isdir(full_path):
-                    print("Removing old engine installation: " +
-                          str(full_path) + "...")
+                    pblog.info(f"Removing old engine installation: {str(full_path)}...")
                     try:
                         rmtree(full_path)
-                        print("Removal was successful!")
+                        pblog.info("Removal was successful!")
                     except Exception as e:
                         pblog.exception(str(e))
-                        print("Something went wrong while removing engine folder " +
-                              str(full_path) + " Please try removing it manually.")
+                        pblog.error(f"Something went wrong while removing engine folder {str(full_path)}. Please try removing it manually.")
             return True
 
     return False

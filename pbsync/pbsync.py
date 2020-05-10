@@ -21,8 +21,7 @@ default_config_name = "PBSync.xml"
 def config_handler(config_var, config_parser_func):
     if not pbconfig.generate_config(config_var, config_parser_func):
         # Logger is not initialized yet, so use print instead
-        print(str(config_var) +
-              " config file is not valid or not found. Please check the integrity of the file")
+        print(f"{str(config_var)} config file is not valid or not found. Please check the integrity of the file")
         sys.exit(1)
 
 
@@ -77,13 +76,12 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
         # Do not execute if Unreal Editor is running
         if pbtools.check_running_process("UE4Editor.exe"):
-            pbtools.error_state(
-                "Unreal Editor is currently running. Please close it before running PBSync. It may be listed only in Task Manager as a background process. As a last resort, you should log off and log in again.")
+            pbtools.error_state("Unreal Editor is currently running. Please close it before running PBSync. It may be listed only in Task Manager as a background process. As a last resort, you should log off and log in again.")
 
         pblog.info("Fetching recent changes on the repository...")
-        subprocess.run(["git", "fetch", "origin", "promoted"])
-        subprocess.run(["git", "fetch", "origin", "master"])
-        subprocess.run(["git", "fetch", "origin", "trunk"])
+        branches = {"promoted", "master", "trunk", pbgit.get_current_branch_name()}
+        for branch in branches:
+            subprocess.run(["git", "fetch", "origin", branch])
 
         # Do some housekeeping for git configuration
         pbgit.setup_config()
@@ -138,12 +136,10 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         bundle_name = pbconfig.get("ue4v_default_bundle")
 
         if pbunreal.run_ue4versionator(bundle_name, symbols_needed) != 0:
-            pblog.error("Something went wrong while registering engine build " +
-                        bundle_name + "-" + engine_version + ". Please request help in #tech-support.")
+            pblog.error(f"Something went wrong while registering engine build {bundle_name}-{engine_version}. Please request help in #tech-support.")
             sys.exit(1)
         else:
-            pblog.info("Engine build " + bundle_name + "-" +
-                       engine_version + " successfully registered")
+            pblog.info(f"Engine build {bundle_name}-{engine_version} successfully registered")
 
         # Clean old engine installations, do that only in expected branch
         if is_on_expected_branch:
@@ -157,12 +153,11 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
         if pbunreal.check_ue4_file_association():
             try:
-                os.startfile(os.getcwd() + "\\ProjectBorealis.uproject")
+                os.startfile(os.path.normpath(os.path.join(os.getcwd(), "ProjectBorealis.uproject")))
             except NotImplementedError:
                 pblog.info("You may now launch ProjectBorealis.uproject with Unreal Engine 4.")
         else:
-            pbtools.error_state(
-                ".uproject extension is not correctly set into Unreal Engine. Make sure you have Epic Games Launcher installed. If problem still persists, please get help in #tech-support.")
+            pbtools.error_state(".uproject extension is not correctly set into Unreal Engine. Make sure you have Epic Games Launcher installed. If problem still persists, please get help in #tech-support.")
 
     elif sync_val == "engineversion":
         if repository_val is None:
@@ -178,8 +173,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             pblog.error(
                 "Error while trying to update engine version in .uproject file")
             sys.exit(1)
-        pblog.info("Successfully changed engine version as " +
-                   str(engine_version))
+        pblog.info(f"Successfully changed engine version as {str(engine_version)}")
 
     elif sync_val == "ddc":
         pbunreal.generate_ddc_data()
@@ -187,10 +181,9 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
     elif sync_val == "binaries":
         project_version = pbunreal.get_project_version()
         if pbhub.pull_binaries(project_version, True):
-            pblog.info("Binaries for " + project_version +
-                       " pulled & extracted successfully")
+            pblog.info(f"Binaries for {project_version} pulled & extracted successfully")
         else:
-            pblog.error("Failed to pull binaries for " + project_version)
+            pblog.error(f"Failed to pull binaries for {project_version}")
             sys.exit(1)
 
     elif sync_val == "engine":
@@ -200,12 +193,10 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
         engine_version = pbunreal.get_engine_version(False)
         if pbunreal.run_ue4versionator(requested_bundle_name) != 0:
-            pblog.error("Something went wrong while registering engine build " +
-                        requested_bundle_name + "-" + engine_version)
+            pblog.error(f"Something went wrong while registering engine build {requested_bundle_name}-{engine_version}")
             sys.exit(1)
         else:
-            pblog.info("Engine build " + requested_bundle_name +
-                       "-" + engine_version + " successfully registered")
+            pblog.info(f"Engine build {requested_bundle_name}-{engine_version} successfully registered")
 
 
 def clean_handler(clean_val):
@@ -270,17 +261,14 @@ def publish_handler(publish_val, dispatch_exec_path):
 
 def push_handler(file_name):
     project_version = pbunreal.get_project_version()
-    pblog.info("Attaching " + file_name +
-               " into GitHub release " + project_version)
+    pblog.info(f"Attaching {file_name} into GitHub release {project_version}")
     if not pbhub.push_package(project_version, file_name):
-        pblog.error(
-            "Error occurred while pushing package for release " + project_version)
+        pblog.error(f"Error occurred while pushing package for release {project_version}")
         sys.exit(1)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Project Borealis Workspace Synchronization Tool | PBpy Library Version: " +
-                                     pbpy_version.ver + " | PBSync Program Version: " + pbsync_version.ver)
+    parser = argparse.ArgumentParser(description=f"Project Borealis Workspace Synchronization Tool | PBpy Library Version: {pbpy_version.ver} | PBSync Program Version: {pbsync_version.ver}")
 
     parser.add_argument("--sync", help="Main command for the PBSync, synchronizes the project with latest changes from the repo, and does some housekeeping",
                         choices=["all", "binaries", "engineversion", "engine", "force", "ddc"])
@@ -292,8 +280,7 @@ def main():
                         choices=["hotfix", "stable", "public"])
     parser.add_argument("--clean", help="""Do cleanup according to specified argument. If engine is provided, old engine installations will be cleared
     If workspace is provided, workspace will be reset with latest changes from current branch (not revertible)""", choices=["engine", "workspace"])
-    parser.add_argument("--config", help="Path of config XML file. If not provided, ./" +
-                        default_config_name + " is used as default", default=default_config_name)
+    parser.add_argument("--config", help=f"Path of config XML file. If not provided, ./{default_config_name} is used as default", default=default_config_name)
     parser.add_argument(
         "--push", help="Push provided file into release of current project version")
     parser.add_argument("--publish", help="Publishes a playable build with provided build type",

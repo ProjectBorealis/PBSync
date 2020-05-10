@@ -46,21 +46,20 @@ def compare_md5_single(compared_file_path, md5_json_file_path):
     if current_hash is None:
         return False
 
-    dict_search_string = ".\\" + compared_file_path
+    dict_search_string = f".\\{compared_file_path}"
     hash_dict = get_dict_from_json(md5_json_file_path)
 
     if hash_dict is None or not (dict_search_string in hash_dict):
-        pblog.error("Key " + dict_search_string +
-                    " not found in " + md5_json_file_path)
+        pblog.error(f"Key {dict_search_string} not found in {md5_json_file_path}")
         return False
 
     if hash_dict[dict_search_string] == current_hash:
-        pblog.info("MD5 checksum successful for " + compared_file_path)
+        pblog.info(f"MD5 checksum successful for {compared_file_path}")
         return True
     else:
-        pblog.error("MD5 checksum failed for " + compared_file_path)
-        pblog.error("Expected MD5: " + hash_dict[compared_file_path])
-        pblog.error("Current MD5: " + str(current_hash))
+        pblog.error(f"MD5 checksum failed for {compared_file_path}")
+        pblog.error(f"Expected MD5: {hash_dict[compared_file_path]}")
+        pblog.error(f"Current MD5: {str(current_hash)}")
         return False
 
 
@@ -74,7 +73,7 @@ def compare_md5_all(md5_json_file_path, print_log=False, ignored_extension=".zip
         if not os.path.isfile(file_path):
             # If file doesn't exist, that means we fail the checksum
             if print_log:
-                pblog.error("MD5 checksum failed for " + file_path)
+                pblog.error(f"MD5 checksum failed for {file_path}")
                 pblog.error("File does not exist")
             return False
 
@@ -83,12 +82,12 @@ def compare_md5_all(md5_json_file_path, print_log=False, ignored_extension=".zip
         current_md5 = get_md5_hash(file_path)
         if hash_dict[file_path] == current_md5:
             if print_log:
-                pblog.info("MD5 checksum successful for " + file_path)
+                pblog.info(f"MD5 checksum successful for {file_path}")
         else:
             if print_log:
-                pblog.error("MD5 checksum failed for " + file_path)
-                pblog.error("Expected MD5: " + hash_dict[file_path])
-                pblog.error("Current MD5: " + str(current_md5))
+                pblog.error(f"MD5 checksum failed for {file_path}")
+                pblog.error(f"Expected MD5: {hash_dict[file_path]}")
+                pblog.error(f"Current MD5: {str(current_md5)}")
             is_success = False
     return is_success
 
@@ -164,7 +163,7 @@ def error_state(msg=None, fatal_error=False):
 def disable_watchman():
     subprocess.run(["git", "config", "--unset", "core.fsmonitor"])
     if check_running_process(watchman_exec_name):
-        os.system("taskkill /f /im " + watchman_exec_name)
+        subprocess.run(f"taskkill /f /im {watchman_exec_name}", shell=True)
 
 
 def check_running_process(process_name):
@@ -179,16 +178,15 @@ def check_running_process(process_name):
 
 def wipe_workspace():
     current_branch = pbgit.get_current_branch_name()
-    response = input("This command will wipe your workspace and get latest changes from " +
-                     current_branch + ". Are you sure? [y/N]")
+    response = input(f"This command will wipe your workspace and get latest changes from {current_branch}. Are you sure? [y/N]")
 
     if response != "y" and response != "Y":
         return False
 
     pbgit.abort_all()
     disable_watchman()
-    subprocess.run(["git", "fetch", "origin", str(current_branch)])
-    result = subprocess.run(["git", "reset", "--hard", "origin/" + str(current_branch)]).returncode
+    subprocess.run(["git", "fetch", "origin", current_branch])
+    result = subprocess.run(["git", "reset", "--hard", f"origin/{current_branch}"]).returncode
     subprocess.run(["git", "clean", "-fd"])
     subprocess.run(["git", "pull"])
     return result == 0
@@ -225,7 +223,7 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         pblog.error(err)
         error = True
 
-    out = result.stdout + "\n" + result.stderr
+    out = f"{result.stdout}\n{result.stderr}"
     out = out.lower()
 
     if not error:
