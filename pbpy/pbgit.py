@@ -103,16 +103,16 @@ def sync_file(file_path):
 
 def abort_all():
     # Abort everything
-    subprocess.run(["git", "merge", "--abort"])
-    subprocess.run(["git", "rebase", "--abort"])
-    subprocess.run(["git", "am", "--abort"])
+    pbtools.run_with_output(["git", "merge", "--abort"])
+    pbtools.run_with_output(["git", "rebase", "--abort"])
+    pbtools.run_with_output(["git", "am", "--abort"])
     # Just in case
-    shutil.rmtree(os.path.join(os.getcwd(), ".git", "rebase-apply"))
+    shutil.rmtree(os.path.join(os.getcwd(), ".git", "rebase-apply"), ignore_errors=True)
 
 
 def abort_rebase():
     # Abort rebase
-    subprocess.run(["git", "rebase", "--abort"])
+    pbtools.run_with_output(["git", "rebase", "--abort"])
 
 
 def setup_config():

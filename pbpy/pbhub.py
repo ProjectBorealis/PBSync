@@ -10,7 +10,7 @@ from pbpy import pbtools
 from pbpy import pbconfig
 
 hub_executable_path = "hub\\hub.exe"
-hub_config_path = f"{Path.home()}\\.config\\hub"
+hub_config_path = f"{str(Path.home())}\\.config\\hub"
 binary_package_name = "Binaries.zip"
 
 
