@@ -80,7 +80,7 @@ def check_remote_connection():
         subprocess.run(["git", "remote", "set-url", "origin", recent_url])
 
     current_url = pbtools.run_with_output(["git", "remote", "get-url", "origin"]).stdout
-    out = subprocess.run(["git", "ls-remote", "--exit-code", "-h"]).returncode
+    out = pbtools.run_with_output(["git", "ls-remote", "--exit-code", "-h"]).returncode
     return out == 0, current_url
 
 
