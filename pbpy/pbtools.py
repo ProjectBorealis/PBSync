@@ -26,7 +26,7 @@ def run_with_combined_output(*cmd):
 
 
 def get_combined_output(*cmd):
-    return run_with_combined_output(*cmd).stderr
+    return run_with_combined_output(*cmd).stdout
 
 
 def get_md5_hash(file_path):
