@@ -42,8 +42,8 @@
         {
             "id": "publishSelection",
             "description": "Please choose build type to publish",
-            "default": "stable",
-            "options": ["stable", "public"],
+            "default": "internal",
+            "options": ["internal", "playtester"],
             "type": "pickString"
         },
         {
