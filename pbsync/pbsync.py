@@ -161,17 +161,14 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
     elif sync_val == "engineversion":
         if repository_val is None:
-            pblog.error(
-                "--repository <URL> argument should be provided with --sync engine command")
+            pblog.error("--repository <URL> argument should be provided with --sync engine command")
             sys.exit(1)
-        engine_version = pbunreal.get_latest_available_engine_version(
-            str(repository_val))
+        engine_version = pbunreal.get_latest_available_engine_version(str(repository_val))
         if engine_version is None:
             pblog.error("Error while trying to fetch latest engine version")
             sys.exit(1)
         if not pbunreal.set_engine_version(engine_version):
-            pblog.error(
-                "Error while trying to update engine version in .uproject file")
+            pblog.error("Error while trying to update engine version in .uproject file")
             sys.exit(1)
         pblog.info(f"Successfully changed engine version as {str(engine_version)}")
 

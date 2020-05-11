@@ -116,7 +116,7 @@ def project_version_increase(increase_type):
     version_split = project_version.split('.')
 
     if len(version_split) != 3:
-        pblog.error("Incorrect project version detected")
+        print("Incorrect project version detected")
         return False
     if increase_type == "hotfix":
         new_version = f"{version_split[0] }.{version_split[1]}.{str(int(version_split[2]) + 1)}"
@@ -127,7 +127,7 @@ def project_version_increase(increase_type):
     else:
         return False
 
-    pblog.info(f"Project version will be increased to {new_version}")
+    print(f"Project version will be increased to {new_version}")
     return set_project_version(new_version)
 
 
@@ -173,7 +173,6 @@ def get_engine_install_root():
 
 def get_latest_available_engine_version(bucket_url):
     output = pbtools.get_combined_output(["gsutil", "ls", bucket_url])
-    pblog.info(output)
     build_type = pbconfig.get("ue4v_default_bundle")
     if pbconfig.get("is_ci"):
         # We should get latest version of ciengine instead
@@ -182,7 +181,6 @@ def get_latest_available_engine_version(bucket_url):
     # e.g, "engine-4.24-PB"
     regex_prefix = f"{build_type}-{pbconfig.get('engine_base_version')}-{engine_version_prefix}"
     versions = re.findall(regex_prefix + "-[0-9]{8}", output)
-    print(versions)
     if len(versions) == 0:
         return None
     # Find the latest version by sorting
@@ -191,7 +189,7 @@ def get_latest_available_engine_version(bucket_url):
     # Strip the build type prefix back
     result = str(versions[len(versions) - 1])
     result = result.replace(f"{build_type}-", '')
-    return result
+    return result.rstrip()
 
 
 def check_ue4_file_association():
@@ -242,13 +240,13 @@ def clean_old_engine_installations():
                 # Also do not remove files. Only remove folders
                 full_path = os.path.join(engine_install_root, folder)
                 if folder != current_version and p.match(folder) is not None and os.path.isdir(full_path):
-                    pblog.info(f"Removing old engine installation: {str(full_path)}...")
+                    print(f"Removing old engine installation: {str(full_path)}...")
                     try:
                         rmtree(full_path)
-                        pblog.info("Removal was successful!")
+                        print("Removal was successful!")
                     except Exception as e:
                         pblog.exception(str(e))
-                        pblog.error(f"Something went wrong while removing engine folder {str(full_path)}. Please try removing it manually.")
+                        print(f"Something went wrong while removing engine folder {str(full_path)}. Please try removing it manually.")
             return True
 
     return False
