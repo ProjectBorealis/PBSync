@@ -173,7 +173,7 @@ def get_engine_install_root():
 
 def get_latest_available_engine_version(bucket_url):
     output = pbtools.get_combined_output(["gsutil", "ls", bucket_url])
-
+    pblog.info(output)
     build_type = pbconfig.get("ue4v_default_bundle")
     if pbconfig.get("is_ci"):
         # We should get latest version of ciengine instead
@@ -181,7 +181,8 @@ def get_latest_available_engine_version(bucket_url):
 
     # e.g, "engine-4.24-PB"
     regex_prefix = f"{build_type}-{pbconfig.get('engine_base_version')}-{engine_version_prefix}"
-    versions = re.findall(f"{regex_prefix}-[0-9]{8}", output)
+    versions = re.findall(regex_prefix + "-[0-9]{8}", output)
+    print(versions)
     if len(versions) == 0:
         return None
     # Find the latest version by sorting
