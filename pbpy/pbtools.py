@@ -292,6 +292,6 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         error_state("Aborting the repo update because of an unknown error. Request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.", fatal_error=True)
 
     if os.name == "nt":
-        subprocess.Popen("git lfs prune -c ; git lfs dedup", shell=True, creationflags=subprocess.DETACHED_PROCESS, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.Popen("git lfs prune -c ; git lfs dedup", shell=True, creationflags=subprocess.DETACHED_PROCESS, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     elif os.name == "posix":
-        subprocess.Popen("nohup git lfs prune -c || nohup git lfs dedup", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.Popen("nohup git lfs prune -c || nohup git lfs dedup", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

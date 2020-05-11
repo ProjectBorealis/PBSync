@@ -106,13 +106,14 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                     "Something went wrong while fetching project version. Please request help in #tech-support.")
 
             if pbhub.is_pull_binaries_required():
-                pblog.info(
-                    "Binaries are not up to date, trying to pull new binaries...")
-                if pbhub.pull_binaries(project_version):
+                pblog.info("Binaries are not up to date, trying to pull new binaries...")
+                ret = pbhub.pull_binaries(project_version)
+                if ret == 0:
                     pblog.info("Binaries were pulled successfully")
-                else:
-                    pbtools.error_state(
-                        "An error occurred while pulling binaries", True)
+                elif ret < 0:
+                    pbtools.error_state("Binaries pull failed, please view log for instructions.")
+                elif ret > 0:
+                    pbtools.error_state("An error occurred while pulling binaries. Please request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.", True)
             else:
                 pblog.info("Binaries are up-to-date")
         else:
