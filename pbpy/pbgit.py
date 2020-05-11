@@ -47,7 +47,7 @@ def get_lfs_version():
 
 
 def set_tracking_information(upstream_branch_name: str):
-    output = pbtools.run_with_output(["git", "branch", f"--set-upstream-to=origin/{upstream_branch_name}",
+    output = pbtools.get_combined_output(["git", "branch", f"--set-upstream-to=origin/{upstream_branch_name}",
                                       upstream_branch_name])
     pblog.info(output)
 
@@ -76,7 +76,7 @@ def check_remote_connection():
     recent_url = pbconfig.get("git_url")
 
     if current_url != recent_url:
-        output = pbtools.run_with_output(["git", "remote", "set-url", "origin", recent_url])
+        output = pbtools.get_combined_output(["git", "remote", "set-url", "origin", recent_url])
         pblog.info(output)
 
     current_url = pbtools.get_one_line_output(["git", "remote", "get-url", "origin"])

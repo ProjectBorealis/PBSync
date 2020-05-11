@@ -45,7 +45,7 @@ def pull_binaries(version_number: str, pass_checksum=False):
 
     if not os.path.isfile(hub_config_path):
         # If user didn't login with hub yet, do it now for once
-        output = pbtools.run_with_combined_output([hub_executable_path, "release", "-L", "1"]).stdout
+        output = pbtools.get_combined_output([hub_executable_path, "release", "-L", "1"])
         pblog.info(output)
         if not os.path.isfile(hub_config_path):
             pblog.error(

@@ -18,11 +18,11 @@ watchman_exec_name = "watchman.exe"
 
 
 def run_with_output(cmd):
-    return subprocess.run(cmd, capture_output=True, text=True)
+    return subprocess.run(cmd, capture_output=True, text=True, shell=True)
 
 
 def run_with_combined_output(cmd):
-    return subprocess.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    return subprocess.run(cmd, text=True, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
 
 def get_combined_output(cmd):
@@ -221,7 +221,9 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
     pbgit.set_tracking_information(pbgit.get_current_branch_name())
 
     pblog.info("Trying to stash local work...")
-    out = get_combined_output(["git", "stash"])
+    proc = run_with_combined_output(["git", "stash"])
+    out = proc.stdout
+    stashed = proc.returncode == 0 and "Saved working directory and index state" in out
     pblog.info(out)
     pblog.info("Trying to rebase workspace with the latest changes from the repository...")
     result = run_with_combined_output(["git", "pull", "--rebase", "--no-autostash"])
@@ -235,13 +237,17 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
 
     out = out.lower()
 
+    def pop_if_stashed():
+        if stashed:
+            pbgit.stash_pop()
+
     def handle_success():
-        pbgit.stash_pop()
+        pop_if_stashed()
         pblog.info("Success, rebased on latest changes without any conflicts")
 
     def handle_error(msg=None):
         pbgit.abort_all()
-        pbgit.stash_pop()
+        pop_if_stashed()
         error_state(msg, fatal_error=True)
 
     if not error:
@@ -258,24 +264,27 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         handle_error("Aborting the rebase. Changes on one of your commits will be overridden by incoming changes. Please request help in #tech-support to resolve conflicts, and please do not run StartProject.bat until the issue is resolved.")
     elif "unmerged files" in out or "merge_head exists" in out:
         # we can't abort anything, but don't let stash linger to restore the original repo state
-        pbgit.stash_pop()
+        pop_if_stashed()
         error_state("You are in the middle of a merge. Please request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.", fatal_error=True)
     elif "unborn" in out:
         if should_attempt_auto_resolve():
             pblog.error("Unborn branch detected. Retrying...")
-            resolve_conflicts_and_pull(++retry_count)
+            retry_count += 1
+            resolve_conflicts_and_pull(retry_count)
         else:
             handle_error("You are on an unborn branch. Please request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.")
     elif "no remote" in out or "no such remote" in out or "refspecs without repo" in out:
         if should_attempt_auto_resolve():
             pblog.error("Remote repository not found. Retrying...")
-            resolve_conflicts_and_pull(++retry_count, 2)
+            retry_count += 1
+            resolve_conflicts_and_pull(retry_count, 2)
         else:
             handle_error("The remote repository could not be found. Please request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.")
     elif "cannot open" in out:
         if should_attempt_auto_resolve():
             pblog.error("Git file info could not be read. Retrying...")
-            resolve_conflicts_and_pull(++retry_count, 3)
+            retry_count += 1
+            resolve_conflicts_and_pull(retry_count, 3)
         else:
             handle_error("Git file info could not be read. Please request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.")
     else:
@@ -283,6 +292,6 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         error_state("Aborting the repo update because of an unknown error. Request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.", fatal_error=True)
 
     if os.name == "nt":
-        subprocess.Popen("git lfs prune -c;git lfs dedup", shell=True)
+        subprocess.Popen("git lfs prune -c ; git lfs dedup", shell=True, creationflags=subprocess.DETACHED_PROCESS, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     elif os.name == "posix":
-        subprocess.Popen("git lfs prune -c || git lfs dedup", shell=True)
+        subprocess.Popen("nohup git lfs prune -c || nohup git lfs dedup", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

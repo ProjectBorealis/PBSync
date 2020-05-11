@@ -214,7 +214,7 @@ def generate_ddc_data():
                 installation_dir, ue4_editor_relative_path)
             if os.path.isfile(ue_editor_executable):
                 err = subprocess.run([str(ue_editor_executable), os.path.join(
-                    os.getcwd(), pbconfig.get('uproject_name')), "-run=DerivedDataCache", "-fill"]).returncode
+                    os.getcwd(), pbconfig.get('uproject_name')), "-run=DerivedDataCache", "-fill"], shell=True).returncode
                 if err == 0:
                     pblog.info(f"DDC generate command has exited with {err}")
                 else:
@@ -309,4 +309,4 @@ def run_ue4versionator(bundle_name=None, download_symbols=False):
         command_set.append("-user-config")
         command_set.append(pbconfig.get("ue4v_ci_config"))
 
-    return subprocess.run(command_set).returncode
+    return subprocess.run(command_set, shell=True).returncode
