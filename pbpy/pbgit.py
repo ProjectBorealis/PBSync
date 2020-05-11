@@ -8,11 +8,11 @@ from pbpy import pbtools
 
 
 def get_current_branch_name():
-    return pbtools.run_with_output(["git", "branch", "--show-current"]).stdout
+    return pbtools.get_one_line_output(["git", "branch", "--show-current"])
 
 
 def get_git_version():
-    installed_version_split = pbtools.run_with_output(["git", "--version"]).stdout.split(" ")
+    installed_version_split = pbtools.get_one_line_output(["git", "--version"]).split(" ")
 
     list_len = len(installed_version_split)
     if list_len == 0:
@@ -32,7 +32,7 @@ def compare_with_current_branch_name(compared_branch):
 
 
 def get_lfs_version():
-    installed_version_split = pbtools.run_with_output(["git", "lfs", "--version"]).stdout.split(" ")
+    installed_version_split = pbtools.get_one_line_output(["git", "lfs", "--version"]).split(" ")
 
     if len(installed_version_split) == 0:
         return None
@@ -47,17 +47,16 @@ def get_lfs_version():
 
 
 def set_tracking_information(upstream_branch_name: str):
-    pbtools.run_with_output(["git", "branch", f"--set-upstream-to=origin/{upstream_branch_name}", upstream_branch_name])
+    output = pbtools.run_with_output(["git", "branch", f"--set-upstream-to=origin/{upstream_branch_name}",
+                                      upstream_branch_name])
+    pblog.info(output)
 
 
 def stash_pop():
     pblog.info("Trying to pop stash...")
 
-    run = pbtools.run_with_output(["git", "stash", "pop"])
-    pblog.info(run.stdout)
-    pblog.error(run.stderr)
-
-    output = f"{run.stdout}\n{run.stderr}"
+    output = pbtools.get_combined_output(["git", "stash", "pop"])
+    pblog.info(output)
     lower_case_output = output.lower()
 
     if "auto-merging" in lower_case_output and "conflict" in lower_case_output and "should have been pointers" in lower_case_output:
@@ -73,24 +72,25 @@ def stash_pop():
 
 
 def check_remote_connection():
-    current_url = pbtools.run_with_output(["git", "remote", "get-url", "origin"]).stdout
+    current_url = pbtools.get_one_line_output(["git", "remote", "get-url", "origin"])
     recent_url = pbconfig.get("git_url")
 
     if current_url != recent_url:
-        pbtools.run_with_output(["git", "remote", "set-url", "origin", recent_url])
+        output = pbtools.run_with_output(["git", "remote", "set-url", "origin", recent_url])
+        pblog.info(output)
 
-    current_url = pbtools.run_with_output(["git", "remote", "get-url", "origin"]).stdout
+    current_url = pbtools.get_one_line_output(["git", "remote", "get-url", "origin"])
     out = pbtools.run_with_output(["git", "ls-remote", "--exit-code", "-h"]).returncode
     return out == 0, current_url
 
 
 def check_credentials():
-    output = pbtools.run_with_output(["git", "config", "user.name"]).stdout
+    output = pbtools.get_one_line_output(["git", "config", "user.name"])
     if output == "" or output is None:
         user_name = input("Please enter your GitHub username: ")
         pbtools.run_with_output(["git", "config", "user.name", user_name])
 
-    output = pbtools.run_with_output(["git", "config", "user.email"]).stdout
+    output = pbtools.get_one_line_output(["git", "config", "user.email"])
     if output == "" or output is None:
         user_mail = input("Please enter your GitHub email: ")
         pbtools.run_with_output(["git", "config", "user.email", user_mail])
@@ -98,7 +98,9 @@ def check_credentials():
 
 def sync_file(file_path):
     sync_head = f"origin/{get_current_branch_name()}"
-    return pbtools.run_with_output(["git", "restore", "-qWSs", sync_head, "--", file_path]).returncode
+    proc = pbtools.run_with_combined_output(["git", "restore", "-qWSs", sync_head, "--", file_path])
+    pblog.info(proc.stdout)
+    return proc.returncode
 
 
 def abort_all():

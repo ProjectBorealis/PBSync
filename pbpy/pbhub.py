@@ -45,7 +45,8 @@ def pull_binaries(version_number: str, pass_checksum=False):
 
     if not os.path.isfile(hub_config_path):
         # If user didn't login with hub yet, do it now for once
-        subprocess.run([hub_executable_path, "release", "-L", "1"])
+        output = pbtools.run_with_combined_output([hub_executable_path, "release", "-L", "1"]).stdout
+        pblog.info(output)
         if not os.path.isfile(hub_config_path):
             pblog.error(
                 "Failed to login into hub with git credentials. Please check if your provided credentials are valid.")
@@ -108,7 +109,7 @@ def pull_binaries(version_number: str, pass_checksum=False):
             if pass_checksum:
                 return True
             elif not pbtools.compare_md5_all(checksum_json_path, True):
-                return True
+                return False
 
     except Exception as e:
         pblog.exception(str(e))

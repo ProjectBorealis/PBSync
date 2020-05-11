@@ -17,16 +17,20 @@ error_file = ".pbsync_err"
 watchman_exec_name = "watchman.exe"
 
 
-def run_with_output(*cmd):
-    return subprocess.run(*cmd, capture_output=True, text=True)
+def run_with_output(cmd):
+    return subprocess.run(cmd, capture_output=True, text=True)
 
 
-def run_with_combined_output(*cmd):
-    return subprocess.run(*cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+def run_with_combined_output(cmd):
+    return subprocess.run(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
 
-def get_combined_output(*cmd):
-    return run_with_combined_output(*cmd).stdout
+def get_combined_output(cmd):
+    return run_with_combined_output(cmd).stdout
+
+
+def get_one_line_output(cmd):
+    return run_with_output(cmd).stdout.rstrip()
 
 
 def get_md5_hash(file_path):
@@ -185,10 +189,15 @@ def wipe_workspace():
 
     pbgit.abort_all()
     disable_watchman()
-    subprocess.run(["git", "fetch", "origin", current_branch])
-    result = subprocess.run(["git", "reset", "--hard", f"origin/{current_branch}"]).returncode
-    subprocess.run(["git", "clean", "-fd"])
-    subprocess.run(["git", "pull"])
+    output = get_combined_output(["git", "fetch", "origin", current_branch])
+    pblog.info(output)
+    proc = run_with_combined_output(["git", "reset", "--hard", f"origin/{current_branch}"])
+    result = proc.returncode
+    pblog.info(proc.stdout)
+    output = get_combined_output(["git", "clean", "-fd"])
+    pblog.info(output)
+    output = get_combined_output(["git", "pull"])
+    pblog.info(output)
     return result == 0
 
 
@@ -212,69 +221,68 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
     pbgit.set_tracking_information(pbgit.get_current_branch_name())
 
     pblog.info("Trying to stash local work...")
-    output = run_with_combined_output(["git", "stash"])
-    pblog.info(output)
+    out = get_combined_output(["git", "stash"])
+    pblog.info(out)
     pblog.info("Trying to rebase workspace with the latest changes from the repository...")
-    result = run_with_output(["git", "pull", "--rebase", "--no-autostash"])
+    result = run_with_combined_output(["git", "pull", "--rebase", "--no-autostash"])
     # TODO: autostash handling
     # pblog.info("Trying to rebase workspace with latest changes on the repository...")
-    # result = run_with_output(["git", "pull", "--rebase", "--autostash"])
+    # result = run_with_combined_output(["git", "pull", "--rebase", "--autostash"])
     code = result.returncode
-    pblog.info(result.stdout)
-    err = result.stderr
+    out = result.stdout
+    pblog.info(out)
     error = code != 0
-    if err is not None and err != "":
-        pblog.error(err)
-        error = True
 
-    out = f"{result.stdout}\n{result.stderr}"
     out = out.lower()
 
+    def handle_success():
+        pbgit.stash_pop()
+        pblog.info("Success, rebased on latest changes without any conflicts")
+
+    def handle_error(msg=None):
+        pbgit.abort_all()
+        pbgit.stash_pop()
+        error_state(msg, fatal_error=True)
+
     if not error:
-        pbgit.stash_pop()
-        pblog.info("Success, rebased on latest changes without any conflicts")
+        handle_success()
     elif "fast-forwarded" in out:
-        pbgit.stash_pop()
-        pblog.info("Success, rebased on latest changes without any conflicts")
+        handle_success()
     elif "is up to date" in out:
-        pbgit.stash_pop()
-        pblog.info("Success, rebased on latest changes without any conflicts")
+        handle_success()
     elif "rewinding head" in out and not ("error" in out or "conflict" in out):
-        pbgit.stash_pop()
-        pblog.info("Success, rebased on latest changes without any conflicts")
+        handle_success()
     elif "successfully rebased and updated" in out:
-        pbgit.stash_pop()
-        pblog.info("Success, rebased on latest changes without any conflicts")
+        handle_success()
     elif "failed to merge in the changes" in out or "could not apply" in out:
-        pblog.error("Aborting the rebase. Changes on one of your commits will be overridden by incoming changes. Request help in #tech-support to resolve conflicts, and please do not run StartProject.bat until the issue is resolved.")
-        pbgit.abort_rebase()
-        pbgit.stash_pop()
-        error_state(fatal_error=True)
+        handle_error("Aborting the rebase. Changes on one of your commits will be overridden by incoming changes. Please request help in #tech-support to resolve conflicts, and please do not run StartProject.bat until the issue is resolved.")
     elif "unmerged files" in out or "merge_head exists" in out:
-        error_state(fatal_error=True)
+        # we can't abort anything, but don't let stash linger to restore the original repo state
+        pbgit.stash_pop()
+        error_state("You are in the middle of a merge. Please request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.", fatal_error=True)
     elif "unborn" in out:
         if should_attempt_auto_resolve():
             pblog.error("Unborn branch detected. Retrying...")
             resolve_conflicts_and_pull(++retry_count)
         else:
-            pblog.error("You are on an unborn branch. Please request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.")
-            error_state(fatal_error=True)
+            handle_error("You are on an unborn branch. Please request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.")
     elif "no remote" in out or "no such remote" in out or "refspecs without repo" in out:
         if should_attempt_auto_resolve():
             pblog.error("Remote repository not found. Retrying...")
             resolve_conflicts_and_pull(++retry_count, 2)
         else:
-            pblog.error("The remote repository could not be found. Please request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.")
-            error_state(fatal_error=True)
+            handle_error("The remote repository could not be found. Please request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.")
     elif "cannot open" in out:
         if should_attempt_auto_resolve():
             pblog.error("Git file info could not be read. Retrying...")
             resolve_conflicts_and_pull(++retry_count, 3)
+        else:
+            handle_error("Git file info could not be read. Please request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.")
     else:
-        pblog.error("Aborting the repo update because of an unknown error. Request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.")
-        pbgit.abort_rebase()
-        error_state(fatal_error=True)
+        # We have no idea what the state of the repo is. Do nothing except bail.
+        error_state("Aborting the repo update because of an unknown error. Request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.", fatal_error=True)
 
-    # TODO: background prune
-    # pblog.info("Cleaning up unused repository assets...")
-    # subprocess.run(["git", "lfs", "prune", "-c"])
+    if os.name == "nt":
+        subprocess.Popen("git lfs prune -c;git lfs dedup", shell=True)
+    elif os.name == "posix":
+        subprocess.Popen("git lfs prune -c || git lfs dedup", shell=True)

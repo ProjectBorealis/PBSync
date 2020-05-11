@@ -181,7 +181,7 @@ def get_latest_available_engine_version(bucket_url):
 
     # e.g, "engine-4.24-PB"
     regex_prefix = f"{build_type}-{pbconfig.get('engine_base_version')}-{engine_version_prefix}"
-    versions = re.findall(f"{regex_prefix}-[0-9]{8}", str(output))
+    versions = re.findall(f"{regex_prefix}-[0-9]{8}", output)
     if len(versions) == 0:
         return None
     # Find the latest version by sorting

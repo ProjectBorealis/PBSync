@@ -81,7 +81,8 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         pblog.info("Fetching recent changes on the repository...")
         branches = {"promoted", "master", "trunk", pbgit.get_current_branch_name()}
         for branch in branches:
-            pbtools.run_with_output(["git", "fetch", "origin", branch])
+            output = pbtools.get_combined_output(["git", "fetch", "origin", branch])
+            pblog.info(output)
 
         # Do some housekeeping for git configuration
         pbgit.setup_config()
@@ -92,8 +93,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         pblog.info("------------------")
 
         # Execute synchronization part of script if we're on the expected branch, or force sync is enabled
-        is_on_expected_branch = pbgit.compare_with_current_branch_name(
-            pbconfig.get('expected_branch_name'))
+        is_on_expected_branch = pbgit.compare_with_current_branch_name(pbconfig.get('expected_branch_name'))
         if sync_val == "force" or is_on_expected_branch:
             pbtools.resolve_conflicts_and_pull()
 

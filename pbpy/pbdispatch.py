@@ -48,10 +48,14 @@ def push_build(branch_type, dispath_exec_path, dispatch_config, dispatch_stagedi
         executable_path = os.path.join(executable_path, default_drm_exec_name)
 
     # Wrap executable with DRM
-    result = pbtools.run_with_output([dispath_exec_path, "build", "drm-wrap", app_id, executable_path]).returncode
+    proc = pbtools.run_with_combined_output([dispath_exec_path, "build", "drm-wrap", app_id, executable_path])
+    pblog.info(proc.stdout)
+    result = proc.returncode
     if result != 0:
         return False
 
     # Push & Publish the build
-    result = pbtools.run_with_output([dispath_exec_path, "build", "push", branch_id, dispatch_config, dispatch_stagedir, "-p"]).returncode
+    proc = pbtools.run_with_combined_output([dispath_exec_path, "build", "push", branch_id, dispatch_config, dispatch_stagedir, "-p"])
+    pblog.info(proc.stdout)
+    result = proc.returncode
     return result == 0
