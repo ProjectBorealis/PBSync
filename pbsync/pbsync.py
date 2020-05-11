@@ -81,8 +81,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         pblog.info("Fetching recent changes on the repository...")
         branches = {"promoted", "master", "trunk", pbgit.get_current_branch_name()}
         for branch in branches:
-            output = pbtools.get_combined_output(["git", "fetch", "origin", branch])
-            pblog.info(output)
+            pbtools.get_combined_output(["git", "fetch", "origin", branch])
 
         # Do some housekeeping for git configuration
         pbgit.setup_config()

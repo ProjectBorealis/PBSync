@@ -98,8 +98,7 @@ def check_credentials():
 
 def sync_file(file_path):
     sync_head = f"origin/{get_current_branch_name()}"
-    proc = pbtools.run_with_combined_output(["git", "restore", "-qWSs", sync_head, "--", file_path])
-    pblog.info(proc.stdout)
+    proc = subprocess.run(["git", "restore", "-qWSs", sync_head, "--", file_path], shell=True)
     return proc.returncode
 
 
