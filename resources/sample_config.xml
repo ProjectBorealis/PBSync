@@ -6,8 +6,8 @@
         <defaultgameinipath>Config/DefaultGame.ini</defaultgameinipath>
     </project>
     <git>
-        <version>2.26.0.vfs.1.1</version>
-        <lfsversion>git-lfs/2.10.0</lfsversion>
+        <version>2.26.2.vfs.1.2</version>
+        <lfsversion>git-lfs/2.11.0</lfsversion>
         <expectedbranch>CreativeBranchName</expectedbranch>
         <lfslockurl>lfs.https://github.com/GithubUser/samplerepository.git/info/lfs.locksverify</lfslockurl>
         <url>https://github.com/GithubUser/samplerepository.git</url>
