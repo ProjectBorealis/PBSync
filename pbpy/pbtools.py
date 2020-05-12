@@ -166,19 +166,20 @@ def error_state(msg=None, fatal_error=False):
 
 def disable_watchman():
     run_with_output(["git", "config", "--unset", "core.fsmonitor"])
-    if check_running_process(watchman_exec_name):
-        subprocess.run(f"taskkill /f /im {watchman_exec_name}", shell=True, capture_output=True)
+    p = get_running_process(watchman_exec_name)
+    if p is not None:
+        p.kill()
 
 
-def check_running_process(process_name):
+def get_running_process(process_name):
     try:
         for p in psutil.process_iter(['name']):
-            if process_name == p.info['name']:
-                return True
+            if process_name in p.info['name']:
+                return p
     except Exception:
         # An exception occurred while checking, assume the program is not running
         pass
-    return False
+    return None
 
 
 def wipe_workspace():

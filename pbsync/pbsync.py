@@ -70,7 +70,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         pblog.info("------------------")
 
         # Do not execute if Unreal Editor is running
-        if pbtools.check_running_process("UE4Editor.exe"):
+        if pbtools.get_running_process("UE4Editor") is not None:
             pbtools.error_state("Unreal Editor is currently running. Please close it before running PBSync. It may be listed only in Task Manager as a background process. As a last resort, you should log off and log in again.")
 
         pblog.info("Fetching recent changes on the repository...")
@@ -141,8 +141,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             if pbunreal.clean_old_engine_installations():
                 pblog.info("Old engine installations are successfully cleaned")
             else:
-                pblog.warning(
-                    "Something went wrong while cleaning old engine installations. You may want to clean them manually.")
+                pblog.warning("Something went wrong while cleaning old engine installations. You may want to clean them manually.")
 
         pblog.info("------------------")
 

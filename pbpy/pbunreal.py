@@ -193,8 +193,11 @@ def get_latest_available_engine_version(bucket_url):
 
 
 def check_ue4_file_association():
-    file_assoc_result = pbtools.get_combined_output(["assoc", uproject_ext])
-    return "Unreal.ProjectFile" in file_assoc_result
+    if os.name == 'nt':
+        file_assoc_result = pbtools.get_combined_output(["assoc", uproject_ext])
+        return "Unreal.ProjectFile" in file_assoc_result
+    else:
+        return True
 
 
 def check_ddc_folder_created():
@@ -297,11 +300,11 @@ def run_ue4versionator(bundle_name=None, download_symbols=False):
     command_set = ["ue4versionator.exe"]
 
     if not (bundle_name is None):
-        command_set.append("--bundle")
+        command_set.append("-bundle")
         command_set.append(str(bundle_name))
 
     if download_symbols:
-        command_set.append("--with-symbols")
+        command_set.append("-with-symbols")
 
     if pbconfig.get("is_ci"):
         # If we're CI, use another config file
