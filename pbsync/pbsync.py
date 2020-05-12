@@ -50,26 +50,21 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         if detected_git_version == pbconfig.get('supported_git_version'):
             pblog.info(f"Current Git version: {detected_git_version}")
         else:
-            pblog.error(
-                "Git is not updated to the supported version in your system")
+            pblog.error("Git is not updated to the supported version in your system")
             pblog.error(f"Supported Git Version: {pbconfig.get('supported_git_version')}")
             pblog.error(f"Current Git Version: {detected_git_version}")
-            pblog.error(
-                "Please install supported git version from https://github.com/microsoft/git/releases")
-            pblog.error(
-                "Visit https://github.com/ProjectBorealisTeam/pb/wiki/Prerequisites for installation instructions")
+            pblog.error("Please install the supported Git version from https://github.com/microsoft/git/releases")
+            pblog.error("Visit https://github.com/ProjectBorealisTeam/pb/wiki/Prerequisites for installation instructions")
             pbtools.error_state()
 
         detected_lfs_version = pbgit.get_lfs_version()
         if detected_lfs_version == pbconfig.get('supported_lfs_version'):
             pblog.info(f"Current Git LFS version: {detected_lfs_version}")
         else:
-            pblog.error(
-                "Git LFS is not updated to the supported version in your system")
+            pblog.error("Git LFS is not updated to the supported version in your system")
             pblog.error(f"Supported Git LFS Version: {pbconfig.get('supported_lfs_version')}")
             pblog.error(f"Current Git LFS Version: {detected_lfs_version}")
-            pblog.error(
-                "Please install latest Git LFS from https://git-lfs.github.com")
+            pblog.error("Please install the supported Git LFS version from https://git-lfs.github.com")
             pbtools.error_state()
 
         pblog.info("------------------")
@@ -79,9 +74,10 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             pbtools.error_state("Unreal Editor is currently running. Please close it before running PBSync. It may be listed only in Task Manager as a background process. As a last resort, you should log off and log in again.")
 
         pblog.info("Fetching recent changes on the repository...")
+        fetch_base = ["git", "fetch", "origin"]
         branches = {"promoted", "master", "trunk", pbgit.get_current_branch_name()}
-        for branch in branches:
-            pbtools.get_combined_output(["git", "fetch", "origin", branch])
+        fetch_base.extend(branches)
+        pbtools.get_combined_output(fetch_base)
 
         # Do some housekeeping for git configuration
         pbgit.setup_config()
@@ -129,8 +125,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
         engine_version = pbunreal.get_engine_version(False)
 
-        pblog.info(
-            "Trying to register current engine build if it exists. Otherwise, the build will be downloaded...")
+        pblog.info("Trying to register current engine build if it exists. Otherwise, the build will be downloaded...")
 
         symbols_needed = pbunreal.is_versionator_symbols_enabled()
         bundle_name = pbconfig.get("ue4v_default_bundle")
