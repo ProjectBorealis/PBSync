@@ -32,9 +32,9 @@ StringFileInfo(
     [StringStruct(u'CompanyName', u'Project Borealis'),
     StringStruct(u'FileDescription', u'Project Borealis Workspace Synchronization Tool'),
     StringStruct(u'FileVersion', u'0.2.11'),
-    StringStruct(u'InternalName', u'pbsync'),
+    StringStruct(u'InternalName', u'PBSync'),
     StringStruct(u'LegalCopyright', u'Copyright (c) Project Borealis'),
-    StringStruct(u'OriginalFilename', u'pbsync.exe'),
+    StringStruct(u'OriginalFilename', u'PBSync.exe'),
     StringStruct(u'ProductName', u'PBSync'),
     StringStruct(u'ProductVersion', u'0.2.11')])
   ]), 
