@@ -172,8 +172,9 @@ def disable_watchman():
 
 def check_running_process(process_name):
     try:
-        if process_name in (p.name() for p in psutil.process_iter()):
-            return True
+        for p in psutil.process_iter(['name']):
+            if process_name == p.info['name']:
+                return True
     except Exception:
         # An exception occurred while checking, assume the program is not running
         pass
