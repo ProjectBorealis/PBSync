@@ -14,6 +14,8 @@ PyInstaller is required for executable generation, and it should be built from s
 
 To generate a binary file from python source code, just run `build.bat` script. If generation was successful, the binary file will be put inside `dist` folder. To start using, generated executable should be put into root folder of the Unreal Engine project.
 
+You must use Python 3.7, as [Python 3.8 is not yet supported by PyInstaller](https://github.com/pyinstaller/pyinstaller/issues/4311).
+
 ## Available Commands
 
 List of available commands can be printed to console by passing `--help` to generated executable.

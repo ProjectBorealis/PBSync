@@ -1,2 +1,2 @@
 set PYTHONOPTIMIZE=2 
-pyinstaller --onefile --icon=resources/icon.ico pbsync/pbsync.py --version-file version.rc
+pyinstaller --noupx --onefile -n PBSync --clean --icon=resources/icon.ico --version-file version.rc -p pbpy:pbsync pbsync/pbsync.py

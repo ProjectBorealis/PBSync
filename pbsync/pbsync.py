@@ -256,7 +256,7 @@ def push_handler(file_name):
         sys.exit(1)
 
 
-def main():
+def main(argv):
     parser = argparse.ArgumentParser(description=f"Project Borealis Workspace Synchronization Tool | PBpy Library Version: {pbpy_version.ver} | PBSync Program Version: {pbsync_version.ver}")
 
     parser.add_argument("--sync", help="Main command for the PBSync, synchronizes the project with latest changes from the repo, and does some housekeeping",
@@ -283,8 +283,8 @@ def main():
     parser.add_argument(
         "--debugbranch", help="If provided, PBSync will use provided branch as expected branch")
 
-    if len(sys.argv) > 0:
-        args = parser.parse_args()
+    if len(argv) > 0:
+        args = parser.parse_args(argv)
     else:
         print("At least one valid argument should be passed!")
         sys.exit(1)
@@ -345,4 +345,4 @@ if __name__ == '__main__':
     if "Scripts" in os.getcwd():
         # Working directory fix for scripts calling PBSync from Scripts folder
         os.chdir("..")
-    main()
+    main(sys.argv[1:])
