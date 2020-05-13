@@ -171,7 +171,8 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
     elif sync_val == "binaries":
         project_version = pbunreal.get_project_version()
-        if pbhub.pull_binaries(project_version, True):
+        ret = pbhub.pull_binaries(project_version, True)
+        if ret == 0:
             pblog.info(f"Binaries for {project_version} pulled & extracted successfully")
         else:
             pblog.error(f"Failed to pull binaries for {project_version}")
