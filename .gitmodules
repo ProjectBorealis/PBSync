@@ -1,0 +1,4 @@
+[submodule "pyinstaller"]
+	path = pyinstaller
+	url = https://github.com/pyinstaller/pyinstaller.git
+	branch = develop
