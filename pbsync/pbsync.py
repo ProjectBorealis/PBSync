@@ -73,11 +73,14 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         if pbtools.get_running_process("UE4Editor") is not None:
             pbtools.error_state("Unreal Editor is currently running. Please close it before running PBSync. It may be listed only in Task Manager as a background process. As a last resort, you should log off and log in again.")
 
-        pblog.info("Fetching recent changes on the repository...")
-        fetch_base = ["git", "fetch", "origin"]
-        branches = {"promoted", "master", "trunk", pbgit.get_current_branch_name()}
-        fetch_base.extend(branches)
-        pbtools.get_combined_output(fetch_base)
+        current_branch = pbgit.get_current_branch_name()
+        # repo was already fetched in StartProject.bat
+        if current_branch != "promoted":
+            pblog.info("Fetching recent changes on the repository...")
+            fetch_base = ["git", "fetch", "origin"]
+            branches = {"promoted", "master", "trunk", current_branch}
+            fetch_base.extend(branches)
+            pbtools.get_combined_output(fetch_base)
 
         # Do some housekeeping for git configuration
         pbgit.setup_config()
