@@ -120,7 +120,7 @@ def push_package(version_number, file_name):
         return False
 
     try:
-        output = pbtools.get_combined_output([hub_executable_path, "release", "edit", version_number, "-ma", file_name])
+        output = pbtools.get_combined_output([hub_executable_path, "release", "edit", version_number, "-m", "", "-a", file_name])
         if "Attaching 1 asset..." in output:
             return True
         else:
