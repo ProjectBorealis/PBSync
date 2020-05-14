@@ -198,7 +198,6 @@ def clean_handler(clean_val):
     if clean_val == "workspace":
         if pbtools.wipe_workspace():
             pblog.info("Workspace wipe successful")
-            input("Press enter to quit...")
         else:
             pblog.error("Something went wrong while wiping the workspace")
             sys.exit(1)
