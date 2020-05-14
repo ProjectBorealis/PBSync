@@ -105,3 +105,6 @@ venv.bak/
 #vs code
 .vscode/*.json
 !.vscode/launch.json
+
+# pycharm
+.idea

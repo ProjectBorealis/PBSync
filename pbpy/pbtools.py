@@ -1,6 +1,6 @@
 import os
 import sys
-from os import path
+import time
 from hashlib import md5
 import psutil
 import subprocess
@@ -9,13 +9,28 @@ import stat
 import json
 
 # PBSync Imports
-from pbpy import pbunreal
 from pbpy import pbconfig
 from pbpy import pblog
 from pbpy import pbgit
 
 error_file = ".pbsync_err"
 watchman_exec_name = "watchman.exe"
+
+
+def run_with_output(cmd):
+    return subprocess.run(cmd, capture_output=True, text=True, shell=True)
+
+
+def run_with_combined_output(cmd):
+    return subprocess.run(cmd, text=True, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+
+def get_combined_output(cmd):
+    return run_with_combined_output(cmd).stdout
+
+
+def get_one_line_output(cmd):
+    return run_with_output(cmd).stdout.rstrip()
 
 
 def get_md5_hash(file_path):
@@ -35,21 +50,20 @@ def compare_md5_single(compared_file_path, md5_json_file_path):
     if current_hash is None:
         return False
 
-    dict_search_string = ".\\" + compared_file_path
+    dict_search_string = f".\\{compared_file_path}"
     hash_dict = get_dict_from_json(md5_json_file_path)
 
     if hash_dict is None or not (dict_search_string in hash_dict):
-        pblog.error("Key " + dict_search_string +
-                    " not found in " + md5_json_file_path)
+        pblog.error(f"Key {dict_search_string} not found in {md5_json_file_path}")
         return False
 
     if hash_dict[dict_search_string] == current_hash:
-        pblog.info("MD5 checksum successful for " + compared_file_path)
+        pblog.info(f"MD5 checksum successful for {compared_file_path}")
         return True
     else:
-        pblog.error("MD5 checksum failed for " + compared_file_path)
-        pblog.error("Expected MD5: " + hash_dict[compared_file_path])
-        pblog.error("Current MD5: " + str(current_hash))
+        pblog.error(f"MD5 checksum failed for {compared_file_path}")
+        pblog.error(f"Expected MD5: {hash_dict[compared_file_path]}")
+        pblog.error(f"Current MD5: {str(current_hash)}")
         return False
 
 
@@ -63,7 +77,7 @@ def compare_md5_all(md5_json_file_path, print_log=False, ignored_extension=".zip
         if not os.path.isfile(file_path):
             # If file doesn't exist, that means we fail the checksum
             if print_log:
-                pblog.error("MD5 checksum failed for " + file_path)
+                pblog.error(f"MD5 checksum failed for {file_path}")
                 pblog.error("File does not exist")
             return False
 
@@ -72,12 +86,12 @@ def compare_md5_all(md5_json_file_path, print_log=False, ignored_extension=".zip
         current_md5 = get_md5_hash(file_path)
         if hash_dict[file_path] == current_md5:
             if print_log:
-                pblog.info("MD5 checksum successful for " + file_path)
+                pblog.info(f"MD5 checksum successful for {file_path}")
         else:
             if print_log:
-                pblog.error("MD5 checksum failed for " + file_path)
-                pblog.error("Expected MD5: " + hash_dict[file_path])
-                pblog.error("Current MD5: " + str(current_md5))
+                pblog.error(f"MD5 checksum failed for {file_path}")
+                pblog.error(f"Expected MD5: {hash_dict[file_path]}")
+                pblog.error(f"Current MD5: {str(current_md5)}")
             is_success = False
     return is_success
 
@@ -92,9 +106,9 @@ def get_dict_from_json(json_file_path):
         return None
 
 
-def is_junction(path: str) -> bool:
+def is_junction(file_path: str) -> bool:
     try:
-        return bool(os.readlink(path))
+        return bool(os.readlink(file_path))
     except OSError:
         return False
 
@@ -103,10 +117,10 @@ def remove_junction(destination):
     if os.path.isdir(destination):
         try:
             shutil.rmtree(destination)
-        except:
+        except Exception:
             try:
                 os.remove(destination)
-            except:
+            except Exception:
                 return False
     return True
 
@@ -114,22 +128,22 @@ def remove_junction(destination):
 def check_error_state():
     # True: Error on last run, False: No errors
     try:
-        with open(error_file, 'r') as error_state_file:
-            error_state = error_state_file.readline(1)
-            if int(error_state) == 0:
+        with open(error_file) as error_state_file:
+            error_code = error_state_file.readline(1)
+            if int(error_code) == 0:
                 return False
-            elif int(error_state) == 1:
+            elif int(error_code) == 1:
                 return True
             else:
                 return False
-    except:
+    except Exception:
         return False
 
 
 def remove_file(file_path):
     try:
         os.remove(file_path)
-    except:
+    except Exception:
         os.chmod(file_path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)  # 0777
         try:
             os.remove(file_path)
@@ -140,94 +154,146 @@ def remove_file(file_path):
 
 
 def error_state(msg=None, fatal_error=False):
-    if msg != None:
+    if msg is not None:
         pblog.error(msg)
     if fatal_error:
-        # That was a fatal error, until issue is fixed, do not let user run PBSync
+        # This is a fatal error, so do not let user run PBSync until issue is fixed
         with open(error_file, 'w') as error_state_file:
             error_state_file.write("1")
-    out = input("Logs are saved in " +
-                pbconfig.get("log_file_path") + ". Press enter to quit...")
+    pblog.info(f"Logs are saved in {pbconfig.get('log_file_path')}.")
     sys.exit(1)
 
 
 def disable_watchman():
-    subprocess.call(["git", "config", "--unset", "core.fsmonitor"])
-    if check_running_process(watchman_exec_name):
-        os.system("taskkill /f /im " + watchman_exec_name)
+    run_with_output(["git", "config", "--unset", "core.fsmonitor"])
+    p = get_running_process(watchman_exec_name)
+    if p is not None:
+        p.kill()
 
 
-def check_running_process(process_name):
+def get_running_process(process_name):
     try:
-        if process_name in (p.name() for p in psutil.process_iter()):
-            return True
-    except:
-        # An exception occured while checking, assume the program is not running
+        for p in psutil.process_iter(['name']):
+            if process_name in p.info['name']:
+                return p
+    except Exception:
+        # An exception occurred while checking, assume the program is not running
         pass
-    return False
+    return None
 
 
 def wipe_workspace():
     current_branch = pbgit.get_current_branch_name()
-    response = input("This command will wipe your workspace and get latest changes from " +
-                     current_branch + ". Are you sure? [y/N]")
+    response = input(f"This command will wipe your workspace and get latest changes from {current_branch}. Are you sure? [y/N]")
 
     if response != "y" and response != "Y":
         return False
 
     pbgit.abort_all()
     disable_watchman()
-    subprocess.call(["git", "fetch", "origin", str(current_branch)])
-    result = subprocess.call(
-        ["git", "reset", "--hard", "origin/" + str(current_branch)])
-    subprocess.call(["git", "clean", "-fd"])
-    subprocess.call(["git", "pull"])
+    output = get_combined_output(["git", "fetch", "origin", current_branch])
+    pblog.info(output)
+    proc = run_with_combined_output(["git", "reset", "--hard", f"origin/{current_branch}"])
+    result = proc.returncode
+    pblog.info(proc.stdout)
+    output = get_combined_output(["git", "clean", "-fd"])
+    pblog.info(output)
+    output = get_combined_output(["git", "pull"])
+    pblog.info(output)
     return result == 0
 
 
-def resolve_conflicts_and_pull():
+def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
+    def should_attempt_auto_resolve():
+        return retry_count <= max_retries
+
+    if retry_count:
+        # wait a little bit if retrying (exponential)
+        time.sleep(0.25 * (1 << retry_count))
+
     # Disable watchman for now
     disable_watchman()
 
-    output = subprocess.getoutput(["git", "status"])
-    pblog.info(str(output))
+    out = get_combined_output(["git", "status"])
+    pblog.info(out)
 
-    pblog.info(
-        "Please wait while getting latest changes on the repository. It may take a while...")
+    pblog.info("Please wait while getting the latest changes from the repository. It may take a while...")
 
     # Make sure upstream is tracked correctly
     pbgit.set_tracking_information(pbgit.get_current_branch_name())
 
-    pblog.info("Trying to stash the local work...")
-    output = subprocess.getoutput(["git", "stash"])
-    pblog.info(str(output))
+    pblog.info("Trying to stash local work...")
+    proc = run_with_combined_output(["git", "stash"])
+    out = proc.stdout
+    stashed = proc.returncode == 0 and "Saved working directory and index state" in out
+    pblog.info(out)
+    pblog.info("Trying to rebase workspace with the latest changes from the repository...")
+    result = run_with_combined_output(["git", "pull", "--rebase", "--no-autostash"])
+    # TODO: autostash handling
+    # pblog.info("Trying to rebase workspace with latest changes on the repository...")
+    # result = run_with_combined_output(["git", "pull", "--rebase", "--autostash"])
+    code = result.returncode
+    out = result.stdout
+    pblog.info(out)
+    error = code != 0
 
-    pblog.info(
-        "Trying to rebase workspace with latest changes on the repository...")
-    output = subprocess.getoutput(["git", "pull", "--rebase"])
-    pblog.info(str(output))
+    out = out.lower()
 
-    lower_case_output = str(output).lower()
+    def pop_if_stashed():
+        if stashed:
+            pbgit.stash_pop()
 
-    if "failed to merge in the changes" in lower_case_output or "could not apply" in lower_case_output:
-        pblog.error("Aborting the rebase. Changes on one of your commits will be overridden by incoming changes. Request help on #tech-support to resolve conflicts, and  please do not run StartProject.bat until issue is solved.")
-        pbgit.abort_rebase()
-        pbgit.stash_pop()
-        error_state(True)
-    elif "fast-forwarded" in lower_case_output:
-        pbgit.stash_pop()
-        pblog.info("Success, rebased on latest changes without any conflict")
-    elif "is up to date" in lower_case_output:
-        pbgit.stash_pop()
-        pblog.info("Success, rebased on latest changes without any conflict")
-    elif "rewinding head" in lower_case_output and not("error" in lower_case_output or "conflict" in lower_case_output):
-        pbgit.stash_pop()
-        pblog.info("Success, rebased on latest changes without any conflict")
-    elif "successfully rebased and updated" in lower_case_output:
-        pbgit.stash_pop()
-        pblog.info("Success, rebased on latest changes without any conflict")
+    def handle_success():
+        pop_if_stashed()
+        pblog.info("Success, rebased on latest changes without any conflicts")
+
+    def handle_error(msg=None):
+        pbgit.abort_all()
+        pop_if_stashed()
+        error_state(msg, fatal_error=True)
+
+    if not error:
+        handle_success()
+    elif "fast-forwarded" in out:
+        handle_success()
+    elif "is up to date" in out:
+        handle_success()
+    elif "rewinding head" in out and not ("error" in out or "conflict" in out):
+        handle_success()
+    elif "successfully rebased and updated" in out:
+        handle_success()
+    elif "failed to merge in the changes" in out or "could not apply" in out:
+        handle_error("Aborting the rebase. Changes on one of your commits will be overridden by incoming changes. Please request help in #tech-support to resolve conflicts, and please do not run StartProject.bat until the issue is resolved.")
+    elif "unmerged files" in out or "merge_head exists" in out:
+        # we can't abort anything, but don't let stash linger to restore the original repo state
+        pop_if_stashed()
+        error_state("You are in the middle of a merge. Please request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.", fatal_error=True)
+    elif "unborn" in out:
+        if should_attempt_auto_resolve():
+            pblog.error("Unborn branch detected. Retrying...")
+            retry_count += 1
+            resolve_conflicts_and_pull(retry_count)
+        else:
+            handle_error("You are on an unborn branch. Please request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.")
+    elif "no remote" in out or "no such remote" in out or "refspecs without repo" in out:
+        if should_attempt_auto_resolve():
+            pblog.error("Remote repository not found. Retrying...")
+            retry_count += 1
+            resolve_conflicts_and_pull(retry_count, 2)
+        else:
+            handle_error("The remote repository could not be found. Please request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.")
+    elif "cannot open" in out:
+        if should_attempt_auto_resolve():
+            pblog.error("Git file info could not be read. Retrying...")
+            retry_count += 1
+            resolve_conflicts_and_pull(retry_count, 3)
+        else:
+            handle_error("Git file info could not be read. Please request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.")
     else:
-        pblog.error("Aborting the rebase, an unknown error occured. Request help on #tech-support to resolve conflicts, and please do not run StartProject.bat until issue is solved.")
-        pbgit.abort_rebase()
-        pbgit.stash_pop()
-        error_state(True)
+        # We have no idea what the state of the repo is. Do nothing except bail.
+        error_state("Aborting the repo update because of an unknown error. Request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.", fatal_error=True)
+
+    if os.name == "nt":
+        subprocess.Popen("git lfs prune -c ; git lfs dedup", shell=True, creationflags=subprocess.DETACHED_PROCESS)
+    elif os.name == "posix":
+        subprocess.Popen("nohup git lfs prune -c || nohup git lfs dedup", shell=True)
