@@ -160,7 +160,6 @@ def error_state(msg=None, fatal_error=False):
         # This is a fatal error, so do not let user run PBSync until issue is fixed
         with open(error_file, 'w') as error_state_file:
             error_state_file.write("1")
-    pblog.info(f"Logs are saved in {pbconfig.get('log_file_path')}. Press enter to quit...")
     sys.exit(1)
 
 
