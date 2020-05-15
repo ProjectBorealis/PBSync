@@ -4,7 +4,7 @@ import subprocess
 from pbpy import pblog, pbtools
 
 default_drm_exec_name = "ProjectBorealis.exe"
-exec_max_allowed_size = 104857600  # 100mb
+exec_max_allowed_size = 104857600 # 100mb
 
 # DISPATCH_APP_ID: App ID. env. variable for dispatch application
 # DISPATCH_INTERNAL_BID: Branch ID env. variable for internal builds
@@ -22,6 +22,8 @@ def push_build(branch_type, dispath_exec_path, dispatch_config, dispatch_stagedi
         branch_id_env = 'DISPATCH_INTERNAL_BID'
     elif branch_type == "playtester":
         branch_id_env = 'DISPATCH_PLAYTESTER_BID'
+        pblog.error("Playtester builds are not allowed at the moment.")
+        return False
     else:
         pblog.error("Unknown Dispatch branch type specified.")
         return False
@@ -48,11 +50,12 @@ def push_build(branch_type, dispath_exec_path, dispatch_config, dispatch_stagedi
         executable_path = os.path.join(executable_path, default_drm_exec_name)
 
     # Wrap executable with DRM
-    proc = pbtools.run_with_combined_output([dispath_exec_path, "build", "drm-wrap", app_id, executable_path])
-    pblog.info(proc.stdout)
-    result = proc.returncode
-    if result != 0:
-        return False
+    if False:
+        proc = pbtools.run_with_combined_output([dispath_exec_path, "build", "drm-wrap", app_id, executable_path])
+        pblog.info(proc.stdout)
+        result = proc.returncode
+        if result != 0:
+            return False
 
     # Push & Publish the build
     proc = pbtools.run_with_combined_output([dispath_exec_path, "build", "push", branch_id, dispatch_config, dispatch_stagedir, "-p"])
