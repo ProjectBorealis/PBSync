@@ -43,11 +43,12 @@ def pull_binaries(version_number: str, pass_checksum=False):
             return -1
 
     if not os.path.isfile(hub_config_path):
+        pblog.info("You will now be asked to log in to your GitHub account. Please note that for security reasons, your password will not be shown as you type it.")
         # If user didn't login with hub yet, do it now for once
         output = pbtools.run([hub_executable_path, "release", "-L", "1"])
         if not os.path.isfile(hub_config_path):
             pblog.error("Failed to login into hub with git credentials. Please check if your provided credentials are valid.")
-            return -1
+            return pull_binaries(version_number, pass_checksum)
         else:
             pblog.info("Login to hub API was successful")
 
