@@ -111,6 +111,10 @@ def is_junction(file_path: str) -> bool:
         return bool(os.readlink(file_path))
     except OSError:
         return False
+    except ValueError:
+        return False
+    except NotImplementedError:
+        return False
 
 
 def remove_junction(destination):
