@@ -16,8 +16,10 @@ from pbpy import pbgit
 error_file = ".pbsync_err"
 watchman_exec_name = "watchman.exe"
 
+
 def run(cmd):
     return subprocess.run(cmd, shell=True)
+
 
 def run_with_output(cmd):
     return subprocess.run(cmd, capture_output=True, text=True, shell=True)
