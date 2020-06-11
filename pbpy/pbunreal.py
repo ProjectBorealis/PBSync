@@ -245,7 +245,7 @@ def clean_old_engine_installations():
                 if folder != current_version and p.match(folder) is not None and os.path.isdir(full_path):
                     print(f"Removing old engine installation: {str(full_path)}...")
                     try:
-                        rmtree(full_path)
+                        rmtree(full_path, ignore_errors=True)
                         print("Removal was successful!")
                     except Exception as e:
                         pblog.exception(str(e))

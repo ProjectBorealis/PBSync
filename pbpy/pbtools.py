@@ -220,30 +220,31 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
     # Disable watchman for now
     disable_watchman()
 
-    out = get_combined_output(["git", "status"])
+    out = get_combined_output(["git", "status", "--ahead-behind"])
     pblog.info(out)
 
-    pblog.info("Please wait while getting the latest changes from the repository. It may take a while...")
-
-    # Make sure upstream is tracked correctly
-    pbgit.set_tracking_information(pbgit.get_current_branch_name())
-
-    pblog.info("Trying to stash local work...")
-    proc = run_with_combined_output(["git", "stash"])
-    out = proc.stdout
-    stashed = proc.returncode == 0 and "Saved working directory and index state" in out
-    pblog.info(out)
-    pblog.info("Trying to rebase workspace with the latest changes from the repository...")
-    result = run_with_combined_output(["git", "pull", "--rebase", "--no-autostash"])
-    # TODO: autostash handling
-    # pblog.info("Trying to rebase workspace with latest changes on the repository...")
-    # result = run_with_combined_output(["git", "pull", "--rebase", "--autostash"])
-    code = result.returncode
-    out = result.stdout
-    pblog.info(out)
-    error = code != 0
-
-    out = out.lower()
+    if "behind" in out:
+        pblog.info("Please wait while getting the latest changes from the repository. It may take a while...")
+        # Make sure upstream is tracked correctly
+        pbgit.set_tracking_information(pbgit.get_current_branch_name())
+        pblog.info("Trying to stash local work...")
+        proc = run_with_combined_output(["git", "stash"])
+        out = proc.stdout
+        stashed = proc.returncode == 0 and "Saved working directory and index state" in out
+        pblog.info(out)
+        pblog.info("Trying to rebase workspace with the latest changes from the repository...")
+        result = run_with_combined_output(["git", "pull", "--rebase", "--no-autostash"])
+        # TODO: autostash handling
+        # pblog.info("Trying to rebase workspace with latest changes on the repository...")
+        # result = run_with_combined_output(["git", "pull", "--rebase", "--autostash"])
+        code = result.returncode
+        out = result.stdout
+        pblog.info(out)
+        out = out.lower()
+        error = code != 0
+    else:
+        stashed = False
+        error = False
 
     def pop_if_stashed():
         if stashed:
@@ -251,7 +252,7 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
 
     def handle_success():
         pop_if_stashed()
-        pblog.info("Success, rebased on latest changes without any conflicts")
+        pblog.success("Success! You are now on the latest changes without any conflicts.")
 
     def handle_error(msg=None):
         pbgit.abort_all()
@@ -262,7 +263,7 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         handle_success()
     elif "fast-forwarded" in out:
         handle_success()
-    elif "is up to date" in out:
+    elif "up to date" in out:
         handle_success()
     elif "rewinding head" in out and not ("error" in out or "conflict" in out):
         handle_success()
@@ -279,6 +280,7 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
             pblog.error("Unborn branch detected. Retrying...")
             retry_count += 1
             resolve_conflicts_and_pull(retry_count)
+            return
         else:
             handle_error("You are on an unborn branch. Please request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.")
     elif "no remote" in out or "no such remote" in out or "refspecs without repo" in out:
@@ -286,6 +288,7 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
             pblog.error("Remote repository not found. Retrying...")
             retry_count += 1
             resolve_conflicts_and_pull(retry_count, 2)
+            return
         else:
             handle_error("The remote repository could not be found. Please request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.")
     elif "cannot open" in out:
@@ -293,13 +296,18 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
             pblog.error("Git file info could not be read. Retrying...")
             retry_count += 1
             resolve_conflicts_and_pull(retry_count, 3)
+            return
         else:
             handle_error("Git file info could not be read. Please request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.")
     else:
         # We have no idea what the state of the repo is. Do nothing except bail.
         error_state("Aborting the repo update because of an unknown error. Request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.", fatal_error=True)
 
-    if os.name == "nt":
-        subprocess.Popen("git lfs prune -c ; git lfs dedup", shell=True, creationflags=subprocess.DETACHED_PROCESS)
-    elif os.name == "posix":
-        subprocess.Popen("nohup git lfs prune -c || nohup git lfs dedup", shell=True)
+    # only prune if we don't have a stash
+    out = get_combined_output(["git", "stash", "list"])
+
+    if len(out) < 3:
+        if os.name == "nt":
+            subprocess.Popen("git lfs prune -c ; git lfs dedup", shell=True, creationflags=subprocess.DETACHED_PROCESS)
+        elif os.name == "posix":
+            subprocess.Popen("nohup git lfs prune -c || nohup git lfs dedup", shell=True)

@@ -2,11 +2,13 @@ import os
 import shutil
 import subprocess
 
+from functools import lru_cache
 from pbpy import pblog
 from pbpy import pbconfig
 from pbpy import pbtools
 
 
+@lru_cache()
 def get_current_branch_name():
     return pbtools.get_one_line_output(["git", "branch", "--show-current"])
 
