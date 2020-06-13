@@ -254,6 +254,8 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
 
     def handle_success():
         pop_if_stashed()
+        # ensure we pull LFS
+        run(["git", "lfs", "pull"])
         pblog.success("Success! You are now on the latest changes without any conflicts.")
 
     def handle_error(msg=None):
