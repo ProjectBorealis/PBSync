@@ -58,7 +58,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             pblog.error("Please install the supported Git version from https://github.com/microsoft/git/releases")
             pblog.error("Visit https://github.com/ProjectBorealisTeam/pb/wiki/Prerequisites for installation instructions")
             if os.name == "nt":
-                webbrowser.open(f"https://github.com/microsoft/git/releases/download/v{pbconfig.get('supported_git_version')}/Git-f{pbconfig.get('supported_git_version')}-64-bit.exe")
+                webbrowser.open(f"https://github.com/microsoft/git/releases/download/v{pbconfig.get('supported_git_version')}/Git-{pbconfig.get('supported_git_version')}-64-bit.exe")
             needs_git_update = True
 
         detected_lfs_version = pbgit.get_lfs_version()
@@ -70,7 +70,8 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             pblog.error(f"Current Git LFS Version: {detected_lfs_version}")
             pblog.error("Please install the supported Git LFS version from https://git-lfs.github.com")
             if os.name == "nt":
-                webbrowser.open(f"https://github.com/git-lfs/git-lfs/releases/download/v{pbconfig.get('supported_lfs_version')}/git-lfs-windows-v{pbconfig.get('supported_lfs_version')}.exe")
+                supported_lfs_version = pbconfig.get('supported_lfs_version').split("/")[1]
+                webbrowser.open(f"https://github.com/git-lfs/git-lfs/releases/download/v{supported_lfs_version}/git-lfs-windows-v{supported_lfs_version}.exe")
             needs_git_update = True
 
         if needs_git_update:
