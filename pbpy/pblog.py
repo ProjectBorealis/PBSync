@@ -26,7 +26,7 @@ def setup_logger(log_file_path):
     log_formatter = logging.Formatter(format_string, datefmt=date_format)
 
     global root_log
-    root_log = logging.getLogger()
+    root_log = logging.getLogger("pbsync")
 
     # File handler
     file_handler = logging.FileHandler(log_file_path)
