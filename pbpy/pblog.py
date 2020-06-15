@@ -9,6 +9,8 @@ from pbpy import pbtools
 
 max_log_size = 5 * 1000 * 1000
 
+root_log = None
+
 
 def setup_logger(log_file_path):
     # If log file is big enough, remove it
@@ -23,6 +25,7 @@ def setup_logger(log_file_path):
     date_format = '%d-%b-%y %H:%M:%S'
     log_formatter = logging.Formatter(format_string, datefmt=date_format)
 
+    global root_log
     root_log = logging.getLogger()
 
     # File handler
@@ -48,28 +51,42 @@ def setup_logger(log_file_path):
 
 
 def critical(msg):
-    logging.critical(msg)
+    if root_log is None:
+        logging.critical(msg)
+    root_log.critical(msg)
 
 
 def error(msg):
-    logging.error(msg)
+    if root_log is None:
+        logging.error(msg)
+    root_log.error(msg)
 
 
 def exception(msg):
-    logging.exception(msg)
+    if root_log is None:
+        logging.exception(msg)
+    root_log.exception(msg)
 
 
 def success(msg):
-    logging.success(msg)
+    if root_log is None:
+        logging.info(msg)
+    root_log.success(msg)
 
 
 def warning(msg):
-    logging.warning(msg)
+    if root_log is None:
+        logging.warning(msg)
+    root_log.warning(msg)
 
 
 def info(msg):
-    logging.info(msg)
+    if root_log is None:
+        logging.info(msg)
+    root_log.info(msg)
 
 
 def debug(msg):
-    logging.debug(msg)
+    if root_log is None:
+        logging.debug(msg)
+    root_log.debug(msg)
