@@ -53,40 +53,47 @@ def setup_logger(log_file_path):
 def critical(msg):
     if root_log is None:
         logging.critical(msg)
+        return
     root_log.critical(msg)
 
 
 def error(msg):
     if root_log is None:
         logging.error(msg)
+        return
     root_log.error(msg)
 
 
 def exception(msg):
     if root_log is None:
         logging.exception(msg)
+        return
     root_log.exception(msg)
 
 
 def success(msg):
     if root_log is None:
         logging.info(msg)
+        return
     root_log.success(msg)
 
 
 def warning(msg):
     if root_log is None:
         logging.warning(msg)
+        return
     root_log.warning(msg)
 
 
 def info(msg):
     if root_log is None:
         logging.info(msg)
+        return
     root_log.info(msg)
 
 
 def debug(msg):
     if root_log is None:
         logging.debug(msg)
+        return
     root_log.debug(msg)
