@@ -406,6 +406,7 @@ def main(argv):
     else:
         pblog.error("At least one valid argument should be passed!")
         pblog.error("Did you mean to launch StartProject.bat?")
+        pbtools.error_state()
 
 
 if __name__ == '__main__':
