@@ -354,7 +354,7 @@ def main(argv):
     else:
         pblog.error("At least one valid argument should be passed!")
         pblog.error("Did you mean to launch StartProject.bat?")
-        input("Press any key to continue...")
+        input("Press enter to continue...")
         sys.exit(1)
 
     if not (args.debugpath is None):
@@ -408,7 +408,7 @@ def main(argv):
     else:
         pblog.error("At least one valid argument should be passed!")
         pblog.error("Did you mean to launch StartProject.bat?")
-        input("Press any key to continue...")
+        input("Press enter to continue...")
         sys.exit(1)
 
 
