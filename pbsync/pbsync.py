@@ -101,9 +101,6 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                         ret = pbuac.runAsAdmin(delete_cmdline)
                     except OSError:
                         pblog.error("User declined permission. Automatic delete failed.")
-                        bundled_git_lfs = True
-                        for path in delete_paths:
-                            pblog.error(f"Git LFS is bundled with Git, overriding your installed version. Please remove {path}.")
 
                 for delete_path in delete_paths:
                     path = pathlib.Path(delete_path)
