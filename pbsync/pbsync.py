@@ -1,6 +1,7 @@
 import subprocess
 import os.path
 import os
+import pathlib
 import sys
 import argparse
 import webbrowser
@@ -13,6 +14,7 @@ from pbpy import pbgit
 from pbpy import pbconfig
 from pbpy import pbpy_version
 from pbpy import pbdispatch
+from pbpy import pbuac
 
 import pbsync_version
 
@@ -60,6 +62,57 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             if os.name == "nt":
                 webbrowser.open(f"https://github.com/microsoft/git/releases/download/v{pbconfig.get('supported_git_version')}/Git-{pbconfig.get('supported_git_version')}-64-bit.exe")
             needs_git_update = True
+
+
+        if os.name == "nt":
+            # find Git/cmd/git.exe
+            git_paths = [path for path in pbtools.whereis("git") if "cmd" in path.parts]
+
+            if len(git_paths) > 0:
+                bundled_git_lfs = False
+
+                is_admin = pbuac.isUserAdmin()
+
+                delete_paths = []
+
+                for git_path in git_paths:
+                    # find Git from Git/cmd/git.exe
+                    git_root = git_path.parents[1]
+                    possible_lfs_paths = ["cmd/git-lfs.exe", "mingw64/bin/git-lfs.exe", "mingw64/libexec/git-core/git-lfs.exe"]
+                    for possible_lfs_path in possible_lfs_paths:
+                        path = git_root / possible_lfs_path
+                        if path.exists():
+                            try:
+                                if is_admin:
+                                    path.unlink()
+                                else:
+                                    delete_paths.append(str(path))
+                            except FileNotFoundError:
+                                pass
+                            except OSError:
+                                pblog.error(f"Git LFS is bundled with Git, overriding your installed version. Please remove {path}.")
+                                bundled_git_lfs = True
+
+                if not is_admin and len(delete_paths) > 0:
+                    pblog.info("Requesting permission to delete bundled Git LFS which is overriding your installed version...")
+                    quoted_paths = [f'"{path}"' for path in delete_paths]
+                    delete_cmdline = ["cmd.exe",  "/c", "DEL", "/q", "/f"] + quoted_paths
+                    try:
+                        ret = pbuac.runAsAdmin(delete_cmdline)
+                    except OSError:
+                        pblog.error("User declined permission. Automatic delete failed.")
+                        bundled_git_lfs = True
+                        for path in delete_paths:
+                            pblog.error(f"Git LFS is bundled with Git, overriding your installed version. Please remove {path}.")
+
+                for delete_path in delete_paths:
+                    path = pathlib.Path(delete_path)
+                    if path.exists():
+                        bundled_git_lfs = True
+                        pblog.error(f"Git LFS is bundled with Git, overriding your installed version. Please remove {path}.")
+
+                if bundled_git_lfs:
+                    pbtools.error_state()
 
         detected_lfs_version = pbgit.get_lfs_version()
         if detected_lfs_version == pbconfig.get('supported_lfs_version'):
@@ -352,6 +405,7 @@ def main(argv):
         push_handler(args.push)
     else:
         pblog.error("At least one valid argument should be passed!")
+        pblog.error("Did you mean to launch StartProject.bat?")
 
 
 if __name__ == '__main__':

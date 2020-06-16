@@ -1,12 +1,15 @@
 import os
 import sys
 import time
-from hashlib import md5
 import psutil
 import subprocess
 import shutil
 import stat
 import json
+
+from hashlib import md5
+from subprocess import CalledProcessError
+from pathlib import Path
 
 # PBSync Imports
 from pbpy import pbconfig
@@ -35,6 +38,25 @@ def get_combined_output(cmd):
 
 def get_one_line_output(cmd):
     return run_with_output(cmd).stdout.rstrip()
+
+
+def whereis(app):
+    result = None
+
+    command = 'where'
+    if os.name != "nt":
+        command = 'which'
+
+    try:
+        result = subprocess.run(f"{command} {app}", text=True, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout
+    except CalledProcessError:
+        pass
+
+    if result is None:
+        return []
+
+    result = result.splitlines()
+    return [Path(line) for line in result if len(line)]
 
 
 def get_md5_hash(file_path):

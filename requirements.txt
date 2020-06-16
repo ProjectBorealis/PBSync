@@ -2,3 +2,4 @@ psutil
 coloredlogs
 colorama
 verboselogs
+pywin32
