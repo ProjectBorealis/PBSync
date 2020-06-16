@@ -352,7 +352,9 @@ def main(argv):
     if len(argv) > 0:
         args = parser.parse_args(argv)
     else:
-        print("At least one valid argument should be passed!")
+        pblog.error("At least one valid argument should be passed!")
+        pblog.error("Did you mean to launch StartProject.bat?")
+        input("Press any key to continue...")
         sys.exit(1)
 
     if not (args.debugpath is None):
@@ -407,7 +409,7 @@ def main(argv):
         pblog.error("At least one valid argument should be passed!")
         pblog.error("Did you mean to launch StartProject.bat?")
         input("Press any key to continue...")
-        pbtools.error_state()
+        sys.exit(1)
 
 
 if __name__ == '__main__':
