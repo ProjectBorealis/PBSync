@@ -247,7 +247,7 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
     out = get_combined_output(["git", "status", "--ahead-behind"])
     pblog.info(out)
 
-    if "behind" in out:
+    if "ahead" not in out:
         pblog.info("Please wait while getting the latest changes from the repository. It may take a while...")
         # Make sure upstream is tracked correctly
         pbgit.set_tracking_information(pbgit.get_current_branch_name())
