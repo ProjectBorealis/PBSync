@@ -2,10 +2,12 @@ import subprocess
 import re
 from shutil import move
 from shutil import rmtree
+from shutil import disk_usage
 from os import remove
 import os
 import json
 import glob
+import pathlib
 
 from pbpy import pbconfig
 from pbpy import pbtools
@@ -297,6 +299,29 @@ def is_versionator_symbols_enabled():
 
 
 def run_ue4versionator(bundle_name=None, download_symbols=False):
+    required_free_gb = 7
+    
+    if download_symbols:
+        required_free_gb += 23
+
+    required_free_space = required_free_gb * 1000 * 1000 * 1000
+
+    root = get_engine_install_root()
+    total, used, free = disk_usage(root)
+
+    if free < required_free_space:
+        pblog.warning("Not enough free space. Cleaning old engine installations before download.")
+        clean_old_engine_installations()
+        total, used, free = disk_usage(root)
+        if free < required_free_space:
+            pblog.error(f"You do not have enough available space to install the engine. Please free up space on f{pathlib.Path(root).anchor}")
+            available_gb = int(free / (1000 * 1000 * 1000))
+            pblog.error(f"Available space: {available_gb}GB")
+            pblog.error(f"Total install size: {required_free_gb}GB")
+            pblog.error(f"Required space: {int((free - required_free_space) / (1000 * 1000 * 1000))}")
+            pbtools.error_state()
+        
+
     command_set = ["ue4versionator.exe"]
 
     if not (bundle_name is None):
