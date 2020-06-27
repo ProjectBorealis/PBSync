@@ -162,7 +162,8 @@ def get_engine_version_with_prefix():
 
 def get_engine_install_root():
     try:
-        with open(pbconfig.get('ue4v_user_config')) as config_file:
+        config_key = 'ue4v_ci_config' if pbconfig.get("is_ci") else 'ue4v_user_config'
+        with open(pbconfig.get(config_key)) as config_file:
             for ln in config_file:
                 if "download_dir" in ln:
                     split_str = ln.split("=")
@@ -307,20 +308,20 @@ def run_ue4versionator(bundle_name=None, download_symbols=False):
     required_free_space = required_free_gb * 1000 * 1000 * 1000
 
     root = get_engine_install_root()
-    total, used, free = disk_usage(root)
-
-    if free < required_free_space:
-        pblog.warning("Not enough free space. Cleaning old engine installations before download.")
-        clean_old_engine_installations()
+    if root is not None and not pbconfig.get("is_ci"):
         total, used, free = disk_usage(root)
+
         if free < required_free_space:
-            pblog.error(f"You do not have enough available space to install the engine. Please free up space on f{pathlib.Path(root).anchor}")
-            available_gb = int(free / (1000 * 1000 * 1000))
-            pblog.error(f"Available space: {available_gb}GB")
-            pblog.error(f"Total install size: {required_free_gb}GB")
-            pblog.error(f"Required space: {int((free - required_free_space) / (1000 * 1000 * 1000))}")
-            pbtools.error_state()
-        
+            pblog.warning("Not enough free space. Cleaning old engine installations before download.")
+            clean_old_engine_installations()
+            total, used, free = disk_usage(root)
+            if free < required_free_space:
+                pblog.error(f"You do not have enough available space to install the engine. Please free up space on f{pathlib.Path(root).anchor}")
+                available_gb = int(free / (1000 * 1000 * 1000))
+                pblog.error(f"Available space: {available_gb}GB")
+                pblog.error(f"Total install size: {required_free_gb}GB")
+                pblog.error(f"Required space: {int((free - required_free_space) / (1000 * 1000 * 1000))}")
+                pbtools.error_state()
 
     command_set = ["ue4versionator.exe"]
 
