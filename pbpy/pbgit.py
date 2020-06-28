@@ -111,6 +111,7 @@ def abort_all():
     pbtools.run_with_output(["git", "am", "--abort"])
     # Just in case
     shutil.rmtree(os.path.join(os.getcwd(), ".git", "rebase-apply"), ignore_errors=True)
+    shutil.rmtree(os.path.join(os.getcwd(), ".git", "rebase-merge"), ignore_errors=True)
 
 
 def abort_rebase():
