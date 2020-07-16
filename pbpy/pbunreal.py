@@ -350,7 +350,7 @@ def run_ue4versionator(bundle_name=None, download_symbols=False):
     pattern = f"{bundle_name}*-{version}.7z" if download_symbols else f"{bundle_name}-{version}.7z"
     gcs_bucket = get_versionator_gsuri()
     gcs_uri = f"{gcs_bucket}{pattern}"
-    dst = get_engine_install_root()
+    dst = f"file://{get_engine_install_root()}"
     command_runner.RunNamedCommand('cp', args=["-n", gcs_uri, dst], collect_analytics=False, parallel_operations=True)
 
     # Extract and register with ue4versionator
