@@ -3,3 +3,5 @@ coloredlogs
 colorama
 verboselogs
 pywin32
+gsutil
+crcmod

@@ -218,8 +218,10 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
     elif sync_val == "engineversion":
         if repository_val is None:
-            pblog.error("--repository <URL> argument should be provided with --sync engine command")
-            sys.exit(1)
+            repository_val = pbunreal.get_versionator_gsuri()
+            if repository_val is None:
+                 pblog.error("--repository <URL> argument should be provided with --sync engine command")
+                 sys.exit(1)
         engine_version = pbunreal.get_latest_available_engine_version(str(repository_val))
         if engine_version is None:
             pblog.error("Error while trying to fetch latest engine version")
@@ -247,7 +249,8 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             requested_bundle_name = pbconfig.get("ue4v_default_bundle")
 
         engine_version = pbunreal.get_engine_version(False)
-        if pbunreal.run_ue4versionator(requested_bundle_name) != 0:
+        symbols_needed = pbunreal.is_versionator_symbols_enabled()
+        if pbunreal.run_ue4versionator(requested_bundle_name, symbols_needed) != 0:
             pblog.error(f"Something went wrong while registering engine build {requested_bundle_name}-{engine_version}")
             sys.exit(1)
         else:
@@ -272,8 +275,10 @@ def clean_handler(clean_val):
 def printversion_handler(print_val, repository_val=None):
     if print_val == "latest-engine":
         if repository_val is None:
-            pblog.error("--repository <URL> argument should be provided with --print latest-engine command")
-            sys.exit(1)
+            repository_val = pbunreal.get_versionator_gsuri()
+            if repository_val is None:
+                pblog.error("--repository <URL> argument should be provided with --print latest-engine command")
+                sys.exit(1)
         engine_version = pbunreal.get_latest_available_engine_version(str(repository_val))
         if engine_version is None:
             sys.exit(1)
@@ -324,10 +329,10 @@ def main(argv):
 
     parser.add_argument("--sync", help="Main command for the PBSync, synchronizes the project with latest changes from the repo, and does some housekeeping",
                         choices=["all", "binaries", "engineversion", "engine", "force", "ddc"])
-    parser.add_argument("--printversion", help="Prints requested version information into console. latest-engine command needs --repository parameter",
+    parser.add_argument("--printversion", help="Prints requested version information into console.",
                         choices=["current-engine", "latest-engine", "project"])
     parser.add_argument(
-        "--repository", help="Required gcloud repository url for --printversion latest-engine and --sync engine commands")
+        "--repository", help="gcloud repository url for --printversion latest-engine and --sync engine commands")
     parser.add_argument("--autoversion", help="Automatic version update for project version",
                         choices=["hotfix", "stable", "public"])
     parser.add_argument("--clean", help="""Do cleanup according to specified argument. If engine is provided, old engine installations will be cleared

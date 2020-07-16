@@ -121,7 +121,6 @@ def abort_rebase():
 
 def setup_config():
     pbtools.run_with_output(["git", "config", "include.path", "../.gitconfig"])
-    pbtools.run_with_output(["git", "config", pbconfig.get('lfs_lock_url'), "true"])
 
     # Temporary code to clear previous git config variables:
     clear_config_list = [

@@ -2,12 +2,6 @@
     "version": "0.2.0",
     "inputs": [
         {
-            "id": "gcloudUrl",
-            "description": "Please enter google cloud repository URL",
-            "default": "",
-            "type": "promptString"
-        },
-        {
             "id": "debugPath",
             "description": "Please enter working directory for PBSync",
             "default": "C:\\pb",
@@ -91,6 +85,7 @@
             "name": "Pull Engine Build",
             "args": ["--sync", "engine", "--bundle", "${input:bundleSelection}", "--debugpath", "${input:debugPath}"],
             "type": "python",
+            "justMyCode": false,
             "request": "launch",
             "program": "pbsync/pbsync.py",
             "console": "integratedTerminal"
@@ -105,7 +100,7 @@
         },
         {
             "name": "Update Engine Version to Latest",
-            "args": ["--sync", "engineversion", "--repository", "${input:gcloudUrl}", "--debugpath", "${input:debugPath}"],
+            "args": ["--sync", "engineversion", "--debugpath", "${input:debugPath}"],
             "type": "python",
             "request": "launch",
             "program": "pbsync/pbsync.py",
@@ -113,7 +108,7 @@
         },
         {
             "name": "Print Latest Engine Version",
-            "args": ["--printversion", "latest-engine", "--repository", "${input:gcloudUrl}", "--debugpath", "${input:debugPath}"],
+            "args": ["--printversion", "latest-engine", "--debugpath", "${input:debugPath}"],
             "type": "python",
             "request": "launch",
             "program": "pbsync/pbsync.py",

@@ -4,10 +4,14 @@ from shutil import move
 from shutil import rmtree
 from shutil import disk_usage
 from os import remove
+from functools import lru_cache
+from urllib.parse import urlparse
+from gslib.command_runner import CommandRunner
 import os
 import json
 import glob
 import pathlib
+import gslib
 
 from pbpy import pbconfig
 from pbpy import pbtools
@@ -23,25 +27,6 @@ ddc_folder_name = "DerivedDataCache"
 ue4_editor_relative_path = "Engine/Binaries/Win64/UE4Editor.exe"
 engine_installation_folder_regex = "[0-9].[0-9]{2}-PB-[0-9]{8}"
 engine_version_prefix = "PB"
-
-
-def get_engine_prefix():
-    return f"{pbconfig.get('engine_base_version')}-{engine_version_prefix}"
-
-
-def get_engine_date_suffix():
-    try:
-        with open(pbconfig.get('uproject_name')) as uproject_file:
-            data = json.load(uproject_file)
-            engine_association = data[uproject_version_key]
-            build_version = f"b{engine_association[-8:]}"
-            # We're using local build version in .uproject file
-            if "}" in build_version:
-                return None
-            return f"b{engine_association[-8:]}"
-    except Exception as e:
-        pblog.exception(str(e))
-        return None
 
 
 def get_plugin_version(plugin_name):
@@ -133,6 +118,12 @@ def project_version_increase(increase_type):
     return set_project_version(new_version)
 
 
+@lru_cache()
+def get_engine_prefix():
+    return f"{pbconfig.get('engine_base_version')}-{engine_version_prefix}"
+
+
+@lru_cache()
 def get_engine_version(only_date=True):
     try:
         with open(pbconfig.get('uproject_name')) as uproject_file:
@@ -153,6 +144,7 @@ def get_engine_version(only_date=True):
         return None
 
 
+@lru_cache()
 def get_engine_version_with_prefix():
     engine_ver_number = get_engine_version()
     if engine_ver_number is not None:
@@ -160,6 +152,7 @@ def get_engine_version_with_prefix():
     return None
 
 
+@lru_cache()
 def get_engine_install_root():
     try:
         config_key = 'ue4v_ci_config' if pbconfig.get("is_ci") else 'ue4v_user_config'
@@ -258,6 +251,24 @@ def clean_old_engine_installations():
     return False
 
 
+@lru_cache()
+def get_versionator_gsuri():
+    try:
+        with open('.ue4versionator') as config_file:
+            for ln in config_file:
+                if "baseurl" in ln:
+                    ln = ln.rstrip()
+                    config_map = ln.split(" = ")
+                    if len(config_map) == 2:
+                        baseurl = config_map[1]
+                        domain = urlparse(baseurl).hostname
+                        return f"gs://{domain}/"
+    except Exception as e:
+        pblog.exception(str(e))
+    return None
+
+
+@lru_cache()
 def is_versionator_symbols_enabled():
     if not os.path.isfile(pbconfig.get('ue4v_user_config')):
         # Config file somehow isn't generated yet, only get a response, but do not write anything into config
@@ -323,14 +334,30 @@ def run_ue4versionator(bundle_name=None, download_symbols=False):
                 pblog.error(f"Required space: {int((free - required_free_space) / (1000 * 1000 * 1000))}")
                 pbtools.error_state()
 
+    # Use gsutil to download the files efficiently
+    if (gslib.utils.parallelism_framework_util.CheckMultiprocessingAvailableAndInit().is_available):
+        # These setup methods must be called, and, on Windows, they can only be
+        # called from within an "if __name__ == '__main__':" block.
+        gslib.command.InitializeMultiprocessingVariables()
+        gslib.boto_translation.InitializeMultiprocessingVariables()
+    else:
+        gslib.command.InitializeThreadingVariables()
+    command_runner = CommandRunner()
+    version = get_engine_version_with_prefix()
+    pattern = f"{bundle_name}*-{version}.7z" if download_symbols else f"{bundle_name}-{version}.7z"
+    gcs_bucket = get_versionator_gsuri()
+    gcs_uri = f"{gcs_bucket}{pattern}"
+    dst = get_engine_install_root()
+    command_runner.RunNamedCommand('cp', args=[gcs_uri, dst], collect_analytics=False, parallel_operations=True)
+
+    # Extract and register with ue4versionator
     command_set = ["ue4versionator.exe"]
+
+    command_set.append("-assume-valid")
 
     if not (bundle_name is None):
         command_set.append("-bundle")
         command_set.append(str(bundle_name))
-
-    if download_symbols:
-        command_set.append("-with-symbols")
 
     if pbconfig.get("is_ci"):
         # If we're CI, use another config file

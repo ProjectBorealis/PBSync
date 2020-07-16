@@ -26,7 +26,7 @@ def setup_logger(log_file_path):
     log_formatter = logging.Formatter(format_string, datefmt=date_format)
 
     global root_log
-    root_log = logging.getLogger("pbsync")
+    root_log = logging.getLogger()
 
     # File handler
     file_handler = logging.FileHandler(log_file_path)
@@ -34,7 +34,7 @@ def setup_logger(log_file_path):
     root_log.addHandler(file_handler)
 
     # Log level
-    log_level = logging.DEBUG
+    log_level = logging.INFO
     root_log.setLevel(log_level)
 
     # Colored logs
