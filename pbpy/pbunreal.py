@@ -348,7 +348,7 @@ def run_ue4versionator(bundle_name=None, download_symbols=False):
     gcs_bucket = get_versionator_gsuri()
     gcs_uri = f"{gcs_bucket}{pattern}"
     dst = get_engine_install_root()
-    command_runner.RunNamedCommand('cp', args=[gcs_uri, dst], collect_analytics=False, parallel_operations=True)
+    command_runner.RunNamedCommand('cp', args=["-n", gcs_uri, dst], collect_analytics=False, parallel_operations=True)
 
     # Extract and register with ue4versionator
     command_set = ["ue4versionator.exe"]
