@@ -7,6 +7,7 @@ from os import remove
 from functools import lru_cache
 from urllib.parse import urlparse
 from gslib.command_runner import CommandRunner
+from gslib.commands.cp import CpCommand
 import os
 import json
 import glob
@@ -342,7 +343,9 @@ def run_ue4versionator(bundle_name=None, download_symbols=False):
         gslib.boto_translation.InitializeMultiprocessingVariables()
     else:
         gslib.command.InitializeThreadingVariables()
-    command_runner = CommandRunner()
+    command_runner = CommandRunner(command_map={
+        "cp": CpCommand
+    })
     version = get_engine_version_with_prefix()
     pattern = f"{bundle_name}*-{version}.7z" if download_symbols else f"{bundle_name}-{version}.7z"
     gcs_bucket = get_versionator_gsuri()

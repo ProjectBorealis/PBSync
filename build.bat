@@ -1,3 +1,3 @@
 pip install -r requirements.txt
-set PYTHONOPTIMIZE=2
-pyinstaller --noupx --onefile -n PBSync --clean --icon=resources/icon.ico --version-file version.rc -p pbpy:pbsync pbsync/pbsync.py
+set PYTHONOPTIMIZE=1
+pyinstaller --noupx --onefile --additional-hooks-dir=hooks -n PBSync --clean --icon=resources/icon.ico --version-file version.rc -p pbpy:pbsync pbsync/pbsync.py
