@@ -250,14 +250,15 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
     if "ahead" not in out:
         pblog.info("Please wait while getting the latest changes from the repository. It may take a while...")
         # Make sure upstream is tracked correctly
-        pbgit.set_tracking_information(pbgit.get_current_branch_name())
+        branch_name = pbgit.get_current_branch_name()
+        pbgit.set_tracking_information(branch_name)
         pblog.info("Trying to stash local work...")
         proc = run_with_combined_output(["git", "stash"])
         out = proc.stdout
         stashed = proc.returncode == 0 and "Saved working directory and index state" in out
         pblog.info(out)
         pblog.info("Trying to rebase workspace with the latest changes from the repository...")
-        result = run_with_combined_output(["git", "pull", "--rebase", "--no-autostash"])
+        result = run_with_combined_output(["git", "rebase", f"origin/{branch_name}", "--no-autostash"])
         # TODO: autostash handling
         # pblog.info("Trying to rebase workspace with latest changes on the repository...")
         # result = run_with_combined_output(["git", "pull", "--rebase", "--autostash"])
