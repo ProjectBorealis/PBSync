@@ -32,7 +32,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
     sync_val = sync_val.lower()
 
-    if sync_val == "all" or sync_val == "force":
+    if sync_val == "all" or sync_val == "force" or sync_val == "partial":
         # Firstly, check our remote connection before doing anything
         remote_state, remote_url = pbgit.check_remote_connection()
         if not remote_state:
@@ -127,64 +127,62 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         if needs_git_update:
             pbtools.error_state()
 
-        pblog.info("------------------")
+        if sync_val != "partial":
+            pblog.info("------------------")
 
-        # Do not execute if Unreal Editor is running
-        if pbtools.get_running_process("UE4Editor") is not None:
-            pbtools.error_state("Unreal Editor is currently running. Please close it before running PBSync. It may be listed only in Task Manager as a background process. As a last resort, you should log off and log in again.")
+            # Do not execute if Unreal Editor is running
+            if pbtools.get_running_process("UE4Editor") is not None:
+                pbtools.error_state("Unreal Editor is currently running. Please close it before running PBSync. It may be listed only in Task Manager as a background process. As a last resort, you should log off and log in again.")
 
-        current_branch = pbgit.get_current_branch_name()
-        # repo was already fetched in StartProject.bat
-        if current_branch != "promoted":
-            pblog.info("Fetching recent changes on the repository...")
-            fetch_base = ["git", "fetch", "origin"]
-            branches = {"promoted", "master", "trunk", current_branch}
-            fetch_base.extend(branches)
-            pbtools.get_combined_output(fetch_base)
+            # Do some housekeeping for git configuration
+            pbgit.setup_config()
 
-        # Do some housekeeping for git configuration
-        pbgit.setup_config()
+            # Check if we have correct credentials
+            pbgit.check_credentials()
 
-        # Check if we have correct credentials
-        pbgit.check_credentials()
-
-        pblog.info("------------------")
-
-        # Execute synchronization part of script if we're on the expected branch, or force sync is enabled
-        is_on_expected_branch = pbgit.compare_with_current_branch_name(pbconfig.get('expected_branch_name'))
-        if sync_val == "force" or is_on_expected_branch:
-            pbtools.resolve_conflicts_and_pull()
+            current_branch = pbgit.get_current_branch_name()
+            # repo was already fetched in StartProject.bat
+            if current_branch != "promoted":
+                pblog.info("Fetching recent changes on the repository...")
+                fetch_base = ["git", "fetch", "origin"]
+                branches = {"promoted", "master", "trunk", current_branch}
+                fetch_base.extend(branches)
+                pbtools.get_combined_output(fetch_base)
 
             pblog.info("------------------")
 
-            project_version = pbunreal.get_project_version()
-            if project_version is not None:
-                pblog.info(f"Current project version: {project_version}")
-            else:
-                pbtools.error_state(
-                    "Something went wrong while fetching project version. Please request help in #tech-support.")
+            # Execute synchronization part of script if we're on the expected branch, or force sync is enabled
+            is_on_expected_branch = pbgit.compare_with_current_branch_name(pbconfig.get('expected_branch_name'))
+            if sync_val == "force" or is_on_expected_branch:
+                pbtools.resolve_conflicts_and_pull()
 
-            if pbhub.is_pull_binaries_required():
-                pblog.info("Binaries are not up to date, trying to pull new binaries...")
-                ret = pbhub.pull_binaries(project_version)
-                if ret == 0:
-                    pblog.info("Binaries were pulled successfully")
-                elif ret < 0:
-                    pbtools.error_state("Binaries pull failed, please view log for instructions.")
-                elif ret > 0:
-                    pbtools.error_state("An error occurred while pulling binaries. Please request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.", True)
+                pblog.info("------------------")
+
+                project_version = pbunreal.get_project_version()
+                if project_version is not None:
+                    pblog.info(f"Current project version: {project_version}")
+                else:
+                    pbtools.error_state("Something went wrong while fetching project version. Please request help in #tech-support.")
+
+                if pbhub.is_pull_binaries_required():
+                    pblog.info("Binaries are not up to date, trying to pull new binaries...")
+                    ret = pbhub.pull_binaries(project_version)
+                    if ret == 0:
+                        pblog.info("Binaries were pulled successfully")
+                    elif ret < 0:
+                        pbtools.error_state("Binaries pull failed, please view log for instructions.")
+                    elif ret > 0:
+                        pbtools.error_state("An error occurred while pulling binaries. Please request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.", True)
+                else:
+                    pblog.info("Binaries are up-to-date")
             else:
-                pblog.info("Binaries are up-to-date")
-        else:
-            pblog.warning(f"Current branch is not supported for repository synchronization: {pbgit.get_current_branch_name()}. Auto synchronization "
-                          "will be disabled")
+                pblog.warning(f"Current branch is not supported for repository synchronization: {pbgit.get_current_branch_name()}. Auto synchronization will be disabled")
 
         pblog.info("------------------")
 
         pblog.info("Checking for engine updates...")
         if pbgit.sync_file("ProjectBorealis.uproject") != 0:
-            pbtools.error_state(
-                "Something went wrong while updating the .uproject file. Please request help in #tech-support.")
+            pbtools.error_state("Something went wrong while updating the .uproject file. Please request help in #tech-support.")
 
         engine_version = pbunreal.get_engine_version(False)
 
