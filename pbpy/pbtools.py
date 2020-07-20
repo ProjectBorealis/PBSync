@@ -244,7 +244,7 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
     # Disable watchman for now
     disable_watchman()
 
-    out = get_combined_output(["git", "status", "--ahead-behind"])
+    out = get_combined_output(["git", "status", "--ahead-behind", "-uno"])
     pblog.info(out)
 
     if "ahead" not in out:
