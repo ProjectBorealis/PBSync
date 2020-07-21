@@ -75,7 +75,7 @@ def success(msg):
     if root_log is None:
         logging.info(msg)
         return
-    root_log.success(msg)
+    root_log.log(verboselogs.SUCCESS, msg)
 
 
 def warning(msg):
