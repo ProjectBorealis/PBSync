@@ -32,6 +32,16 @@ def run_with_combined_output(cmd):
     return subprocess.run(cmd, text=True, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
 
+def run_non_blocking(*commands):
+    if os.name == "nt":
+        cmdline = " ; ".join(commands)
+        subprocess.Popen(cmdline, shell=True, creationflags=subprocess.DETACHED_PROCESS)
+    elif os.name == "posix":
+        forked_commands = [f"nohup {command}" for command in commands]
+        cmdline = " || ".join(forked_commands)
+        subprocess.Popen(cmdline, shell=True)
+
+
 def get_combined_output(cmd):
     return run_with_combined_output(cmd).stdout
 
@@ -238,12 +248,15 @@ def maintain_repo():
 
     # only prune if we don't have a stash
     out = get_combined_output(["git", "stash", "list"])
-
     if len(out) < 3:
-        if os.name == "nt":
-            subprocess.Popen("git lfs prune -c ; git lfs dedup ; git commit-graph write --reachable --changed-paths", shell=True, creationflags=subprocess.DETACHED_PROCESS)
-        elif os.name == "posix":
-            subprocess.Popen("nohup git lfs prune -c || nohup git lfs dedup || nohup git commit-graph write --reachable --changed-paths", shell=True)
+        run_non_blocking("git lfs prune -c", "git lfs dedup")
+    else:
+        run_non_blocking("git lfs dedup")
+
+    # update commit graph with Bloom filter
+    run_non_blocking("git commit-graph write --reachable --changed-paths")
+    # update multi pack index
+    run_non_blocking("git multi-pack-index write", "git multi-pack-index verify" "git multi-pack-index verify")
 
 
 def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
