@@ -176,7 +176,8 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                 else:
                     pblog.info("Binaries are up-to-date")
             else:
-                pblog.warning(f"Current branch is not supported for repository synchronization: {pbgit.get_current_branch_name()}. Auto synchronization will be disabled")
+                pblog.info(f"Current branch does not need auto synchronization: {pbgit.get_current_branch_name()}.")
+                pbtools.maintain_repo()
 
         pblog.info("------------------")
 

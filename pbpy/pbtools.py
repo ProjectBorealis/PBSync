@@ -234,6 +234,8 @@ def wipe_workspace():
 
 
 def maintain_repo():
+    pblog.info("Starting repo maintenance...")
+
     # only prune if we don't have a stash
     out = get_combined_output(["git", "stash", "list"])
 
