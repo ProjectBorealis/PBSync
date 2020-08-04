@@ -256,7 +256,8 @@ def maintain_repo():
     # update commit graph with Bloom filter
     run_non_blocking("git commit-graph write --reachable --changed-paths")
     # update multi pack index
-    run_non_blocking("git multi-pack-index write", "git multi-pack-index verify" "git multi-pack-index verify")
+    batch_size = 2 * 1024 * 1024 * 1024
+    run_non_blocking("git multi-pack-index write", "git multi-pack-index expire", "git multi-pack-index verify", f"git multi-pack-index repack --batch-size={batch_size}", "git multi-pack-index verify")
 
 
 def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
