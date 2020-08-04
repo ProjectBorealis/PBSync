@@ -233,6 +233,17 @@ def wipe_workspace():
     return result == 0
 
 
+def maintain_repo():
+    # only prune if we don't have a stash
+    out = get_combined_output(["git", "stash", "list"])
+
+    if len(out) < 3:
+        if os.name == "nt":
+            subprocess.Popen("git lfs prune -c ; git lfs dedup ; git commit-graph write --reachable --changed-paths", shell=True, creationflags=subprocess.DETACHED_PROCESS)
+        elif os.name == "posix":
+            subprocess.Popen("nohup git lfs prune -c || nohup git lfs dedup || nohup git commit-graph write --reachable --changed-paths", shell=True)
+
+
 def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
     def should_attempt_auto_resolve():
         return retry_count <= max_retries
@@ -328,11 +339,4 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         # We have no idea what the state of the repo is. Do nothing except bail.
         error_state("Aborting the repo update because of an unknown error. Request help in #tech-support to resolve it, and please do not run UpdateProject.bat until the issue is resolved.", fatal_error=True)
 
-    # only prune if we don't have a stash
-    out = get_combined_output(["git", "stash", "list"])
-
-    if len(out) < 3:
-        if os.name == "nt":
-            subprocess.Popen("git lfs prune -c ; git lfs dedup", shell=True, creationflags=subprocess.DETACHED_PROCESS)
-        elif os.name == "posix":
-            subprocess.Popen("nohup git lfs prune -c || nohup git lfs dedup", shell=True)
+    maintain_repo()
