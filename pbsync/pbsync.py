@@ -141,7 +141,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             pbgit.check_credentials()
 
             current_branch = pbgit.get_current_branch_name()
-            # repo was already fetched in StartProject.bat
+            # repo was already fetched in UpdateProject.bat
             if current_branch != "promoted":
                 pblog.info("Fetching recent changes on the repository...")
                 fetch_base = ["git", "fetch", "origin"]
@@ -172,7 +172,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                     elif ret < 0:
                         pbtools.error_state("Binaries pull failed, please view log for instructions.")
                     elif ret > 0:
-                        pbtools.error_state("An error occurred while pulling binaries. Please request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.", True)
+                        pbtools.error_state("An error occurred while pulling binaries. Please request help in #tech-support to resolve it, and please do not run UpdateProject.bat until the issue is resolved.", True)
                 else:
                     pblog.info("Binaries are up-to-date")
             else:
@@ -353,7 +353,7 @@ def main(argv):
         args = parser.parse_args(argv)
     else:
         pblog.error("At least one valid argument should be passed!")
-        pblog.error("Did you mean to launch StartProject.bat?")
+        pblog.error("Did you mean to launch UpdateProject.bat?")
         input("Press enter to continue...")
         sys.exit(1)
 
@@ -407,7 +407,7 @@ def main(argv):
         push_handler(args.push)
     else:
         pblog.error("At least one valid argument should be passed!")
-        pblog.error("Did you mean to launch StartProject.bat?")
+        pblog.error("Did you mean to launch UpdateProject.bat?")
         input("Press enter to continue...")
         sys.exit(1)
 

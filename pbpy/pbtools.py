@@ -295,11 +295,11 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
     elif "successfully rebased and updated" in out:
         handle_success()
     elif "failed to merge in the changes" in out or "could not apply" in out:
-        handle_error("Aborting the rebase. Changes on one of your commits will be overridden by incoming changes. Please request help in #tech-support to resolve conflicts, and please do not run StartProject.bat until the issue is resolved.")
+        handle_error("Aborting the rebase. Changes on one of your commits will be overridden by incoming changes. Please request help in #tech-support to resolve conflicts, and please do not run UpdateProject.bat until the issue is resolved.")
     elif "unmerged files" in out or "merge_head exists" in out:
         # we can't abort anything, but don't let stash linger to restore the original repo state
         pop_if_stashed()
-        error_state("You are in the middle of a merge. Please request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.", fatal_error=True)
+        error_state("You are in the middle of a merge. Please request help in #tech-support to resolve it, and please do not run UpdateProject.bat until the issue is resolved.", fatal_error=True)
     elif "unborn" in out:
         if should_attempt_auto_resolve():
             pblog.error("Unborn branch detected. Retrying...")
@@ -307,7 +307,7 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
             resolve_conflicts_and_pull(retry_count)
             return
         else:
-            handle_error("You are on an unborn branch. Please request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.")
+            handle_error("You are on an unborn branch. Please request help in #tech-support to resolve it, and please do not run UpdateProject.bat until the issue is resolved.")
     elif "no remote" in out or "no such remote" in out or "refspecs without repo" in out:
         if should_attempt_auto_resolve():
             pblog.error("Remote repository not found. Retrying...")
@@ -315,7 +315,7 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
             resolve_conflicts_and_pull(retry_count, 2)
             return
         else:
-            handle_error("The remote repository could not be found. Please request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.")
+            handle_error("The remote repository could not be found. Please request help in #tech-support to resolve it, and please do not run UpdateProject.bat until the issue is resolved.")
     elif "cannot open" in out:
         if should_attempt_auto_resolve():
             pblog.error("Git file info could not be read. Retrying...")
@@ -323,10 +323,10 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
             resolve_conflicts_and_pull(retry_count, 3)
             return
         else:
-            handle_error("Git file info could not be read. Please request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.")
+            handle_error("Git file info could not be read. Please request help in #tech-support to resolve it, and please do not run UpdateProject.bat until the issue is resolved.")
     else:
         # We have no idea what the state of the repo is. Do nothing except bail.
-        error_state("Aborting the repo update because of an unknown error. Request help in #tech-support to resolve it, and please do not run StartProject.bat until the issue is resolved.", fatal_error=True)
+        error_state("Aborting the repo update because of an unknown error. Request help in #tech-support to resolve it, and please do not run UpdateProject.bat until the issue is resolved.", fatal_error=True)
 
     # only prune if we don't have a stash
     out = get_combined_output(["git", "stash", "list"])

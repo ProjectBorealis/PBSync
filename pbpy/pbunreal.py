@@ -323,6 +323,13 @@ def is_versionator_symbols_enabled():
         return False
 
 
+def get_bundle_verification_file(bundle_name):
+    if bundle_name and "engine" in bundle_name:
+        return "Engine/Binaries/Win64/UE4Game."
+    else:
+        return "Engine/Binaries/Win64/UE4Editor."
+
+
 def run_ue4versionator(bundle_name=None, download_symbols=False):
     required_free_gb = 7
     
@@ -347,30 +354,44 @@ def run_ue4versionator(bundle_name=None, download_symbols=False):
                 pblog.error(f"Required space: {int((free - required_free_space) / (1000 * 1000 * 1000))}")
                 pbtools.error_state()
 
-    # Use gsutil to download the files efficiently
-    if (gslib.utils.parallelism_framework_util.CheckMultiprocessingAvailableAndInit().is_available):
-        # These setup methods must be called, and, on Windows, they can only be
-        # called from within an "if __name__ == '__main__':" block.
-        gslib.command.InitializeMultiprocessingVariables()
-        gslib.boto_translation.InitializeMultiprocessingVariables()
-    else:
-        gslib.command.InitializeThreadingVariables()
-    command_runner = CommandRunner(command_map={
-        "cp": CpCommand
-    })
+    verification_file = get_bundle_verification_file(bundle_name)
+    install_root = get_engine_install_root()
     version = get_engine_version_with_prefix()
-    pattern = f"{bundle_name}*-{version}.7z" if download_symbols else f"{bundle_name}-{version}.7z"
-    gcs_bucket = get_versionator_gsuri()
-    gcs_uri = f"{gcs_bucket}{pattern}"
-    dst = f"file://{get_engine_install_root()}"
-    command_runner.RunNamedCommand('cp', args=["-n", gcs_uri, dst], collect_analytics=False, parallel_operations=True)
+    base_path = pathlib.Path(install_root) / pathlib.Path(version)
+    symbols_path = base_path / pathlib.Path(verification_file + "pdb")
+    needs_symbols = download_symbols and not symbols_path.exists()
+    exe_path = base_path / pathlib.Path(verification_file + "exe")
+    needs_exe = not exe_path.exists()
+
+    if needs_exe or needs_symbols:
+        # Use gsutil to download the files efficiently
+        if (gslib.utils.parallelism_framework_util.CheckMultiprocessingAvailableAndInit().is_available):
+            # These setup methods must be called, and, on Windows, they can only be
+            # called from within an "if __name__ == '__main__':" block.
+            gslib.command.InitializeMultiprocessingVariables()
+            gslib.boto_translation.InitializeMultiprocessingVariables()
+        else:
+            gslib.command.InitializeThreadingVariables()
+        command_runner = CommandRunner(command_map={
+            "cp": CpCommand
+        })
+        if needs_exe and needs_symbols:
+            pattern = f"{bundle_name}*-{version}.7z"
+        elif needs_symbols:
+            pattern = f"{bundle_name}-symbols-{version}.7z"
+        else:
+            pattern = f"{bundle_name}-{version}.7z"
+        gcs_bucket = get_versionator_gsuri()
+        gcs_uri = f"{gcs_bucket}{pattern}"
+        dst = f"file://{install_root}"
+        command_runner.RunNamedCommand('cp', args=["-n", gcs_uri, dst], collect_analytics=False, parallel_operations=True)
 
     # Extract and register with ue4versionator
     command_set = ["ue4versionator.exe"]
 
     command_set.append("-assume-valid")
 
-    if not (bundle_name is None):
+    if bundle_name is not None:
         command_set.append("-bundle")
         command_set.append(str(bundle_name))
 
