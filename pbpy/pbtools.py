@@ -254,10 +254,17 @@ def maintain_repo():
         run_non_blocking("git lfs dedup")
 
     # update commit graph with Bloom filter
-    run_non_blocking("git commit-graph write --reachable --changed-paths")
+    run_non_blocking("git commit-graph write --split --reachable --changed-paths")
     # update multi pack index
     batch_size = 2 * 1024 * 1024 * 1024
-    run_non_blocking("git multi-pack-index write", "git multi-pack-index expire", "git multi-pack-index verify", f"git multi-pack-index repack --batch-size={batch_size}", "git multi-pack-index verify")
+    run_non_blocking(
+        "git multi-pack-index write",
+        "git multi-pack-index expire",
+        "git multi-pack-index verify",
+        f"git multi-pack-index repack --batch-size={batch_size}",
+        "git multi-pack-index verify",
+        "git gc"
+    )
 
 
 def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
