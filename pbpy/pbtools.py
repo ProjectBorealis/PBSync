@@ -246,25 +246,33 @@ def wipe_workspace():
 def maintain_repo():
     pblog.info("Starting repo maintenance...")
 
+    batch_size = 2 * 1024 * 1024 * 1024
+
     # only prune if we don't have a stash
     out = get_combined_output(["git", "stash", "list"])
     if len(out) < 3:
-        run_non_blocking("git lfs prune -c", "git lfs dedup")
+        run_non_blocking(
+            "git commit-graph write --split --reachable --changed-paths",
+            "git gc",
+            "git lfs prune -c",
+            "git lfs dedup",
+            "git multi-pack-index write",
+            "git multi-pack-index expire",
+            "git multi-pack-index verify",
+            f"git multi-pack-index repack --batch-size={batch_size}",
+            "git multi-pack-index verify"
+        )
     else:
-        run_non_blocking("git lfs dedup")
-
-    # update commit graph with Bloom filter
-    run_non_blocking("git commit-graph write --split --reachable --changed-paths")
-    # update multi pack index
-    batch_size = 2 * 1024 * 1024 * 1024
-    run_non_blocking(
-        "git multi-pack-index write",
-        "git multi-pack-index expire",
-        "git multi-pack-index verify",
-        f"git multi-pack-index repack --batch-size={batch_size}",
-        "git multi-pack-index verify",
-        "git gc"
-    )
+        run_non_blocking(
+            "git commit-graph write --split --reachable --changed-paths",
+            "git gc",
+            "git lfs dedup",
+            "git multi-pack-index write",
+            "git multi-pack-index expire",
+            "git multi-pack-index verify",
+            f"git multi-pack-index repack --batch-size={batch_size}",
+            "git multi-pack-index verify"
+        )
 
 
 def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
