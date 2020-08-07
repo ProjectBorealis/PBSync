@@ -248,7 +248,7 @@ def maintain_repo():
     pblog.info("Starting repo maintenance...")
 
     batch_size = 2 * 1024 * 1024 * 1024
-    expire_date = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%x")
+    expire_date = (datetime.datetime.now() - datetime.timedelta(days=7)).strftime("%x")
 
     # try to remove commit graph lock before running commit graph
     try:
