@@ -6,6 +6,7 @@ import subprocess
 import shutil
 import stat
 import json
+import datetime
 
 from hashlib import md5
 from subprocess import CalledProcessError
@@ -34,7 +35,7 @@ def run_with_combined_output(cmd):
 
 def run_non_blocking(*commands):
     if os.name == "nt":
-        cmdline = " ; ".join(commands)
+        cmdline = " & ".join(commands)
         subprocess.Popen(cmdline, shell=True, creationflags=subprocess.DETACHED_PROCESS)
     elif os.name == "posix":
         forked_commands = [f"nohup {command}" for command in commands]
@@ -247,32 +248,30 @@ def maintain_repo():
     pblog.info("Starting repo maintenance...")
 
     batch_size = 2 * 1024 * 1024 * 1024
+    expire_date = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%x")
 
-    # only prune if we don't have a stash
+    # try to remove commit graph lock before running commit graph
+    try:
+        os.remove(os.path.join(os.getcwd(), ".git", "objects", "info", "commit-graphs", "commit-graph-chain.lock"))
+    except Exception as e:
+        pblog.error(e)
+
+    commands = [
+        f"git commit-graph write --split --size-multiple=4 --reachable --changed-paths --expire-time={expire_date}",
+        "git gc",
+        "git lfs prune -c",
+        "git lfs dedup",
+        "git multi-pack-index write",
+        "git multi-pack-index expire",
+        f"git multi-pack-index repack --batch-size={batch_size}"
+    ]
+
+    # if we have a stash, don't prune
     out = get_combined_output(["git", "stash", "list"])
-    if len(out) < 3:
-        run_non_blocking(
-            "git commit-graph write --split --reachable --changed-paths",
-            "git gc",
-            "git lfs prune -c",
-            "git lfs dedup",
-            "git multi-pack-index write",
-            "git multi-pack-index expire",
-            "git multi-pack-index verify",
-            f"git multi-pack-index repack --batch-size={batch_size}",
-            "git multi-pack-index verify"
-        )
-    else:
-        run_non_blocking(
-            "git commit-graph write --split --reachable --changed-paths",
-            "git gc",
-            "git lfs dedup",
-            "git multi-pack-index write",
-            "git multi-pack-index expire",
-            "git multi-pack-index verify",
-            f"git multi-pack-index repack --batch-size={batch_size}",
-            "git multi-pack-index verify"
-        )
+    if len(out) >= 3:
+        commands.remove("git lfs prune -c")
+
+    run_non_blocking(*commands)
 
 
 def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
