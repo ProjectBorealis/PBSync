@@ -266,9 +266,8 @@ def maintain_repo():
         f"git multi-pack-index repack --batch-size={batch_size}"
     ]
 
-    # if we have a stash, don't prune
-    out = get_combined_output(["git", "stash", "list"])
-    if len(out) >= 3:
+    # if we have a stash or working files, don't prune
+    if len(get_combined_output(["git", "stash", "list"])) >= 3 or len(get_combined_output(["git", "status", "--porcelain", "-uno"])) >= 3:
         commands.remove("git lfs prune -c")
 
     run_non_blocking(*commands)
