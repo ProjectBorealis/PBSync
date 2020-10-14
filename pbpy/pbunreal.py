@@ -8,6 +8,7 @@ from functools import lru_cache
 from urllib.parse import urlparse
 from gslib.command_runner import CommandRunner
 from gslib.commands.cp import CpCommand
+from gslib.commands.rsync import RsyncCommand
 import os
 import json
 import glob
@@ -373,7 +374,8 @@ def run_ue4versionator(bundle_name=None, download_symbols=False):
         else:
             gslib.command.InitializeThreadingVariables()
         command_runner = CommandRunner(command_map={
-            "cp": CpCommand
+            "cp": CpCommand,
+            "rs": RsyncCommand
         })
         if needs_exe and needs_symbols:
             pattern = f"{bundle_name}*-{version}.7z"
