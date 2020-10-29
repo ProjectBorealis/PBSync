@@ -10,11 +10,11 @@ from pbpy import pbtools
 
 @lru_cache()
 def get_current_branch_name():
-    return pbtools.get_one_line_output(["git", "branch", "--show-current"])
+    return pbtools.get_one_line_output([get_git_executable(), "branch", "--show-current"])
 
 
 def get_git_version():
-    installed_version_split = pbtools.get_one_line_output(["git", "--version"]).split(" ")
+    installed_version_split = pbtools.get_one_line_output([get_git_executable(), "--version"]).split(" ")
 
     list_len = len(installed_version_split)
     if list_len == 0:
@@ -33,8 +33,18 @@ def compare_with_current_branch_name(compared_branch):
     return get_current_branch_name() == compared_branch
 
 
+@lru_cache
+def get_git_executable():
+    return "git"
+
+
+@lru_cache
+def get_lfs_executable():
+    return "git-lfs"
+
+
 def get_lfs_version():
-    installed_version_split = pbtools.get_one_line_output(["git", "lfs", "--version"]).split(" ")
+    installed_version_split = pbtools.get_one_line_output([get_lfs_executable(), "--version"]).split(" ")
 
     if len(installed_version_split) == 0:
         return None
@@ -49,7 +59,7 @@ def get_lfs_version():
 
 
 def set_tracking_information(upstream_branch_name: str):
-    output = pbtools.get_combined_output(["git", "branch", f"--set-upstream-to=origin/{upstream_branch_name}",
+    output = pbtools.get_combined_output([get_git_executable(), "branch", f"--set-upstream-to=origin/{upstream_branch_name}",
                                       upstream_branch_name])
     pblog.info(output)
 
@@ -57,7 +67,7 @@ def set_tracking_information(upstream_branch_name: str):
 def stash_pop():
     pblog.info("Trying to pop stash...")
 
-    output = pbtools.get_combined_output(["git", "stash", "pop"])
+    output = pbtools.get_combined_output([get_git_executable(), "stash", "pop"])
     pblog.info(output)
     lower_case_output = output.lower()
 
@@ -74,41 +84,41 @@ def stash_pop():
 
 
 def check_remote_connection():
-    current_url = pbtools.get_one_line_output(["git", "remote", "get-url", "origin"])
+    current_url = pbtools.get_one_line_output([get_git_executable(), "remote", "get-url", "origin"])
     recent_url = pbconfig.get("git_url")
 
     if current_url != recent_url:
-        output = pbtools.get_combined_output(["git", "remote", "set-url", "origin", recent_url])
+        output = pbtools.get_combined_output([get_git_executable(), "remote", "set-url", "origin", recent_url])
         pblog.info(output)
 
-    current_url = pbtools.get_one_line_output(["git", "remote", "get-url", "origin"])
-    out = pbtools.run_with_output(["git", "ls-remote", "--exit-code", "-h"]).returncode
+    current_url = pbtools.get_one_line_output([get_git_executable(), "remote", "get-url", "origin"])
+    out = pbtools.run_with_output([get_git_executable(), "ls-remote", "--exit-code", "-h"]).returncode
     return out == 0, current_url
 
 
 def check_credentials():
-    output = pbtools.get_one_line_output(["git", "config", "user.name"])
+    output = pbtools.get_one_line_output([get_git_executable(), "config", "user.name"])
     if output == "" or output is None:
         user_name = input("Please enter your GitHub username: ")
-        pbtools.run_with_output(["git", "config", "user.name", user_name])
+        pbtools.run_with_output([get_git_executable(), "config", "user.name", user_name])
 
-    output = pbtools.get_one_line_output(["git", "config", "user.email"])
+    output = pbtools.get_one_line_output([get_git_executable(), "config", "user.email"])
     if output == "" or output is None:
         user_mail = input("Please enter your GitHub email: ")
-        pbtools.run_with_output(["git", "config", "user.email", user_mail])
+        pbtools.run_with_output([get_git_executable(), "config", "user.email", user_mail])
 
 
 def sync_file(file_path):
     sync_head = f"origin/{get_current_branch_name()}"
-    proc = subprocess.run(["git", "restore", "-qWSs", sync_head, "--", file_path], shell=True)
+    proc = subprocess.run([get_git_executable(), "restore", "-qWSs", sync_head, "--", file_path], shell=True)
     return proc.returncode
 
 
 def abort_all():
     # Abort everything
-    pbtools.run_with_output(["git", "merge", "--abort"])
-    pbtools.run_with_output(["git", "rebase", "--abort"])
-    pbtools.run_with_output(["git", "am", "--abort"])
+    pbtools.run_with_output([get_git_executable(), "merge", "--abort"])
+    pbtools.run_with_output([get_git_executable(), "rebase", "--abort"])
+    pbtools.run_with_output([get_git_executable(), "am", "--abort"])
     # Just in case
     shutil.rmtree(os.path.join(os.getcwd(), ".git", "rebase-apply"), ignore_errors=True)
     shutil.rmtree(os.path.join(os.getcwd(), ".git", "rebase-merge"), ignore_errors=True)
@@ -116,11 +126,11 @@ def abort_all():
 
 def abort_rebase():
     # Abort rebase
-    pbtools.run_with_output(["git", "rebase", "--abort"])
+    pbtools.run_with_output([get_git_executable(), "rebase", "--abort"])
 
 
 def setup_config():
-    pbtools.run_with_output(["git", "config", "include.path", "../.gitconfig"])
+    pbtools.run_with_output([get_git_executable(), "config", "include.path", "../.gitconfig"])
 
     # Temporary code to clear previous git config variables:
     clear_config_list = [
@@ -146,4 +156,4 @@ def setup_config():
     ]
 
     for cfg in clear_config_list:
-        pbtools.run_with_output(["git", "config", "--unset", cfg])
+        pbtools.run_with_output([get_git_executable(), "config", "--unset", cfg])

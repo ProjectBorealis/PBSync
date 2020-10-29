@@ -206,7 +206,7 @@ def error_state(msg=None, fatal_error=False):
 
 
 def disable_watchman():
-    run_with_output(["git", "config", "--unset", "core.fsmonitor"])
+    run_with_output([pbgit.get_git_executable(), "config", "--unset", "core.fsmonitor"])
     p = get_running_process(watchman_exec_name)
     if p is not None:
         p.kill()
@@ -232,14 +232,14 @@ def wipe_workspace():
 
     pbgit.abort_all()
     disable_watchman()
-    output = get_combined_output(["git", "fetch", "origin", current_branch])
+    output = get_combined_output([pbgit.get_git_executable(), "fetch", "origin", current_branch])
     pblog.info(output)
-    proc = run_with_combined_output(["git", "reset", "--hard", f"origin/{current_branch}"])
+    proc = run_with_combined_output([pbgit.get_git_executable(), "reset", "--hard", f"origin/{current_branch}"])
     result = proc.returncode
     pblog.info(proc.stdout)
-    output = get_combined_output(["git", "clean", "-fd"])
+    output = get_combined_output([pbgit.get_git_executable(), "clean", "-fd"])
     pblog.info(output)
-    output = get_combined_output(["git", "pull"])
+    output = get_combined_output([pbgit.get_git_executable(), "pull"])
     pblog.info(output)
     return result == 0
 
@@ -257,14 +257,20 @@ def maintain_repo():
         pblog.error(e)
 
     commands = [
-        f"git commit-graph write --split --size-multiple=4 --reachable --changed-paths --expire-time={expire_date}",
-        "git gc",
-        "git lfs prune -c",
-        "git lfs dedup",
+        f"{pbgit.get_git_executable()} commit-graph write --split --size-multiple=4 --reachable --changed-paths --expire-time={expire_date}",
+        f"{pbgit.get_git_executable()} gc",
+        f"{pbgit.get_git_executable()} lfs prune -c",
+        f"{pbgit.get_git_executable()} lfs dedup"
+    ]
+
+    multi_pack_commands = [
         "git multi-pack-index write",
         "git multi-pack-index expire",
         f"git multi-pack-index repack --batch-size={batch_size}"
     ]
+
+    if get_one_line_output([pbgit.get_git_executable(), "config", "core.multipackIndex"]) == "true":
+        commands += multi_pack_commands
 
     # if we have a stash or working files, don't prune
     if len(get_combined_output(["git", "stash", "list"])) >= 3 or len(get_combined_output(["git", "status", "--porcelain", "-uno"])) >= 3:
