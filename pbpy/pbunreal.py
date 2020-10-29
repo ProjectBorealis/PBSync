@@ -328,7 +328,7 @@ def run_ue4versionator(bundle_name=None, download_symbols=False):
     exe_path = base_path / pathlib.Path(verification_file + "exe")
     needs_exe = not exe_path.exists()
     try:
-        legacy_archives = int(get_engine_version()) > 20200725
+        legacy_archives = pbconfig.get_user("ue4v-user", "legacy", False) or int(get_engine_version()) > 20200725
     except:
         legacy_archives = True
 
