@@ -64,7 +64,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             needs_git_update = True
 
 
-        if os.name == "nt":
+        if os.name == "nt" and pbgit.get_git_executable() == "git" and pbgit.get_lfs_executable() == "git-lfs":
             # find Git/cmd/git.exe
             git_paths = [path for path in pbtools.whereis("git") if "cmd" in path.parts]
 
@@ -145,7 +145,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         # repo was already fetched in UpdateProject.bat
         if not partial_sync and current_branch != "promoted":
             pblog.info("Fetching recent changes on the repository...")
-            fetch_base = ["git", "fetch", "origin"]
+            fetch_base = [pbgit.get_git_executable(), "fetch", "origin"]
             branches = {"promoted", "master", "trunk", current_branch}
             fetch_base.extend(branches)
             pbtools.get_combined_output(fetch_base)

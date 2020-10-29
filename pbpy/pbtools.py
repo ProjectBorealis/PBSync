@@ -264,17 +264,17 @@ def maintain_repo():
     ]
 
     multi_pack_commands = [
-        "git multi-pack-index write",
-        "git multi-pack-index expire",
-        f"git multi-pack-index repack --batch-size={batch_size}"
+        f"{pbgit.get_git_executable()} multi-pack-index write",
+        f"{pbgit.get_git_executable()} multi-pack-index expire",
+        f"{pbgit.get_git_executable()} multi-pack-index repack --batch-size={batch_size}"
     ]
 
     if get_one_line_output([pbgit.get_git_executable(), "config", "core.multipackIndex"]) == "true":
         commands += multi_pack_commands
 
     # if we have a stash or working files, don't prune
-    if len(get_combined_output(["git", "stash", "list"])) >= 3 or len(get_combined_output(["git", "status", "--porcelain", "-uno"])) >= 3:
-        commands.remove("git lfs prune -c")
+    if len(get_combined_output([pbgit.get_git_executable(), "stash", "list"])) >= 3 or len(get_combined_output([pbgit.get_git_executable(), "status", "--porcelain", "-uno"])) >= 3:
+        commands.remove(f"{pbgit.get_git_executable()} lfs prune -c")
 
     run_non_blocking(*commands)
 
@@ -290,7 +290,7 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
     # Disable watchman for now
     disable_watchman()
 
-    out = get_combined_output(["git", "status", "--ahead-behind", "-uno"])
+    out = get_combined_output([pbgit.get_git_executable(), "status", "--ahead-behind", "-uno"])
     pblog.info(out)
 
     if "ahead" not in out:
@@ -299,13 +299,13 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         branch_name = pbgit.get_current_branch_name()
         pbgit.set_tracking_information(branch_name)
         pblog.info("Trying to stash local work...")
-        proc = run_with_combined_output(["git", "stash"])
+        proc = run_with_combined_output([pbgit.get_git_executable(), "stash"])
         out = proc.stdout
         stashed = proc.returncode == 0 and "Saved working directory and index state" in out
         pblog.info(out)
         pblog.info("Trying to rebase workspace with the latest changes from the repository...")
         # TODO: autostash handling
-        result = run_with_combined_output(["git", "rebase", f"origin/{branch_name}", "--no-autostash"])
+        result = run_with_combined_output([pbgit.get_git_executable(), "rebase", f"origin/{branch_name}", "--no-autostash"])
         code = result.returncode
         out = result.stdout
         pblog.info(out)
@@ -322,7 +322,7 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
     def handle_success():
         pop_if_stashed()
         # ensure we pull LFS
-        run(["git", "lfs", "pull"])
+        run([pbgit.get_lfs_executable(), "pull"])
         pblog.success("Success! You are now on the latest changes without any conflicts.")
 
     def handle_error(msg=None):
