@@ -328,9 +328,11 @@ def run_ue4versionator(bundle_name=None, download_symbols=False):
     exe_path = base_path / pathlib.Path(verification_file + "exe")
     needs_exe = not exe_path.exists()
     try:
-        legacy_archives = pbconfig.get_user("ue4v-user", "legacy", False) or int(get_engine_version()) > 20200725
+        legacy_archives = pbconfig.get_user("ue4v-user", "legacy", False) or int(get_engine_version()) <= 20200725
     except:
         legacy_archives = True
+
+    legacy_archives = False
 
     if not legacy_archives:
         pblog.success("Using new remote sync method for engine update.")
@@ -348,20 +350,23 @@ def run_ue4versionator(bundle_name=None, download_symbols=False):
             "cp": CpCommand,
             "rs": RsyncCommand
         })
+        patterns = []
         if needs_exe and needs_symbols:
-            pattern = f"{bundle_name}*"
+            if legacy_archives:
+                patterns.append(f"{bundle_name}*")
+            else:
+                patterns.append(f"{bundle_name}")
+                patterns.append(f"{bundle_name}-symbols")
         elif needs_symbols:
-            pattern = f"{bundle_name}-symbols"
+            patterns.append(f"{bundle_name}-symbols")
         else:
-            pattern = f"{bundle_name}"
-        if legacy_archives or True:
-            pattern += "-{version}.7z"
-        else:
-            pattern += "/"
+            patterns.append(f"{bundle_name}")
+        patterns = [pattern + f"-{version}.7z" if legacy_archives else "/" for pattern in patterns]
         gcs_bucket = get_versionator_gsuri()
-        gcs_uri = f"{gcs_bucket}{pattern}"
-        dst = f"file://{install_root}"
-        command_runner.RunNamedCommand('cp' if legacy_archives else 'rs', args=["-n", gcs_uri, dst], collect_analytics=False, parallel_operations=True)
+        for pattern in patterns:
+            gcs_uri = f"{gcs_bucket}{pattern}"
+            dst = f"file://{install_root}"
+            command_runner.RunNamedCommand('cp' if legacy_archives else 'rs', args=["-n", gcs_uri, dst], collect_analytics=False, parallel_operations=True)
 
     # Extract and register with ue4versionator
     command_set = ["ue4versionator.exe"]
