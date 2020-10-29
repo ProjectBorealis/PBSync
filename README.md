@@ -16,6 +16,8 @@ To generate a binary file from python source code, just run `build.bat` script. 
 
 You must use Python 3.7, as [Python 3.8 is not yet supported by PyInstaller](https://github.com/pyinstaller/pyinstaller/issues/4311).
 
+Note: PBSync requires a modification to the gsutil dependency: remove `from gslib.tests.util import HAS_NON_DEFAULT_GS_HOST` and all usages of it from `gslib.command_runner`. You will have to do this every time gsutil updates and build again.
+
 ## Available Commands
 
 List of available commands can be printed to console by passing `--help` to generated executable.
