@@ -1,13 +1,11 @@
 import os
 import shutil
 import subprocess
-import configparser
 
 from functools import lru_cache
 from pbpy import pblog
 from pbpy import pbconfig
 from pbpy import pbtools
-from pbpy import pbunreal
 
 
 @lru_cache()
@@ -35,18 +33,12 @@ def compare_with_current_branch_name(compared_branch):
     return get_current_branch_name() == compared_branch
 
 
-config = configparser.ConfigParser()
-config.read(pbunreal.get_ue4versionator_config_filename())
-
-
-@lru_cache
 def get_git_executable():
-    return config.get("paths", "git", fallback="git")
+    return pbconfig.get_user("paths", "git", "git")
 
 
-@lru_cache
 def get_lfs_executable():
-    return config.get("paths", "git-lfs", fallback="git-lfs")
+    return pbconfig.get_user("paths", "git-lfs", "git-lfs")
 
 
 def get_lfs_version():
