@@ -189,7 +189,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         if pbgit.sync_file("ProjectBorealis.uproject") != 0:
             pbtools.error_state("Something went wrong while updating the .uproject file. Please request help in #tech-support.")
 
-        engine_version = pbunreal.get_engine_version(False)
+        engine_version = pbunreal.get_engine_version_with_prefix()
 
         pblog.info("Trying to register current engine build if it exists. Otherwise, the build will be downloaded...")
 
@@ -251,7 +251,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         if requested_bundle_name is None:
             requested_bundle_name = pbconfig.get("ue4v_default_bundle")
 
-        engine_version = pbunreal.get_engine_version(False)
+        engine_version = pbunreal.get_engine_version_with_prefix()
         symbols_needed = pbunreal.is_versionator_symbols_enabled()
         if pbunreal.run_ue4versionator(requested_bundle_name, symbols_needed) != 0:
             pblog.error(f"Something went wrong while registering engine build {requested_bundle_name}-{engine_version}")

@@ -126,7 +126,7 @@ def get_engine_prefix():
 
 
 @lru_cache()
-def get_engine_version(only_date=True):
+def get_engine_version():
     try:
         with open(pbconfig.get('uproject_name')) as uproject_file:
             data = json.load(uproject_file)
@@ -136,9 +136,6 @@ def get_engine_version(only_date=True):
             if "}" in build_version:
                 # Means we're using local build version in .uproject file
                 return None
-
-            if not only_date:
-                build_version = f"{pbconfig.get('engine_base_version')}-{engine_version_prefix}-{build_version}"
 
             return build_version
     except Exception as e:
@@ -330,6 +327,13 @@ def run_ue4versionator(bundle_name=None, download_symbols=False):
     needs_symbols = download_symbols and not symbols_path.exists()
     exe_path = base_path / pathlib.Path(verification_file + "exe")
     needs_exe = not exe_path.exists()
+    try:
+        legacy_archives = int(get_engine_version()) > 20200725
+    except:
+        legacy_archives = True
+
+    if not legacy_archives:
+        pblog.success("Using new remote sync method for engine update.")
 
     if needs_exe or needs_symbols:
         # Use gsutil to download the files efficiently
@@ -345,15 +349,19 @@ def run_ue4versionator(bundle_name=None, download_symbols=False):
             "rs": RsyncCommand
         })
         if needs_exe and needs_symbols:
-            pattern = f"{bundle_name}*-{version}.7z"
+            pattern = f"{bundle_name}*"
         elif needs_symbols:
-            pattern = f"{bundle_name}-symbols-{version}.7z"
+            pattern = f"{bundle_name}-symbols"
         else:
-            pattern = f"{bundle_name}-{version}.7z"
+            pattern = f"{bundle_name}"
+        if legacy_archives or True:
+            pattern += "-{version}.7z"
+        else:
+            pattern += "/"
         gcs_bucket = get_versionator_gsuri()
         gcs_uri = f"{gcs_bucket}{pattern}"
         dst = f"file://{install_root}"
-        command_runner.RunNamedCommand('cp', args=["-n", gcs_uri, dst], collect_analytics=False, parallel_operations=True)
+        command_runner.RunNamedCommand('cp' if legacy_archives else 'rs', args=["-n", gcs_uri, dst], collect_analytics=False, parallel_operations=True)
 
     # Extract and register with ue4versionator
     command_set = ["ue4versionator.exe"]
