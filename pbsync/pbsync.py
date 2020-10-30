@@ -1,3 +1,4 @@
+from pbpy.pbtools import error_state
 import subprocess
 import os.path
 import os
@@ -24,8 +25,7 @@ default_config_name = "PBSync.xml"
 def config_handler(config_var, config_parser_func):
     if not pbconfig.generate_config(config_var, config_parser_func):
         # Logger is not initialized yet, so use print instead
-        print(f"{str(config_var)} config file is not valid or not found. Please check the integrity of the file")
-        sys.exit(1)
+        pbtools.error_state(f"{str(config_var)} config file is not valid or not found. Please check the integrity of the file")
 
 
 def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None):
@@ -196,11 +196,10 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         symbols_needed = pbunreal.is_versionator_symbols_enabled()
         bundle_name = pbconfig.get("ue4v_default_bundle")
 
-        if pbunreal.run_ue4versionator(bundle_name, symbols_needed) != 0:
-            pblog.error(f"Something went wrong while registering engine build {bundle_name}-{engine_version}. Please request help in #tech-support.")
-            sys.exit(1)
-        else:
+        if pbunreal.download_engine(bundle_name, symbols_needed):
             pblog.info(f"Engine build {bundle_name}-{engine_version} successfully registered")
+        else:
+            pbtools.error_state(f"Something went wrong while registering engine build {bundle_name}-{engine_version}. Please request help in #tech-support.")
 
         # Clean old engine installations, do that only in expected branch
         if is_on_expected_branch:
@@ -223,15 +222,12 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         if repository_val is None:
             repository_val = pbunreal.get_versionator_gsuri()
             if repository_val is None:
-                 pblog.error("--repository <URL> argument should be provided with --sync engine command")
-                 sys.exit(1)
+                 pbtools.error_state("--repository <URL> argument should be provided with --sync engine command")
         engine_version = pbunreal.get_latest_available_engine_version(str(repository_val))
         if engine_version is None:
-            pblog.error("Error while trying to fetch latest engine version")
-            sys.exit(1)
+            pbtools.error_state("Error while trying to fetch latest engine version")
         if not pbunreal.set_engine_version(engine_version):
-            pblog.error("Error while trying to update engine version in .uproject file")
-            sys.exit(1)
+            pbtools.error_state("Error while trying to update engine version in .uproject file")
         pblog.info(f"Successfully changed engine version as {str(engine_version)}")
 
     elif sync_val == "ddc":
@@ -243,8 +239,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         if ret == 0:
             pblog.info(f"Binaries for {project_version} pulled & extracted successfully")
         else:
-            pblog.error(f"Failed to pull binaries for {project_version}")
-            sys.exit(1)
+            pbtools.error_state(f"Failed to pull binaries for {project_version}")
 
     elif sync_val == "engine":
         # Pull engine build with ue4versionator & register it
@@ -253,11 +248,10 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
         engine_version = pbunreal.get_engine_version_with_prefix()
         symbols_needed = pbunreal.is_versionator_symbols_enabled()
-        if pbunreal.run_ue4versionator(requested_bundle_name, symbols_needed) != 0:
-            pblog.error(f"Something went wrong while registering engine build {requested_bundle_name}-{engine_version}")
-            sys.exit(1)
-        else:
+        if pbunreal.download_engine(requested_bundle_name, symbols_needed):
             pblog.info(f"Engine build {requested_bundle_name}-{engine_version} successfully registered")
+        else:
+            pbtools.error_state(f"Something went wrong while registering engine build {requested_bundle_name}-{engine_version}")
 
 
 def clean_handler(clean_val):
@@ -265,14 +259,12 @@ def clean_handler(clean_val):
         if pbtools.wipe_workspace():
             pblog.info("Workspace wipe successful")
         else:
-            pblog.error("Something went wrong while wiping the workspace")
-            sys.exit(1)
+            pbtools.error_state("Something went wrong while wiping the workspace")
 
     elif clean_val == "engine":
         if not pbunreal.clean_old_engine_installations():
-            pblog.error(
+            pbtools.error_state(
                 "Something went wrong while cleaning old engine installations. You may want to clean them manually.")
-            sys.exit(1)
 
 
 def printversion_handler(print_val, repository_val=None):
@@ -280,23 +272,22 @@ def printversion_handler(print_val, repository_val=None):
         if repository_val is None:
             repository_val = pbunreal.get_versionator_gsuri()
             if repository_val is None:
-                pblog.error("--repository <URL> argument should be provided with --print latest-engine command")
-                sys.exit(1)
+                pbtools.error_state("--repository <URL> argument should be provided with --print latest-engine command")
         engine_version = pbunreal.get_latest_available_engine_version(str(repository_val))
         if engine_version is None:
-            sys.exit(1)
+            pbtools.error_state("Could not find latest engine version.")
         print(engine_version, end="")
 
     elif print_val == "current-engine":
         engine_version = pbunreal.get_engine_version()
         if engine_version is None:
-            sys.exit(1)
+            pbtools.error_state("Could not find latest engine version.")
         print(engine_version, end="")
 
     elif print_val == "project":
         project_version = pbunreal.get_project_version()
         if project_version is None:
-            sys.exit(1)
+            pbtools.error_state("Could not find latest engine version.")
         print(project_version, end="")
 
 
@@ -304,27 +295,23 @@ def autoversion_handler(autoversion_val):
     if pbunreal.project_version_increase(autoversion_val):
         pblog.info("Successfully increased project version")
     else:
-        pblog.error("Error occurred while trying to increase project version")
-        sys.exit(1)
+        pbtools.error_state("Error occurred while trying to increase project version")
 
 
 def publish_handler(publish_val, dispatch_exec_path):
     if dispatch_exec_path is None:
-        pblog.error(
-            "--dispatch argument should be provided for --publish command")
-        sys.exit(1)
+        pbtools.error_state(
+            "--dispatch argument should be provided for --publish command", hush=True)
 
     if not pbdispatch.push_build(publish_val, dispatch_exec_path, pbconfig.get('dispatch_config'), pbconfig.get('dispatch_stagedir'), pbconfig.get('dispatch_drm')):
-        pblog.error("Something went wrong while pushing a new playable build.")
-        sys.exit(1)
+       pbtools.error_state("Something went wrong while pushing a new playable build.")
 
 
 def push_handler(file_name):
     project_version = pbunreal.get_project_version()
     pblog.info(f"Attaching {file_name} into GitHub release {project_version}")
     if not pbhub.push_package(project_version, file_name):
-        pblog.error(f"Error occurred while pushing package for release {project_version}")
-        sys.exit(1)
+        pbtools.error_state(f"Error occurred while pushing package for release {project_version}")
 
 
 def main(argv):
@@ -348,7 +335,7 @@ def main(argv):
     parser.add_argument(
         "--dispatch", help="Required dispatch executable path for --publish command")
     parser.add_argument(
-        "--bundle", help="Engine bundle name for --sync engine command. If not provided, ue4versionator will use the default bundle supplied by the config file")
+        "--bundle", help="Engine bundle name for --sync engine command. If not provided, engine download will use the default bundle supplied by the config file")
     parser.add_argument(
         "--debugpath", help="If provided, PBSync will run in provided path")
     parser.add_argument(
@@ -360,7 +347,7 @@ def main(argv):
         pblog.error("At least one valid argument should be passed!")
         pblog.error("Did you mean to launch UpdateProject.bat?")
         input("Press enter to continue...")
-        sys.exit(1)
+        pbtools.error_state(hush=True)
 
     if not (args.debugpath is None):
         # Work on provided debug path
@@ -414,8 +401,9 @@ def main(argv):
         pblog.error("At least one valid argument should be passed!")
         pblog.error("Did you mean to launch UpdateProject.bat?")
         input("Press enter to continue...")
-        sys.exit(1)
+        pbtools.error_state(hush=True)
 
+    pbconfig.shutdown()
 
 if __name__ == '__main__':
     if "Scripts" in os.getcwd():

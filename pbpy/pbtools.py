@@ -194,14 +194,16 @@ def remove_file(file_path):
     return not os.path.isfile(file_path)
 
 
-def error_state(msg=None, fatal_error=False):
+def error_state(msg=None, fatal_error=False, hush=False):
     if msg is not None:
         pblog.error(msg)
     if fatal_error:
         # This is a fatal error, so do not let user run PBSync until issue is fixed
         with open(error_file, 'w') as error_state_file:
             error_state_file.write("1")
-    pblog.info(f"Logs are saved in {pbconfig.get('log_file_path')}.")
+    if not hush:
+        pblog.info(f"Logs are saved in {pbconfig.get('log_file_path')}.")
+    pbconfig.shutdown()
     sys.exit(1)
 
 
@@ -225,9 +227,9 @@ def get_running_process(process_name):
 
 def wipe_workspace():
     current_branch = pbgit.get_current_branch_name()
-    response = input(f"This command will wipe your workspace and get latest changes from {current_branch}. Are you sure? [y/N]")
+    response = input(f"This command will wipe your workspace and get latest changes from {current_branch}. Are you sure? [y/N] ")
 
-    if response != "y" and response != "Y":
+    if len(response) < 1 or response[0].lower() != "y":
         return False
 
     pbgit.abort_all()
@@ -252,7 +254,9 @@ def maintain_repo():
 
     # try to remove commit graph lock before running commit graph
     try:
-        os.remove(os.path.join(os.getcwd(), ".git", "objects", "info", "commit-graphs", "commit-graph-chain.lock"))
+        commit_graph_lock = os.path.join(os.getcwd(), ".git", "objects", "info", "commit-graphs", "commit-graph-chain.lock")
+        if (os.path.exists(commit_graph_lock)):
+            os.remove(commit_graph_lock)
     except Exception as e:
         pblog.error(e)
 

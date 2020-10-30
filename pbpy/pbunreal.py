@@ -6,6 +6,7 @@ from shutil import disk_usage
 from os import remove
 from functools import lru_cache
 from urllib.parse import urlparse
+from pathlib import Path
 from gslib.command_runner import CommandRunner
 from gslib.commands.cp import CpCommand
 from gslib.commands.rsync import RsyncCommand
@@ -152,7 +153,86 @@ def get_engine_version_with_prefix():
 
 
 def get_engine_install_root():
-    return pbconfig.get_user("ue4v-user", "download_dir")
+    root = pbconfig.get_user("ue4v-user", "download_dir")
+    if root is None:
+        curdir = Path().resolve()
+
+        if pbconfig.get("is_ci"):
+            if os.name == "nt":
+                return curdir.anchor
+            else:
+                return curdir.parent
+
+        print("======================================================================")
+        print("| A custom UE4 engine build needs to be downloaded for this project. |")
+        print("|  These builds can be quite large. Lots of disk space is required.  |")
+        print("======================================================================\n")
+        print(f"Project path: {curdir}\n")
+        print("Which directory should these engine downloads be stored in?\n")
+
+        options = []
+
+        # parent directory
+        options.append(curdir.parent)
+
+        # home directory
+        options.append(Path.home())
+
+        # drive
+        if os.name == "nt":
+            options.append(Path(curdir.anchor))
+
+        # go into ue4 folder
+        options = [(path / 'ue4').resolve() for path in options]
+
+        # remove duplicates
+        options = list(dict.fromkeys(options))
+
+        # add custom option
+        custom = "custom location"
+        options.append(custom)
+
+        for i, option in enumerate(options):
+            print(f"{i + 1}) {option}")
+
+        directory = None
+        while True:
+            response = input(f"\nSelect an option (1-{len(options)}) and press enter: ")
+            try:
+                choice = int(response) - 1
+                if choice >= 0 and choice < len(options):
+                    directory = options[choice]
+                    if directory == custom:
+                        try:
+                            response = input("\nCustom location: ")
+                            directory = Path(response.strip()).resolve()
+                            try:
+                                directory.relative_to(curdir)
+                                relative = True
+                            except ValueError:
+                                relative = False
+                            if relative:
+                                print("download directory cannot reside in the project directory")
+                                continue
+                        except Exception as e:
+                            pblog.error(str(e))
+                            directory = None
+
+                    if directory:
+                        try:
+                            directory.mkdir(exist_ok=True)
+                            break
+                        except Exception as e:
+                            pblog.error(str(e))
+                            continue
+            except ValueError:
+                pass
+
+            pblog.error(f"Invalid option {response}. Try again:\n")
+        if directory:
+            root = str(directory)
+            pbconfig.get_user_config()["ue4v-user"]["download_dir"] = root
+    return root
 
 
 def get_latest_available_engine_version(bucket_url):
@@ -259,7 +339,7 @@ def get_versionator_gsuri():
 
 @lru_cache()
 def is_versionator_symbols_enabled():
-    symbols = pbconfig.get_user_config().getboolean("ue4v-user", "symbols")
+    symbols = pbconfig.get_user_config().getboolean("ue4v-user", "symbols", fallback=None)
     if symbols is not None:
         return symbols
 
@@ -267,7 +347,7 @@ def is_versionator_symbols_enabled():
         return False
 
     # Symbols configuration variable is not on the file, let's add it
-    response = input("Do you want to download debugging symbols for accurate crash logging? You can change this setting later in the .ue4v-user config file. [y/N]")
+    response = input("Do you want to download debugging symbols for accurate crash logging? You can change this setting later in the .ue4v-user config file. [y/N] ")
     if len(response) > 0 and response[0].lower() == "y":
         pbconfig.get_user_config()["ue4v-user"]["symbols"] = "true"
         return True
@@ -283,7 +363,7 @@ def get_bundle_verification_file(bundle_name):
         return "Engine/Binaries/Win64/UE4Editor."
 
 
-def run_ue4versionator(bundle_name=None, download_symbols=False):
+def download_engine(bundle_name=None, download_symbols=False):
     required_free_gb = 7
     
     if download_symbols:
@@ -292,7 +372,6 @@ def run_ue4versionator(bundle_name=None, download_symbols=False):
     required_free_space = required_free_gb * 1000 * 1000 * 1000
 
     root = get_engine_install_root()
-    # TODO: prompt for root
     if root is not None:
         if not pbconfig.get("is_ci") and os.path.isdir(root):
             total, used, free = disk_usage(root)
@@ -351,7 +430,7 @@ def run_ue4versionator(bundle_name=None, download_symbols=False):
                 patterns.append(f"{bundle_name}-symbols")
             else:
                 patterns.append(f"{bundle_name}")
-            patterns = [pattern + f"-{version}.7z" if legacy_archives else "/" for pattern in patterns]
+            patterns = [f"{pattern}-{version}.7z" if legacy_archives else "/" for pattern in patterns]
             gcs_bucket = get_versionator_gsuri()
             for pattern in patterns:
                 gcs_uri = f"{gcs_bucket}{pattern}"
@@ -360,17 +439,32 @@ def run_ue4versionator(bundle_name=None, download_symbols=False):
 
     # Extract and register with ue4versionator
     # TODO: handle registration
-    command_set = ["ue4versionator.exe"]
+    if False:
+        if os.name == "nt":
+            try:
+                import winreg
+                engine_ver = f"{bundle_name}-{version}"
+                engine_id = f"ue4v:{engine_ver}"
+                with winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, r"SOFTWARE\Epic Games\Unreal Engine\Builds", access=winreg.KEY_SET_VALUE) as key:
+                    # This does not work for some reason.
+                    winreg.SetValueEx(key, engine_id, 0, winreg.REG_SZ, str(os.path.join(root, engine_ver)))
+            except Exception as e:
+                pblog.error(str(e))
+                return False
+        return True
+    else:
+        command_set = ["ue4versionator.exe"]
 
-    command_set.append("-assume-valid")
+        command_set.append("-assume-valid")
 
-    if bundle_name is not None:
-        command_set.append("-bundle")
-        command_set.append(str(bundle_name))
+        if bundle_name is not None:
+            command_set.append("-bundle")
+            command_set.append(str(bundle_name))
 
-    if pbconfig.get("is_ci"):
-        # If we're CI, use another config file
-        command_set.append("-user-config")
-        command_set.append(pbconfig.get_user_config_filename())
+        if pbconfig.get("is_ci"):
+            # If we're CI, use another config file
+            command_set.append("-user-config")
+            command_set.append(pbconfig.get_user_config_filename())
 
-    return subprocess.run(command_set, shell=True).returncode
+        return subprocess.run(command_set, shell=True).returncode == 0
+    return False
