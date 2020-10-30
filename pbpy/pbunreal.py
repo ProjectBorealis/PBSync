@@ -208,11 +208,12 @@ def generate_ddc_data():
                 if not check_ddc_folder_created():
                     pbtools.error_state(
                         "DDC folder doesn't exist. Please get support from #tech-support")
-                    return
                 pblog.info("DDC data successfully generated!")
                 return
+        pbtools.error_state(
+        "Engine installation not found. Please get support from #tech-support")  
     pbtools.error_state(
-        "Error occurred while trying to read project version for DDC data generation. Please get support from #tech-support")
+    "Error occurred while trying to read project version for DDC data generation. Please get support from #tech-support")
 
 
 def clean_old_engine_installations():
@@ -258,33 +259,20 @@ def get_versionator_gsuri():
 
 @lru_cache()
 def is_versionator_symbols_enabled():
-    is_ci = pbconfig.get("is_ci")
-    if not os.path.isfile(pbconfig.get_user_config_filename()):
-        if is_ci:
-            return False
-        else:
-            # Config file somehow isn't generated yet, only get a response, but do not write anything into config
-            response = input(
-                "Do you want to download debugging symbols for accurate crash logging? You can change this setting later in the .ue4v-user config file. [y/n]")
-            if response == "y" or response == "Y":
-                return True
-            else:
-                return False
-
-    symbols = pbconfig.get_user("ue4v-user", "symbols")
+    symbols = pbconfig.get_user_config().getboolean("ue4v-user", "symbols")
     if symbols is not None:
         return symbols
 
-    if is_ci:
+    if pbconfig.get("is_ci"):
         return False
 
     # Symbols configuration variable is not on the file, let's add it
-    response = input("Do you want to download debugging symbols for accurate crash logging? You can change this setting later in the .ue4v-user config file. [y/n]")
-    if response == "y" or response == "Y":
-        pbconfig.get_user_config()["ue4v-user"]["symbols"] = True
+    response = input("Do you want to download debugging symbols for accurate crash logging? You can change this setting later in the .ue4v-user config file. [y/N]")
+    if len(response) > 0 and response[0].lower() == "y":
+        pbconfig.get_user_config()["ue4v-user"]["symbols"] = "true"
         return True
     else:
-        pbconfig.get_user_config()["ue4v-user"]["symbols"] = False
+        pbconfig.get_user_config()["ue4v-user"]["symbols"] = "false"
         return False
 
 
@@ -304,71 +292,76 @@ def run_ue4versionator(bundle_name=None, download_symbols=False):
     required_free_space = required_free_gb * 1000 * 1000 * 1000
 
     root = get_engine_install_root()
-    if root is not None and not pbconfig.get("is_ci"):
-        total, used, free = disk_usage(root)
-
-        if free < required_free_space:
-            pblog.warning("Not enough free space. Cleaning old engine installations before download.")
-            clean_old_engine_installations()
+    # TODO: prompt for root
+    if root is not None:
+        if not pbconfig.get("is_ci") and os.path.isdir(root):
             total, used, free = disk_usage(root)
+
             if free < required_free_space:
-                pblog.error(f"You do not have enough available space to install the engine. Please free up space on f{pathlib.Path(root).anchor}")
-                available_gb = int(free / (1000 * 1000 * 1000))
-                pblog.error(f"Available space: {available_gb}GB")
-                pblog.error(f"Total install size: {required_free_gb}GB")
-                pblog.error(f"Required space: {int((free - required_free_space) / (1000 * 1000 * 1000))}")
-                pbtools.error_state()
+                pblog.warning("Not enough free space. Cleaning old engine installations before download.")
+                clean_old_engine_installations()
+                total, used, free = disk_usage(root)
+                if free < required_free_space:
+                    pblog.error(f"You do not have enough available space to install the engine. Please free up space on f{pathlib.Path(root).anchor}")
+                    available_gb = int(free / (1000 * 1000 * 1000))
+                    pblog.error(f"Available space: {available_gb}GB")
+                    pblog.error(f"Total install size: {required_free_gb}GB")
+                    pblog.error(f"Required space: {int((free - required_free_space) / (1000 * 1000 * 1000))}")
+                    pbtools.error_state()
 
-    verification_file = get_bundle_verification_file(bundle_name)
-    install_root = get_engine_install_root()
-    version = get_engine_version_with_prefix()
-    base_path = pathlib.Path(install_root) / pathlib.Path(version)
-    symbols_path = base_path / pathlib.Path(verification_file + "pdb")
-    needs_symbols = download_symbols and not symbols_path.exists()
-    exe_path = base_path / pathlib.Path(verification_file + "exe")
-    needs_exe = not exe_path.exists()
-    try:
-        legacy_archives = pbconfig.get_user("ue4v-user", "legacy", False) or int(get_engine_version()) <= 20201028
-    except:
-        legacy_archives = True
+        # create install dir if doesn't exist
+        os.makedirs(root, exist_ok=True)
 
-    legacy_archives = False
+        verification_file = get_bundle_verification_file(bundle_name)
+        version = get_engine_version_with_prefix()
+        base_path = pathlib.Path(root) / pathlib.Path(version)
+        symbols_path = base_path / pathlib.Path(verification_file + "pdb")
+        needs_symbols = download_symbols and not symbols_path.exists()
+        exe_path = base_path / pathlib.Path(verification_file + "exe")
+        needs_exe = not exe_path.exists()
+        try:
+            legacy_archives = pbconfig.get_user_config().getboolean("ue4v-user", "legacy", fallback=False) or int(get_engine_version()) <= 20201028
+        except:
+            legacy_archives = True
 
-    if not legacy_archives:
-        pblog.success("Using new remote sync method for engine update.")
+        legacy_archives = False
 
-    if needs_exe or needs_symbols:
-        # Use gsutil to download the files efficiently
-        if (gslib.utils.parallelism_framework_util.CheckMultiprocessingAvailableAndInit().is_available):
-            # These setup methods must be called, and, on Windows, they can only be
-            # called from within an "if __name__ == '__main__':" block.
-            gslib.command.InitializeMultiprocessingVariables()
-            gslib.boto_translation.InitializeMultiprocessingVariables()
-        else:
-            gslib.command.InitializeThreadingVariables()
-        command_runner = CommandRunner(command_map={
-            "cp": CpCommand,
-            "rs": RsyncCommand
-        })
-        patterns = []
-        if needs_exe and needs_symbols:
-            if legacy_archives:
-                patterns.append(f"{bundle_name}*")
+        if not legacy_archives:
+            pblog.success("Using new remote sync method for engine update.")
+
+        if needs_exe or needs_symbols:
+            # Use gsutil to download the files efficiently
+            if (gslib.utils.parallelism_framework_util.CheckMultiprocessingAvailableAndInit().is_available):
+                # These setup methods must be called, and, on Windows, they can only be
+                # called from within an "if __name__ == '__main__':" block.
+                gslib.command.InitializeMultiprocessingVariables()
+                gslib.boto_translation.InitializeMultiprocessingVariables()
+            else:
+                gslib.command.InitializeThreadingVariables()
+            command_runner = CommandRunner(command_map={
+                "cp": CpCommand,
+                "rs": RsyncCommand
+            })
+            patterns = []
+            if needs_exe and needs_symbols:
+                if legacy_archives:
+                    patterns.append(f"{bundle_name}*")
+                else:
+                    patterns.append(f"{bundle_name}")
+                    patterns.append(f"{bundle_name}-symbols")
+            elif needs_symbols:
+                patterns.append(f"{bundle_name}-symbols")
             else:
                 patterns.append(f"{bundle_name}")
-                patterns.append(f"{bundle_name}-symbols")
-        elif needs_symbols:
-            patterns.append(f"{bundle_name}-symbols")
-        else:
-            patterns.append(f"{bundle_name}")
-        patterns = [pattern + f"-{version}.7z" if legacy_archives else "/" for pattern in patterns]
-        gcs_bucket = get_versionator_gsuri()
-        for pattern in patterns:
-            gcs_uri = f"{gcs_bucket}{pattern}"
-            dst = f"file://{install_root}"
-            command_runner.RunNamedCommand('cp' if legacy_archives else 'rs', args=["-n", gcs_uri, dst], collect_analytics=False, parallel_operations=True)
+            patterns = [pattern + f"-{version}.7z" if legacy_archives else "/" for pattern in patterns]
+            gcs_bucket = get_versionator_gsuri()
+            for pattern in patterns:
+                gcs_uri = f"{gcs_bucket}{pattern}"
+                dst = f"file://{root}"
+                command_runner.RunNamedCommand('cp' if legacy_archives else 'rs', args=["-n", gcs_uri, dst], collect_analytics=False, parallel_operations=True)
 
     # Extract and register with ue4versionator
+    # TODO: handle registration
     command_set = ["ue4versionator.exe"]
 
     command_set.append("-assume-valid")
