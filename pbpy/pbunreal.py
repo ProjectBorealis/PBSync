@@ -399,9 +399,11 @@ def download_engine(bundle_name=None, download_symbols=False):
         exe_path = base_path / pathlib.Path(verification_file + "exe")
         needs_exe = not exe_path.exists()
         try:
-            legacy_archives = pbconfig.get_user_config().getboolean("ue4v-user", "legacy", fallback=False) or int(get_engine_version()) <= 20201029
+            legacy_archives = pbconfig.get_user_config().getboolean("ue4v-user", "legacy", fallback=False) or int(get_engine_version()) <= 20201030
         except:
             legacy_archives = True
+
+        legacy_archives = True
 
         if not legacy_archives:
             pblog.success("Using new remote sync method for engine update.")
