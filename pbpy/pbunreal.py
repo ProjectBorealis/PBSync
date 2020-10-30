@@ -324,8 +324,6 @@ def run_ue4versionator(bundle_name=None, download_symbols=False):
         except:
             legacy_archives = True
 
-        legacy_archives = False
-
         if not legacy_archives:
             pblog.success("Using new remote sync method for engine update.")
 
