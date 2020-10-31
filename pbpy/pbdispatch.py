@@ -1,7 +1,7 @@
 import os
 import subprocess
 
-from pbpy import pblog, pbtools
+from pbpy import pblog, pbtools, pbconfig
 
 default_drm_exec_name = "ProjectBorealis.exe"
 exec_max_allowed_size = 104857600 # 100mb
@@ -12,25 +12,25 @@ exec_max_allowed_size = 104857600 # 100mb
 
 
 def push_build(branch_type, dispath_exec_path, dispatch_config, dispatch_stagedir, dispatch_apply_drm_path):
-    # Test if our environment variables exist
-    app_id = os.environ.get('DISPATCH_APP_ID')
+    # Test if our configuration values exist
+    app_id = pbconfig.get_user('dispatch', 'app_id')
     if app_id is None or app_id == "":
-        pblog.error("DISPATCH_APP_ID was not defined in the system environment.")
+        pblog.error("dispatch.app_id was not configured.")
         return False
 
     if branch_type == "internal":
-        branch_id_env = 'DISPATCH_INTERNAL_BID'
+        branch_id_key = 'internal_bid'
     elif branch_type == "playtester":
-        branch_id_env = 'DISPATCH_PLAYTESTER_BID'
+        branch_id_key = 'playtester_bid'
         pblog.error("Playtester builds are not allowed at the moment.")
         return False
     else:
         pblog.error("Unknown Dispatch branch type specified.")
         return False
 
-    branch_id = os.environ.get(branch_id_env)
+    branch_id = pbconfig.get_user('dispatch', branch_id_key)
     if branch_id is None or branch_id == "":
-        pblog.error(f"{branch_id_env} was not defined in the system environment.")
+        pblog.error(f"{branch_id_key} was not configured.")
         return False
 
     executable_path = None

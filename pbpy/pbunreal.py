@@ -28,7 +28,7 @@ uproject_version_key = "EngineAssociation"
 project_version_key = "ProjectVersion="
 ddc_folder_name = "DerivedDataCache"
 ue4_editor_relative_path = "Engine/Binaries/Win64/UE4Editor.exe"
-engine_installation_folder_regex = "[0-9].[0-9]{2}-PB-[0-9]{8}"
+engine_installation_folder_regex = r"[0-9].[0-9]{2}.*-PB-[0-9]{8}"
 engine_version_prefix = "PB"
 
 
@@ -159,15 +159,17 @@ def get_engine_install_root():
 
         if pbconfig.get("is_ci"):
             if os.name == "nt":
-                return curdir.anchor
+                directory = (Path(curdir.anchor) / "ue4").resolve()
             else:
-                return curdir.parent
+                directory = (curdir.parent / "ue4").resolve()
+            directory.mkdir(exist_ok=True)
+            return str(directory)
 
         print("======================================================================")
         print("| A custom UE4 engine build needs to be downloaded for this project. |")
         print("|  These builds can be quite large. Lots of disk space is required.  |")
         print("======================================================================\n")
-        print(f"Project path: {curdir}\n")
+        print(f">>>>> Project path: {curdir}\n")
         print("Which directory should these engine downloads be stored in?\n")
 
         options = []
@@ -226,7 +228,7 @@ def get_engine_install_root():
                             pblog.error(str(e))
                             continue
             except ValueError:
-                pass
+                print("\n")
 
             pblog.error(f"Invalid option {response}. Try again:\n")
         if directory:
@@ -296,14 +298,15 @@ def generate_ddc_data():
     "Error occurred while trying to read project version for DDC data generation. Please get support from #tech-support")
 
 
-def clean_old_engine_installations():
+def clean_old_engine_installations(keep=1):
     current_version = get_engine_version_with_prefix()
     p = re.compile(engine_installation_folder_regex)
     if current_version is not None:
         engine_install_root = get_engine_install_root()
         if engine_install_root is not None and os.path.isdir(engine_install_root):
             folders = os.listdir(engine_install_root)
-            for folder in folders:
+            for i in range(0, len(folders) - keep):
+                folder = folders[i]
                 # Do not remove folders if they do not match with installation folder name pattern
                 # Also do not remove files. Only remove folders
                 full_path = os.path.join(engine_install_root, folder)

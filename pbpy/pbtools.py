@@ -194,7 +194,7 @@ def remove_file(file_path):
     return not os.path.isfile(file_path)
 
 
-def error_state(msg=None, fatal_error=False, hush=False):
+def error_state(msg=None, fatal_error=False, hush=False, term=False):
     if msg is not None:
         pblog.error(msg)
     if fatal_error:
@@ -203,7 +203,8 @@ def error_state(msg=None, fatal_error=False, hush=False):
             error_state_file.write("1")
     if not hush:
         pblog.info(f"Logs are saved in {pbconfig.get('log_file_path')}.")
-    pbconfig.shutdown()
+    if not term:
+        pbconfig.shutdown()
     sys.exit(1)
 
 

@@ -38,12 +38,14 @@ def get_user_config():
     return user_config
 
 def get_user(section, key, default=None):
-    return get_user_config().get(section, key, fallback=default)
+    val = get_user_config().get(section, key, fallback=default)
+    return os.getenv(val) if get("is_ci") else val
 
 
 def shutdown():
-    with open(get_user_config_filename(), 'w') as user_config_file:
-        get_user_config().write(user_config_file)
+    if not get("is_ci"):
+        with open(get_user_config_filename(), 'w') as user_config_file:
+            get_user_config().write(user_config_file)
 
 
 def generate_config(config_path, parser_func):
@@ -66,7 +68,7 @@ def generate_config(config_path, parser_func):
             return False
 
         # Add CI information
-        is_ci = os.environ.get('PBSYNC_CI', None) is not None
+        is_ci = os.getenv('PBSYNC_CI') is not None
 
         config["is_ci"] = is_ci
 

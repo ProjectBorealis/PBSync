@@ -347,7 +347,7 @@ def main(argv):
         pblog.error("At least one valid argument should be passed!")
         pblog.error("Did you mean to launch UpdateProject.bat?")
         input("Press enter to continue...")
-        pbtools.error_state(hush=True)
+        pbtools.error_state(hush=True, term=True)
 
     if not (args.debugpath is None):
         # Work on provided debug path
