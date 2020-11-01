@@ -322,7 +322,7 @@ def main(argv):
     parser = argparse.ArgumentParser(description=f"Project Borealis Workspace Synchronization Tool | PBpy Library Version: {pbpy_version.ver} | PBSync Program Version: {pbsync_version.ver}")
 
     parser.add_argument("--sync", help="Main command for the PBSync, synchronizes the project with latest changes from the repo, and does some housekeeping",
-                        choices=["all", "binaries", "engineversion", "engine", "force", "ddc"])
+                        choices=["all", "partial", "binaries", "engineversion", "engine", "force", "ddc"])
     parser.add_argument("--printversion", help="Prints requested version information into console.",
                         choices=["current-engine", "latest-engine", "project"])
     parser.add_argument(
