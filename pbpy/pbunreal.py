@@ -467,9 +467,9 @@ def download_engine(bundle_name=None, download_symbols=False):
             command_set.append(str(bundle_name))
 
         if pbconfig.get("is_ci"):
-            # If we're CI, use another config file
-            command_set.append("-user-config")
-            command_set.append(pbconfig.get_user_config_filename())
+            # If we're CI, write our environment variable to user config
+            with open(pbconfig.get('ue4v_user_config'), 'w') as user_config_file:
+                pbconfig.get_user_config().write(user_config_file)
 
         return subprocess.run(command_set, shell=True).returncode == 0
     return False
