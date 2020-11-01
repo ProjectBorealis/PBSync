@@ -219,10 +219,9 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             pbtools.error_state(".uproject extension is not correctly set into Unreal Engine. Make sure you have Epic Games Launcher installed. If problem still persists, please get help in #tech-support.")
 
     elif sync_val == "engineversion":
+        repository_val = pbunreal.get_versionator_gsuri(repository_val)
         if repository_val is None:
-            repository_val = pbunreal.get_versionator_gsuri()
-            if repository_val is None:
-                 pbtools.error_state("--repository <URL> argument should be provided with --sync engine command")
+                pbtools.error_state("--repository <URL> argument should be provided with --sync engine command")
         engine_version = pbunreal.get_latest_available_engine_version(str(repository_val))
         if engine_version is None:
             pbtools.error_state("Error while trying to fetch latest engine version")
@@ -273,10 +272,9 @@ def clean_handler(clean_val):
 
 def printversion_handler(print_val, repository_val=None):
     if print_val == "latest-engine":
+        repository_val = pbunreal.get_versionator_gsuri(repository_val)
         if repository_val is None:
-            repository_val = pbunreal.get_versionator_gsuri()
-            if repository_val is None:
-                pbtools.error_state("--repository <URL> argument should be provided with --print latest-engine command")
+            pbtools.error_state("--repository <URL> argument should be provided with --print latest-engine command")
         engine_version = pbunreal.get_latest_available_engine_version(str(repository_val))
         if engine_version is None:
             pbtools.error_state("Could not find latest engine version.")

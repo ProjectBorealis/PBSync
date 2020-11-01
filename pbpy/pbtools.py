@@ -139,7 +139,7 @@ def get_dict_from_json(json_file_path):
             json_text = json_file.read()
             return json.loads(json_text)
     except Exception as e:
-        pblog.error(str(e))
+        pblog.exception(str(e))
         return None
 
 
@@ -259,7 +259,7 @@ def maintain_repo():
         if (os.path.exists(commit_graph_lock)):
             os.remove(commit_graph_lock)
     except Exception as e:
-        pblog.error(e)
+        pblog.exception(str(e))
 
     commands = [
         f"{pbgit.get_git_executable()} commit-graph write --split --size-multiple=4 --reachable --changed-paths --expire-time={expire_date}",

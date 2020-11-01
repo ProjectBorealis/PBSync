@@ -14,6 +14,7 @@ import os
 import json
 import glob
 import pathlib
+import configparser
 import gslib
 
 from pbpy import pbconfig
@@ -217,7 +218,7 @@ def get_engine_install_root():
                                 print("download directory cannot reside in the project directory")
                                 continue
                         except Exception as e:
-                            pblog.error(str(e))
+                            pblog.exception(str(e))
                             directory = None
 
                     if directory:
@@ -225,7 +226,7 @@ def get_engine_install_root():
                             directory.mkdir(exist_ok=True)
                             break
                         except Exception as e:
-                            pblog.error(str(e))
+                            pblog.exception(str(e))
                             continue
             except ValueError:
                 print("\n")
@@ -324,17 +325,14 @@ def clean_old_engine_installations(keep=1):
 
 
 @lru_cache()
-def get_versionator_gsuri():
+def get_versionator_gsuri(fallback=None):
     try:
-        with open('.ue4versionator') as config_file:
-            for ln in config_file:
-                if "baseurl" in ln:
-                    ln = ln.rstrip()
-                    config_map = ln.split(" = ")
-                    if len(config_map) == 2:
-                        baseurl = config_map[1]
-                        domain = urlparse(baseurl).hostname
-                        return f"gs://{domain}/"
+        ue4v_config = configparser.ConfigParser()
+        ue4v_config.read(".ue4versionator")
+        baseurl = ue4v_config.get("ue4versionator", "baseurl", fallback=fallback)
+        if baseurl:
+            domain = urlparse(baseurl).hostname
+            return f"gs://{domain}/"
     except Exception as e:
         pblog.exception(str(e))
     return None
@@ -454,7 +452,7 @@ def download_engine(bundle_name=None, download_symbols=False):
                     # This does not work for some reason.
                     winreg.SetValueEx(key, engine_id, 0, winreg.REG_SZ, str(os.path.join(root, engine_ver)))
             except Exception as e:
-                pblog.error(str(e))
+                pblog.exception(str(e))
                 return False
         return True
     else:
