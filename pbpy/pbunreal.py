@@ -471,7 +471,11 @@ def download_engine(bundle_name=None, download_symbols=False):
             user_config = pbconfig.get_user_config()
             for section in user_config.sections():
                 for key in list(user_config[section].keys()):
-                    user_config[section][key] = pbconfig.get_user(section, key)
+                    val = pbconfig.get_user(section, key)
+                    if val:
+                        user_config[section][key] = val
+                    else:
+                        user_config.remove_option(section, key)
             with open(pbconfig.get('ue4v_user_config'), 'w') as user_config_file:
                 pbconfig.get_user_config().write(user_config_file)
 
