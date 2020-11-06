@@ -39,7 +39,9 @@ def get_user_config():
 
 def get_user(section, key, default=None):
     val = get_user_config().get(section, key, fallback=default)
-    return os.getenv(val) if get("is_ci") else val
+    if get("is_ci") and val != default:
+        return os.getenv(val)
+    return val
 
 
 def shutdown():
