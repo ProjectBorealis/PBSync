@@ -372,6 +372,8 @@ def download_engine(bundle_name=None, download_symbols=False):
 
     required_free_space = required_free_gb * 1000 * 1000 * 1000
 
+    is_ci = pbconfig.get("is_ci")
+
     root = get_engine_install_root()
     if root is not None:
         if not pbconfig.get("is_ci") and os.path.isdir(root):
@@ -438,7 +440,7 @@ def download_engine(bundle_name=None, download_symbols=False):
             for pattern in patterns:
                 gcs_uri = f"{gcs_bucket}{pattern}"
                 dst = f"file://{root}"
-                command_runner.RunNamedCommand('cp' if legacy_archives else 'rs', args=["-n", gcs_uri, dst], collect_analytics=False, parallel_operations=True)
+                command_runner.RunNamedCommand('cp' if legacy_archives else 'rs', args=["-n", gcs_uri, dst], collect_analytics=False, skip_update_check=True, parallel_operations=not is_ci and not (needs_exe and needs_symbols))
 
     # Extract and register with ue4versionator
     # TODO: handle registration
@@ -464,7 +466,7 @@ def download_engine(bundle_name=None, download_symbols=False):
             command_set.append("-bundle")
             command_set.append(str(bundle_name))
 
-        if pbconfig.get("is_ci"):
+        if is_ci:
             # If we're CI, write our environment variable to user config
             with open(pbconfig.get('ue4v_user_config'), 'w') as user_config_file:
                 pbconfig.get_user_config().write(user_config_file)
