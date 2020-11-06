@@ -468,6 +468,10 @@ def download_engine(bundle_name=None, download_symbols=False):
 
         if is_ci:
             # If we're CI, write our environment variable to user config
+            user_config = pbconfig.get_user_config()
+            for section in user_config.sections():
+                for key in list(section[section].keys()):
+                    user_config[section][key] = pbconfig.get_user(section, key)
             with open(pbconfig.get('ue4v_user_config'), 'w') as user_config_file:
                 pbconfig.get_user_config().write(user_config_file)
 
