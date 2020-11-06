@@ -440,7 +440,7 @@ def download_engine(bundle_name=None, download_symbols=False):
             for pattern in patterns:
                 gcs_uri = f"{gcs_bucket}{pattern}"
                 dst = f"file://{root}"
-                command_runner.RunNamedCommand('cp' if legacy_archives else 'rs', args=["-n", gcs_uri, dst], collect_analytics=False, skip_update_check=True, parallel_operations=not is_ci and not (needs_exe and needs_symbols))
+                command_runner.RunNamedCommand('cp' if legacy_archives else 'rs', args=["-n", gcs_uri, dst], collect_analytics=False, skip_update_check=True, parallel_operations=not (needs_exe and needs_symbols))
 
     # Extract and register with ue4versionator
     # TODO: handle registration
