@@ -141,19 +141,29 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
         partial_sync = sync_val == "partial"
 
+        status_out = pbtools.run_with_combined_output([pbgit.get_git_executable(), "status", "-uno"])
+        # continue a trivial rebase
+        if "rebase" in status_out:
+            if "nothing to commit" in status_out:
+                pbtools.run([pbgit.get_git_executable(), "rebase", "--continue"])
+            else:
+                pbtools.error_state("You are in the middle of a rebase. Changes on one of your commits will be overridden by incoming changes. Please request help in #tech-support to resolve conflicts, and please do not run UpdateProject.bat until the issue is resolved.",
+                                    fatal_error=True)
+
         current_branch = pbgit.get_current_branch_name()
+        expected_branch = pbconfig.get('expected_branch_name')
+        is_on_expected_branch = current_branch == expected_branch
         # repo was already fetched in UpdateProject.bat
-        if not partial_sync and current_branch != "promoted":
+        if not partial_sync and is_on_expected_branch:
             pblog.info("Fetching recent changes on the repository...")
             fetch_base = [pbgit.get_git_executable(), "fetch", "origin"]
-            branches = {"promoted", "master", "trunk", current_branch}
+            branches = {expected_branch, "master", "trunk", current_branch}
             fetch_base.extend(branches)
             pbtools.get_combined_output(fetch_base)
 
             pblog.info("------------------")
 
         # Execute synchronization part of script if we're on the expected branch, or force sync is enabled
-        is_on_expected_branch = pbgit.compare_with_current_branch_name(pbconfig.get('expected_branch_name'))
         if sync_val == "force" or is_on_expected_branch:
             if partial_sync:
                 pbtools.maintain_repo()
