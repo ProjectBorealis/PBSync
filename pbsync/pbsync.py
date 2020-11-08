@@ -141,7 +141,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
         partial_sync = sync_val == "partial"
 
-        status_out = pbtools.run_with_combined_output([pbgit.get_git_executable(), "status", "-uno"])
+        status_out = pbtools.run_with_combined_output([pbgit.get_git_executable(), "status", "-uno"]).stdout
         # continue a trivial rebase
         if "rebase" in status_out:
             if "nothing to commit" in status_out:
