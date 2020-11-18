@@ -425,6 +425,7 @@ def download_engine(bundle_name=None, download_symbols=False):
                 "rs": RsyncCommand
             })
             patterns = []
+            needs_exe = False
             if needs_exe and needs_symbols:
                 if legacy_archives:
                     patterns.append(f"{bundle_name}*")
@@ -440,7 +441,7 @@ def download_engine(bundle_name=None, download_symbols=False):
             for pattern in patterns:
                 gcs_uri = f"{gcs_bucket}{pattern}"
                 dst = f"file://{root}"
-                command_runner.RunNamedCommand('cp' if legacy_archives else 'rs', args=["-n", gcs_uri, dst], collect_analytics=False, skip_update_check=True, parallel_operations=not (needs_exe and needs_symbols))
+                command_runner.RunNamedCommand('cp' if legacy_archives else 'rs', args=["-n", gcs_uri, dst], collect_analytics=False, skip_update_check=True, parallel_operations=needs_exe and needs_symbols)
 
     # Extract and register with ue4versionator
     # TODO: handle registration
