@@ -425,7 +425,6 @@ def download_engine(bundle_name=None, download_symbols=False):
                 "rs": RsyncCommand
             })
             patterns = []
-            needs_exe = False
             if needs_exe and needs_symbols:
                 if legacy_archives:
                     patterns.append(f"{bundle_name}*")
