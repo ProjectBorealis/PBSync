@@ -1,11 +1,12 @@
 from pbpy.pbtools import error_state
-import subprocess
 import os.path
 import os
 import pathlib
 import sys
 import argparse
 import webbrowser
+import pathlib
+import stat
 
 from pbpy import pblog
 from pbpy import pbhub
@@ -326,6 +327,49 @@ def push_handler(file_name):
         pbtools.error_state(f"Error occurred while pushing package for release {project_version}")
 
 
+def migrate_handler(commit, glob):
+    # We only want to track the files we deleted and added in Content, with no renames.
+    deletions = pbtools.get_combined_output([pbgit.get_git_executable(), "-c", "diff.renameLimit=1000", "--no-pager", "diff", "--name-only", "--diff-filter=D", "--no-renames", f"{commit}~..{commit}", "--", "Content"]).splitlines()
+    additions = pbtools.get_combined_output([pbgit.get_git_executable(), "-c", "diff.renameLimit=1000", "--no-pager", "diff", "--name-only", "--diff-filter=A", "--no-renames", f"{commit}~..{commit}", "--", "Content"]).splitlines()
+    # group by basename
+    moves = []
+    for orig in deletions:
+        basename = orig.rsplit("/", 1)[1]
+        dest = None
+        for i, d in enumerate(additions):
+            if basename in d:
+                # we found a match!
+                dest = d
+                # can't be matched again
+                del additions[i]
+                break
+        # if we found a match, store it, else, forget about the deletion.
+        if dest:
+            orig = orig.replace("Content/", "Game/", 1)
+            orig = orig.rsplit(".", 1)[0]
+            dest = dest.replace("Content/", "Game/", 1)
+            dest = dest.rsplit(".", 1)[0]
+            moves.append((orig, dest))
+    content_dir = (pathlib.Path().resolve() / "Content").resolve()
+    if len(moves) < 1:
+        return
+    for asset in content_dir.rglob(glob):
+        os.chmod( str(asset), stat.S_IWRITE )
+        with asset.open('rb+') as f:
+            content = f.read()
+            content_orig = bytes(content)
+            for pair in moves:
+                orig, dest = pair
+                orig = orig.encode('ascii')
+                dest = dest.encode('ascii')
+                content = content.replace(orig, dest)
+            if content != content_orig:
+                f.seek(0)
+                f.write(content)
+                f.truncate()
+
+
+
 def main(argv):
     parser = argparse.ArgumentParser(description=f"Project Borealis Workspace Synchronization Tool | PBpy Library Version: {pbpy_version.ver} | PBSync Program Version: {pbsync_version.ver}")
 
@@ -352,6 +396,10 @@ def main(argv):
         "--debugpath", help="If provided, PBSync will run in provided path")
     parser.add_argument(
         "--debugbranch", help="If provided, PBSync will use provided branch as expected branch")
+    parser.add_argument(
+        "--migrate", help="Specifies that you want to manually migrate Unreal assets based on the moves in the specified commit.")
+    parser.add_argument(
+        "--migrate_glob", help="Optional recursive glob filter to choose assets which will be migrated.", default="*.uasset")
 
     if len(argv) > 0:
         args = parser.parse_args(argv)
@@ -409,6 +457,8 @@ def main(argv):
         publish_handler(args.publish, args.dispatch)
     elif not (args.push is None):
         push_handler(args.push)
+    elif not (args.migrate is None):
+        migrate_handler(args.migrate, args.migrate_glob)
     else:
         pblog.error("At least one valid argument should be passed!")
         pblog.error("Did you mean to launch UpdateProject.bat?")

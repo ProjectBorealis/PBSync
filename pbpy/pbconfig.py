@@ -1,5 +1,4 @@
 import os
-import sys
 import configparser
 from xml.etree.ElementTree import parse
 from functools import lru_cache

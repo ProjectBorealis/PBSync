@@ -1,4 +1,3 @@
-import subprocess
 import os.path
 import os
 import shutil

@@ -25,7 +25,6 @@ https://gist.github.com/sylvainpelissier/ff072a6759082590a4fe8f7e070a4952
 import sys
 import os
 import traceback
-import types
 
 def isUserAdmin():
     """@return: True if the current user is an 'Admin' whatever that
@@ -67,7 +66,7 @@ def runAsAdmin(cmdLine=None, wait=True):
     if os.name != 'nt':
         raise RuntimeError("This function is only implemented on Windows.")
     
-    import win32api, win32con, win32event, win32process, pywintypes
+    import win32con, win32event, win32process, pywintypes
     from win32com.shell.shell import ShellExecuteEx
     from win32com.shell import shellcon
     
@@ -80,7 +79,7 @@ def runAsAdmin(cmdLine=None, wait=True):
     cmd = '"%s"' % (cmdLine[0],)
     # XXX TODO: isn't there a function or something we can call to massage command line params?
     params = " ".join(['%s' % (x,) for x in cmdLine[1:]])
-    cmdDir = ''
+    # cmdDir = ''
     showCmd = win32con.SW_SHOWNORMAL
     lpVerb = 'runas'  # causes UAC elevation prompt.
     
@@ -102,8 +101,8 @@ def runAsAdmin(cmdLine=None, wait=True):
         raise OSError
 
     if wait:
-        procHandle = procInfo['hProcess']    
-        obj = win32event.WaitForSingleObject(procHandle, win32event.INFINITE)
+        procHandle = procInfo['hProcess']
+        win32event.WaitForSingleObject(procHandle, win32event.INFINITE)
         rc = win32process.GetExitCodeProcess(procHandle)
     else:
         rc = None

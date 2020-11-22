@@ -46,6 +46,17 @@
             "default": "editor",
             "options": ["editor", "ciengine"],
             "type": "pickString"
+        },
+        {
+            "id": "commit",
+            "description": "Commit contains moves to migrate assets using",
+            "type": "promptString"
+        },
+        {
+            "id": "glob",
+            "description": "Glob filter to choose assets being migrated",
+            "default": "*.uasset",
+            "type": "promptString"
         }
     ],
     "configurations": [
@@ -133,6 +144,14 @@
         {
             "name": "Publish Dispatch Build",
             "args": ["--publish", "${input:publishSelection}", "--dispatch", "${input:dispatchPath}", "--debugpath", "${input:debugPath}"],
+            "type": "python",
+            "request": "launch",
+            "program": "pbsync/pbsync.py",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Migrate Assets",
+            "args": ["--migrate", "${input:commit}", "--migrate_glob", "${input:glob}", "--debugpath", "${input:debugPath}"],
             "type": "python",
             "request": "launch",
             "program": "pbsync/pbsync.py",

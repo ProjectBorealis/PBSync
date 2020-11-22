@@ -1,5 +1,4 @@
 import os
-import subprocess
 
 from pbpy import pblog, pbtools, pbconfig
 
