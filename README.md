@@ -24,4 +24,4 @@ List of available commands can be printed to console by passing `--help` to gene
 
 ## Contribution
 
-Everyone is welcomed to fork the repository, or open pull requests & new issues in this main repository.
+Everyone is welcomed to fork the repository, or open pull requests and new issues in this main repository.

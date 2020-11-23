@@ -56,7 +56,7 @@ def push_build(branch_type, dispath_exec_path, dispatch_config, dispatch_stagedi
         if result != 0:
             return False
 
-    # Push & Publish the build
+    # Push and Publish the build
     proc = pbtools.run_with_combined_output([dispath_exec_path, "build", "push", branch_id, dispatch_config, dispatch_stagedir, "-p"])
     pblog.info(proc.stdout)
     result = proc.returncode

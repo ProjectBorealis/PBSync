@@ -38,7 +38,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         remote_state, remote_url = pbgit.check_remote_connection()
         if not remote_state:
             pbtools.error_state(
-                f"Remote connection was not successful. Please verify that you have a valid git remote URL & internet connection. Current git remote URL: {remote_url}")
+                f"Remote connection was not successful. Please verify that you have a valid git remote URL and internet connection. Current git remote URL: {remote_url}")
         else:
             pblog.info("Remote connection is up")
 
@@ -148,13 +148,13 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             if "nothing to commit" in status_out:
                 pbtools.run([pbgit.get_git_executable(), "rebase", "--continue"])
             else:
-                pbtools.error_state("You are in the middle of a rebase. Changes on one of your commits will be overridden by incoming changes. Please request help in #tech-support to resolve conflicts, and please do not run UpdateProject.bat until the issue is resolved.",
+                pbtools.error_state("You are in the middle of a rebase. Changes on one of your commits will be overridden by incoming changes. Please request help in #tech-support to resolve conflicts, and please do not run UpdateProject until the issue is resolved.",
                                     fatal_error=True)
 
         current_branch = pbgit.get_current_branch_name()
         expected_branch = pbconfig.get('expected_branch_name')
         is_on_expected_branch = current_branch == expected_branch
-        # repo was already fetched in UpdateProject.bat
+        # repo was already fetched in UpdateProject
         if not partial_sync and is_on_expected_branch:
             pblog.info("Fetching recent changes on the repository...")
             fetch_base = [pbgit.get_git_executable(), "fetch", "origin"]
@@ -187,7 +187,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                 elif ret < 0:
                     pbtools.error_state("Binaries pull failed, please view log for instructions.")
                 elif ret > 0:
-                    pbtools.error_state("An error occurred while pulling binaries. Please request help in #tech-support to resolve it, and please do not run UpdateProject.bat until the issue is resolved.", True)
+                    pbtools.error_state("An error occurred while pulling binaries. Please request help in #tech-support to resolve it, and please do not run UpdateProject until the issue is resolved.", True)
             else:
                 pblog.info("Binaries are up-to-date")
         else:
@@ -247,12 +247,12 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         project_version = pbunreal.get_project_version()
         ret = pbhub.pull_binaries(project_version, True)
         if ret == 0:
-            pblog.info(f"Binaries for {project_version} pulled & extracted successfully")
+            pblog.info(f"Binaries for {project_version} pulled and extracted successfully")
         else:
             pbtools.error_state(f"Failed to pull binaries for {project_version}")
 
     elif sync_val == "engine":
-        # Pull engine build with ue4versionator & register it
+        # Pull engine build with ue4versionator and register it
         if requested_bundle_name is None:
             requested_bundle_name = pbconfig.get("ue4v_default_bundle")
 
@@ -405,7 +405,7 @@ def main(argv):
         args = parser.parse_args(argv)
     else:
         pblog.error("At least one valid argument should be passed!")
-        pblog.error("Did you mean to launch UpdateProject.bat?")
+        pblog.error("Did you mean to launch UpdateProject?")
         input("Press enter to continue...")
         pbtools.error_state(hush=True, term=True)
 
@@ -441,8 +441,8 @@ def main(argv):
     # Do not process further if we're in an error state
     if pbtools.check_error_state():
         pbtools.error_state(f"""Repository is currently in an error state. Please fix the issues in your workspace 
-        before running PBSync.\nIf you have already fixed the problem, you may remove {pbtools.error_file} from your project folder & 
-        run StartProject bat file again.""", True)
+        before running PBSync.\nIf you have already fixed the problem, you may remove {pbtools.error_file} from your project folder and 
+        run UpdateProject again.""", True)
 
     # Parse args
     if not (args.sync is None):
@@ -461,7 +461,7 @@ def main(argv):
         migrate_handler(args.migrate, args.migrate_glob)
     else:
         pblog.error("At least one valid argument should be passed!")
-        pblog.error("Did you mean to launch UpdateProject.bat?")
+        pblog.error("Did you mean to launch UpdateProject?")
         input("Press enter to continue...")
         pbtools.error_state(hush=True)
 

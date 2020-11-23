@@ -59,7 +59,7 @@ def pull_binaries(version_number: str, pass_checksum=False):
             pblog.error(f"Failed to find release tag {version_number}. Please wait and try again later.")
             return -1
         elif "The file exists" in output:
-            pblog.error(f"File {binary_package_name} was not able to be overwritten. Please remove it manually and run StartProject again.")
+            pblog.error(f"File {binary_package_name} was not able to be overwritten. Please remove it manually and run UpdateProject again.")
             return -1
         elif "did not match any available assets" in output:
             pblog.error("Binaries for release {version_number} are not pushed into GitHub yet. Please wait and try again later.")

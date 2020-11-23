@@ -71,14 +71,14 @@ def stash_pop():
 
     if "auto-merging" in lower_case_output and "conflict" in lower_case_output and "should have been pointers" in lower_case_output:
         pbtools.error_state("""git stash pop failed. Some of your stashed local changes would be overwritten by incoming changes.
-        Request help in #tech-support to resolve conflicts, and please do not run UpdateProject.bat until the issue is resolved.""", True)
+        Request help in #tech-support to resolve conflicts, and please do not run UpdateProject until the issue is resolved.""", True)
     elif "dropped refs" in lower_case_output:
         return
     elif "no stash entries found" in lower_case_output:
         return
     else:
         pbtools.error_state("""git stash pop failed due to an unknown error. Request help in #tech-support to resolve possible conflicts, 
-        and please do not run UpdateProject.bat until the issue is resolved.""", True)
+        and please do not run UpdateProject until the issue is resolved.""", True)
 
 
 def check_remote_connection():
