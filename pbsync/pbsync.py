@@ -155,7 +155,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         expected_branch = pbconfig.get('expected_branch_name')
         is_on_expected_branch = current_branch == expected_branch
         # repo was already fetched in UpdateProject
-        if not partial_sync and is_on_expected_branch:
+        if not partial_sync and not is_on_expected_branch:
             pblog.info("Fetching recent changes on the repository...")
             fetch_base = [pbgit.get_git_executable(), "fetch", "origin"]
             branches = {expected_branch, "master", "trunk", current_branch}

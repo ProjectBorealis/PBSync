@@ -21,16 +21,28 @@ error_file = ".pbsync_err"
 watchman_exec_name = "watchman.exe"
 
 
-def run(cmd):
-    return subprocess.run(cmd, shell=True)
+def run(cmd, env=None):
+    if env is None:
+        env = os.environ
+    else:
+        env = os.environ | env
+    return subprocess.run(cmd, shell=True, env=env)
 
 
-def run_with_output(cmd):
-    return subprocess.run(cmd, capture_output=True, text=True, shell=True)
+def run_with_output(cmd, env=None):
+    if env is None:
+        env = os.environ
+    else:
+        env = os.environ | env
+    return subprocess.run(cmd, capture_output=True, text=True, shell=True, env=env)
 
 
-def run_with_combined_output(cmd):
-    return subprocess.run(cmd, text=True, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+def run_with_combined_output(cmd, env=None):
+    if env is None:
+        env = os.environ
+    else:
+        env = os.environ | env
+    return subprocess.run(cmd, text=True, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
 
 
 def run_non_blocking(*commands):
@@ -43,12 +55,12 @@ def run_non_blocking(*commands):
         subprocess.Popen(cmdline, shell=True)
 
 
-def get_combined_output(cmd):
-    return run_with_combined_output(cmd).stdout
+def get_combined_output(cmd, env=None):
+    return run_with_combined_output(cmd, env=env).stdout
 
 
-def get_one_line_output(cmd):
-    return run_with_output(cmd).stdout.rstrip()
+def get_one_line_output(cmd, env=None):
+    return run_with_output(cmd, env=env).stdout.rstrip()
 
 
 def whereis(app):
@@ -99,7 +111,7 @@ def compare_md5_single(compared_file_path, md5_json_file_path):
         return True
     else:
         pblog.error(f"MD5 checksum failed for {compared_file_path}")
-        pblog.error(f"Expected MD5: {hash_dict[compared_file_path]}")
+        pblog.error(f"Expected MD5: {hash_dict[dict_search_string]}")
         pblog.error(f"Current MD5: {str(current_hash)}")
         return False
 
@@ -266,8 +278,7 @@ def maintain_repo():
     commands = [
         f"{pbgit.get_git_executable()} commit-graph write --split --size-multiple=4 --reachable --changed-paths --expire-time={expire_date}",
         f"{pbgit.get_git_executable()} gc",
-        f"{pbgit.get_git_executable()} lfs prune -c",
-        f"{pbgit.get_git_executable()} lfs dedup"
+        f"{pbgit.get_lfs_executable()} dedup"
     ]
 
     multi_pack_commands = [
@@ -280,8 +291,8 @@ def maintain_repo():
         commands += multi_pack_commands
 
     # if we have a stash or working files, don't prune
-    if len(get_combined_output([pbgit.get_git_executable(), "stash", "list"])) >= 3 or len(get_combined_output([pbgit.get_git_executable(), "status", "--porcelain", "-uno"])) >= 3:
-        commands.remove(f"{pbgit.get_git_executable()} lfs prune -c")
+    if not (len(get_combined_output([pbgit.get_git_executable(), "stash", "list"])) >= 3 or len(get_combined_output([pbgit.get_git_executable(), "status", "--porcelain", "-uno"])) >= 3):
+        commands.append(f"{pbgit.get_lfs_executable()} prune -c")
 
     run_non_blocking(*commands)
 
@@ -311,8 +322,10 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         stashed = proc.returncode == 0 and "Saved working directory and index state" in out
         pblog.info(out)
         pblog.info("Trying to rebase workspace with the latest changes from the repository...")
-        # TODO: autostash handling
-        result = run_with_combined_output([pbgit.get_git_executable(), "rebase", f"origin/{branch_name}", "--no-autostash"])
+        # Get the latest files, but skip smudge so we can super charge a LFS pull as one batch
+        result = run_with_combined_output([pbgit.get_git_executable(), "rebase", f"origin/{branch_name}", "--no-autostash"], env={"GIT_LFS_SKIP_SMUDGE": 1})
+        # Pull LFS in one go since we skipped smudge (faster)
+        run([pbgit.get_lfs_executable(), "pull"])
         code = result.returncode
         out = result.stdout
         pblog.info(out)
@@ -328,8 +341,6 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
 
     def handle_success():
         pop_if_stashed()
-        # ensure we pull LFS
-        run([pbgit.get_lfs_executable(), "pull"])
         pblog.success("Success! You are now on the latest changes without any conflicts.")
 
     def handle_error(msg=None):
