@@ -41,7 +41,7 @@ def run_with_combined_output(cmd, env=None):
     if env is None:
         env = os.environ
     else:
-        env = os.environ | env
+        env = {**os.environ, **env}
     return subprocess.run(cmd, text=True, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
 
 

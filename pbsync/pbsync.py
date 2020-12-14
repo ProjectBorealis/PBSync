@@ -7,6 +7,7 @@ import argparse
 import webbrowser
 import pathlib
 import stat
+import threading
 
 from pbpy import pblog
 from pbpy import pbhub
@@ -29,9 +30,27 @@ def config_handler(config_var, config_parser_func):
         pbtools.error_state(f"{str(config_var)} config file is not valid or not found. Please check the integrity of the file")
 
 
-def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None):
+gui_module = None
+
+def set_prog(val):
+    if gui_module:
+            gui_module.relay.update_progress(val)
+
+def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None, gui=False):
 
     sync_val = sync_val.lower()
+
+    if gui:
+        from pbpy import pbgui
+        global gui_module
+        gui_module = pbgui
+        # start non-gui
+        def start_cmd_sync():
+            sync_handler(sync_val, repository_val, requested_bundle_name)
+        t = threading.Thread(target=start_cmd_sync)
+        t.start()
+        pbgui.start_gui()
+        return
 
     if sync_val == "all" or sync_val == "force" or sync_val == "partial":
         # Firstly, check our remote connection before doing anything
@@ -63,7 +82,6 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             if os.name == "nt":
                 webbrowser.open(f"https://github.com/microsoft/git/releases/download/v{pbconfig.get('supported_git_version')}/Git-{pbconfig.get('supported_git_version')}-64-bit.exe")
             needs_git_update = True
-
 
         if os.name == "nt" and pbgit.get_git_executable() == "git" and pbgit.get_lfs_executable() == "git-lfs":
             # find Git/cmd/git.exe
@@ -128,6 +146,8 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         if needs_git_update:
             pbtools.error_state()
 
+        set_prog(10)
+
         pblog.info("------------------")
 
         # Do not execute if Unreal Editor is running
@@ -141,6 +161,8 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         pbgit.check_credentials()
 
         partial_sync = sync_val == "partial"
+
+        set_prog(20)
 
         status_out = pbtools.run_with_combined_output([pbgit.get_git_executable(), "status", "-uno"]).stdout
         # continue a trivial rebase
@@ -163,6 +185,8 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             pbtools.get_combined_output(fetch_base)
 
             pblog.info("------------------")
+            
+        set_prog(30)
 
         # Execute synchronization part of script if we're on the expected branch, or force sync is enabled
         if sync_val == "force" or is_on_expected_branch:
@@ -196,6 +220,8 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
         pblog.info("------------------")
 
+        set_prog(40)
+
         pblog.info("Checking for engine updates...")
         if pbgit.sync_file("ProjectBorealis.uproject") != 0:
             pbtools.error_state("Something went wrong while updating the .uproject file. Please request help in #tech-support.")
@@ -221,6 +247,8 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
         pblog.info("------------------")
 
+        set_prog(50)
+
         if pbunreal.check_ue4_file_association():
             try:
                 os.startfile(os.path.normpath(os.path.join(os.getcwd(), "ProjectBorealis.uproject")))
@@ -228,6 +256,8 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                 pblog.info("You may now launch ProjectBorealis.uproject with Unreal Engine 4.")
         else:
             pbtools.error_state(".uproject extension is not correctly set into Unreal Engine. Make sure you have Epic Games Launcher installed. If problem still persists, please get help in #tech-support.")
+
+        set_prog(100)
 
     elif sync_val == "engineversion":
         repository_val = pbunreal.get_versionator_gsuri(repository_val)
@@ -400,6 +430,7 @@ def main(argv):
         "--migrate", help="Specifies that you want to manually migrate Unreal assets based on the moves in the specified commit.")
     parser.add_argument(
         "--migrate_glob", help="Optional recursive glob filter to choose assets which will be migrated.", default="*.uasset")
+    parser.add_argument("--gui", help="If PBSync should launch with a GUI", default=True, action='store_true')
 
     if len(argv) > 0:
         args = parser.parse_args(argv)
@@ -446,7 +477,7 @@ def main(argv):
 
     # Parse args
     if not (args.sync is None):
-        sync_handler(args.sync, args.repository, args.bundle)
+        sync_handler(args.sync, args.repository, args.bundle, args.gui)
     elif not (args.printversion is None):
         printversion_handler(args.printversion, args.repository)
     elif not (args.autoversion is None):

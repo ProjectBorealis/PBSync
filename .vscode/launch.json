@@ -4,13 +4,13 @@
         {
             "id": "debugPath",
             "description": "Please enter working directory for PBSync",
-            "default": "C:\\pb",
+            "default": "C:\\P",
             "type": "promptString"
         },
         {
             "id": "debugBranch",
             "description": "Please enter branch to be used as expected branch",
-            "default": "master",
+            "default": "trunk",
             "type": "promptString"
         },
         {
