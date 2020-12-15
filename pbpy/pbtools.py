@@ -63,6 +63,14 @@ def get_one_line_output(cmd, env=None):
     return run_with_output(cmd, env=env).stdout.rstrip()
 
 
+def it_has_any(it, *args):
+    return any([el in it for el in args])
+
+
+def it_has_all(it, *args):
+    return all([el in it for el in args])
+
+
 def whereis(app):
     result = None
 
@@ -354,13 +362,13 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         handle_success()
     elif "up to date" in out:
         handle_success()
-    elif "rewinding head" in out and not ("error" in out or "conflict" in out):
+    elif "rewinding head" in out and not it_has_any(out, "error", "conflict"):
         handle_success()
     elif "successfully rebased and updated" in out:
         handle_success()
-    elif "failed to merge in the changes" in out or "could not apply" in out:
+    elif it_has_any(out, "failed to merge in the changes", "could not apply"):
         handle_error("Aborting the rebase. Changes on one of your commits will be overridden by incoming changes. Please request help in #tech-support to resolve conflicts, and please do not run UpdateProject until the issue is resolved.")
-    elif "unmerged files" in out or "merge_head exists" in out:
+    elif it_has_any(out, "unmerged files", "merge_head exists"):
         # we can't abort anything, but don't let stash linger to restore the original repo state
         pop_if_stashed()
         error_state("You are in the middle of a merge. Please request help in #tech-support to resolve it, and please do not run UpdateProject until the issue is resolved.", fatal_error=True)
@@ -372,7 +380,7 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
             return
         else:
             handle_error("You are on an unborn branch. Please request help in #tech-support to resolve it, and please do not run UpdateProject until the issue is resolved.")
-    elif "no remote" in out or "no such remote" in out or "refspecs without repo" in out:
+    elif it_has_any(out, "no remote", "no such remote", "refspecs without repo"):
         if should_attempt_auto_resolve():
             pblog.error("Remote repository not found. Retrying...")
             retry_count += 1
