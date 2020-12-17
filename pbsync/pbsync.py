@@ -421,7 +421,6 @@ def main(argv):
         'supported_git_version': root.find('git/version').text,
         'supported_lfs_version': root.find('git/lfsversion').text,
         'expected_branch_name': root.find('git/expectedbranch').text if args.debugbranch is None else str(args.debugbranch),
-        'lfs_lock_url': root.find('git/lfslockurl').text,
         'git_url': root.find('git/url').text,
         'checksum_file': root.find('git/checksumfile').text,
         'log_file_path': root.find('log/file').text,
