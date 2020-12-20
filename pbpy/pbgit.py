@@ -69,7 +69,7 @@ def stash_pop():
     pblog.info(output)
     lower_case_output = output.lower()
 
-    if "auto-merging" in lower_case_output and "conflict" in lower_case_output and "should have been pointers" in lower_case_output:
+    if pbtools.it_has_all(lower_case_output, "auto-merging", "conflict", "should have been pointers"):
         pbtools.error_state("""git stash pop failed. Some of your stashed local changes would be overwritten by incoming changes.
         Request help in #tech-support to resolve conflicts, and please do not run UpdateProject until the issue is resolved.""", True)
     elif "dropped refs" in lower_case_output:

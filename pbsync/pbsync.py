@@ -167,8 +167,11 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None,
         status_out = pbtools.run_with_combined_output([pbgit.get_git_executable(), "status", "-uno"]).stdout
         # continue a trivial rebase
         if "rebase" in status_out:
-            if "nothing to commit" in status_out:
-                pbtools.run([pbgit.get_git_executable(), "rebase", "--continue"])
+            if pbtools.it_has_any(status_out, "nothing to commit", "git rebase --continue", "all conflicts fixed"):
+                rebase_out = pbtools.run_with_combined_output([pbgit.get_git_executable(), "rebase", "--continue"]).stdout
+                if pbtools.it_has_any(rebase_out, "must edit all merge conflicts"):
+                    # this is an improper state, since git told us otherwise before. abort all.
+                    pbgit.abort_all()
             else:
                 pbtools.error_state("You are in the middle of a rebase. Changes on one of your commits will be overridden by incoming changes. Please request help in #tech-support to resolve conflicts, and please do not run UpdateProject until the issue is resolved.",
                                     fatal_error=True)
@@ -449,7 +452,6 @@ def main(argv):
         'supported_git_version': root.find('git/version').text,
         'supported_lfs_version': root.find('git/lfsversion').text,
         'expected_branch_name': root.find('git/expectedbranch').text if args.debugbranch is None else str(args.debugbranch),
-        'lfs_lock_url': root.find('git/lfslockurl').text,
         'git_url': root.find('git/url').text,
         'checksum_file': root.find('git/checksumfile').text,
         'log_file_path': root.find('log/file').text,
