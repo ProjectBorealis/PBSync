@@ -177,10 +177,18 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                 pblog.info("------------------")
 
             project_version = pbunreal.get_project_version()
+            is_custom_version = pbunreal.is_using_custom_version()
             if project_version is not None:
-                pblog.info(f"Current project version: {project_version}")
+                if is_custom_version:
+                    pblog.info(f"User selected project version: {project_version}")
+                else:
+                    pblog.info(f"Current project version: {project_version}")
             else:
                 pbtools.error_state("Something went wrong while fetching project version. Please request help in #tech-support.")
+
+            # checkout old md5 from tag
+            if is_custom_version:
+                pbtools.run_with_combined_output([pbgit.get_git_executable(), "checkout", project_version, "--", ".md5"])
 
             if pbhub.is_pull_binaries_required():
                 pblog.info("Binaries are not up to date, trying to pull new binaries...")

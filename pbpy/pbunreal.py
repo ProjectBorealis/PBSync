@@ -47,7 +47,20 @@ def get_plugin_version(plugin_name):
     return None
 
 
+def get_user_version():
+    return pbconfig.get_user("project", "version", "latest")
+
+
+def is_using_custom_version():
+    return get_user_version() != "latest"
+
+
 def get_project_version():
+    # first check if the user selected their own version
+    user_version = get_user_version()
+    if user_version != "latest":
+        return user_version
+
     try:
         with open(pbconfig.get('defaultgame_path')) as ini_file:
             for ln in ini_file:
