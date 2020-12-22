@@ -227,7 +227,8 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         pblog.info("------------------")
 
         pblog.info("Checking for engine updates...")
-        if pbgit.sync_file("ProjectBorealis.uproject") != 0:
+        uproject_file = pbconfig.get('uproject_name')
+        if pbgit.sync_file(uproject_file) != 0:
             pbtools.error_state("Something went wrong while updating the .uproject file. Please request help in #tech-support.")
 
         engine_version = pbunreal.get_engine_version_with_prefix()
@@ -251,12 +252,18 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
         pblog.info("------------------")
 
+        # TODO: install prerequisites
+
         if pbunreal.check_ue4_file_association():
             try:
-                os.startfile(os.path.normpath(os.path.join(os.getcwd(), "ProjectBorealis.uproject")))
+                os.startfile(os.path.normpath(os.path.join(os.getcwd(), uproject_file)))
             except NotImplementedError:
-                pblog.info("You may now launch ProjectBorealis.uproject with Unreal Engine 4.")
+                if sys.platform.startswith('linux'):
+                    pbtools.run_non_blocking([f"xdg-open {uproject_file}"])
+                else:
+                    pblog.info(f"You may now launch {uproject_file} with Unreal Engine 4.")
         else:
+            # TODO: automatically run UnrealVersionSelector
             pbtools.error_state(".uproject extension is not correctly set into Unreal Engine. Make sure you have Epic Games Launcher installed. If problem still persists, please get help in #tech-support.")
 
     elif sync_val == "engineversion":
