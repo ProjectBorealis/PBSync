@@ -73,7 +73,7 @@ def get_gcm_version():
     if installed_version == "":
         return None
 
-    # strip git version
+    # strip git commit
     installed_version = installed_version.split("+")[0]
 
     return installed_version
