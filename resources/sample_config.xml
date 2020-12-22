@@ -7,7 +7,10 @@
     </project>
     <git>
         <version>2.26.2.vfs.1.2</version>
-        <lfsversion>git-lfs/2.11.0</lfsversion>
+        <lfsversion>2.11.0</lfsversion>
+        <gcmversion>2.0.289</gcmversion>
+        <gcmversionsuffix>-beta</gcmversionsuffix>
+        <gcmsuffix>48418</gcmsuffix>
         <expectedbranch>CreativeBranchName</expectedbranch>
         <url>https://github.com/GithubUser/samplerepository.git</url>
         <checksumfile>.md5</checksumfile>

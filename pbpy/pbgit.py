@@ -41,6 +41,10 @@ def get_lfs_executable():
     return pbconfig.get_user("paths", "git-lfs", "git-lfs")
 
 
+def get_gcm_executable():
+    return pbtools.get_one_line_output([get_git_executable(), "config", "--get", "credential.helper"]).replace("\\", "")
+
+
 def get_lfs_version():
     installed_version_split = pbtools.get_one_line_output([get_lfs_executable(), "--version"]).split(" ")
 
@@ -52,6 +56,25 @@ def get_lfs_version():
 
     if installed_version == "":
         return None
+
+    return installed_version.split("/")[1]
+
+
+def get_gcm_version():
+    pblog.info(get_gcm_executable())
+    installed_version_split = pbtools.get_one_line_output([get_gcm_executable(), "--version"]).split(" ")
+
+    if len(installed_version_split) < 5:
+        return None
+
+    # Get index as full version of GCM
+    installed_version = str(installed_version_split[4])
+
+    if installed_version == "":
+        return None
+
+    # strip git version
+    installed_version = installed_version.split("+")[0]
 
     return installed_version
 

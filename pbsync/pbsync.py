@@ -26,7 +26,7 @@ default_config_name = "PBSync.xml"
 def config_handler(config_var, config_parser_func):
     if not pbconfig.generate_config(config_var, config_parser_func):
         # Logger is not initialized yet, so use print instead
-        pbtools.error_state(f"{str(config_var)} config file is not valid or not found. Please check the integrity of the file")
+        pbtools.error_state(f"{str(config_var)} config file is not valid or not found. Please check the integrity of the file", hush=True, term=True)
 
 
 def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None):
@@ -113,16 +113,30 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                     pbtools.error_state()
 
         detected_lfs_version = pbgit.get_lfs_version()
-        if detected_lfs_version == pbconfig.get('supported_lfs_version'):
+        supported_lfs_version = pbconfig.get('supported_lfs_version')
+        if detected_lfs_version == supported_lfs_version:
             pblog.info(f"Current Git LFS version: {detected_lfs_version}")
         else:
             pblog.error("Git LFS is not updated to the supported version in your system")
-            pblog.error(f"Supported Git LFS Version: {pbconfig.get('supported_lfs_version')}")
+            pblog.error(f"Supported Git LFS Version: {supported_lfs_version}")
             pblog.error(f"Current Git LFS Version: {detected_lfs_version}")
             pblog.error("Please install the supported Git LFS version from https://git-lfs.github.com")
             if os.name == "nt":
-                supported_lfs_version = pbconfig.get('supported_lfs_version').split("/")[1]
                 webbrowser.open(f"https://github.com/git-lfs/git-lfs/releases/download/v{supported_lfs_version}/git-lfs-windows-v{supported_lfs_version}.exe")
+            needs_git_update = True
+
+        detected_gcm_version = pbgit.get_gcm_version()
+        supported_gcm_version_raw = pbconfig.get('supported_gcm_version')
+        supported_gcm_version = f"{supported_gcm_version_raw}{pbconfig.get('supported_gcm_version_suffix')}"
+        if detected_gcm_version == supported_gcm_version:
+            pblog.info(f"Current Git Credential Manager Core version: {detected_gcm_version}")
+        else:
+            pblog.error("Git Credential Manager Core is not updated to the supported version in your system")
+            pblog.error(f"Supported Git Credential Manager Core Version: {supported_gcm_version}")
+            pblog.error(f"Current Git Credential Manager Core Version: {detected_gcm_version}")
+            pblog.error("Please install the supported Git Credential Manager Core version from https://github.com/microsoft/Git-Credential-Manager-Core/releases")
+            if os.name == "nt":
+                webbrowser.open(f"https://github.com/microsoft/Git-Credential-Manager-Core/releases/download/v{supported_gcm_version}/gcmcore-win-x86-{supported_gcm_version_raw}.{pbconfig.get('gcm_download_suffix')}.exe")
             needs_git_update = True
 
         if needs_git_update:
@@ -433,6 +447,9 @@ def main(argv):
     def pbsync_config_parser_func(root): return {
         'supported_git_version': root.find('git/version').text,
         'supported_lfs_version': root.find('git/lfsversion').text,
+        'supported_gcm_version': root.find('git/gcmversion').text,
+        'supported_gcm_version_suffix': root.find('git/gcmversionsuffix').text,
+        'gcm_download_suffix': root.find('git/gcmsuffix').text,
         'expected_branch_name': root.find('git/expectedbranch').text if args.debugbranch is None else str(args.debugbranch),
         'git_url': root.find('git/url').text,
         'checksum_file': root.find('git/checksumfile').text,
