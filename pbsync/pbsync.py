@@ -187,8 +187,9 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                 pbtools.error_state("Something went wrong while fetching project version. Please request help in #tech-support.")
 
             # checkout old md5 from tag
+            checksum_json_path = pbconfig.get("checksum_file")
             if is_custom_version:
-                pbtools.run_with_combined_output([pbgit.get_git_executable(), "checkout", project_version, "--", ".md5"])
+                pbtools.run_with_combined_output([pbgit.get_git_executable(), "restore", "-WSs", project_version, "--", checksum_json_path])
 
             if pbhub.is_pull_binaries_required():
                 pblog.info("Binaries are not up to date, trying to pull new binaries...")
@@ -201,6 +202,10 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                     pbtools.error_state("An error occurred while pulling binaries. Please request help in #tech-support to resolve it, and please do not run UpdateProject until the issue is resolved.", True)
             else:
                 pblog.info("Binaries are up-to-date")
+
+            # restore md5
+            if is_custom_version:
+                pbtools.run_with_combined_output([pbgit.get_git_executable(), "restore", "-WSs", "HEAD", "--", checksum_json_path])
         else:
             pblog.info(f"Current branch does not need auto synchronization: {pbgit.get_current_branch_name()}.")
             pbtools.maintain_repo()

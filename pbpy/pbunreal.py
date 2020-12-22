@@ -22,6 +22,7 @@ from pbpy import pbtools
 from pbpy import pblog
 
 # Those variable values are not likely to be changed in the future, it's safe to keep them hardcoded
+ue4v_prefix = "ue4v:"
 uplugin_ext = ".uplugin"
 uproject_ext = ".uproject"
 uplugin_version_key = "VersionName"
@@ -29,6 +30,7 @@ uproject_version_key = "EngineAssociation"
 project_version_key = "ProjectVersion="
 ddc_folder_name = "DerivedDataCache"
 ue4_editor_relative_path = "Engine/Binaries/Win64/UE4Editor.exe"
+# TODO: make these config variables
 engine_installation_folder_regex = r"[0-9].[0-9]{2}.*-PB-[0-9]{8}"
 engine_version_prefix = "PB"
 
@@ -99,7 +101,7 @@ def set_engine_version(version_string):
             with open(temp_path, "wt") as fout:
                 for ln in uproject_file:
                     if uproject_version_key in ln:
-                        fout.write(f"\t\"EngineAssociation\": \"ue4v:{version_string}\",\n")
+                        fout.write(f"\t\"EngineAssociation\": \"{ue4v_prefix}{version_string}\",\n")
                     else:
                         fout.write(ln)
         remove(pbconfig.get('uproject_name'))
@@ -136,7 +138,7 @@ def project_version_increase(increase_type):
 
 
 @lru_cache()
-def get_engine_prefix():
+def get_engine_prefix() -> str:
     return f"{pbconfig.get('engine_base_version')}-{engine_version_prefix}"
 
 
@@ -145,8 +147,8 @@ def get_engine_version():
     try:
         with open(pbconfig.get('uproject_name')) as uproject_file:
             data = json.load(uproject_file)
-            engine_association = data[uproject_version_key]
-            build_version = engine_association[-8:]
+            engine_association = str(data[uproject_version_key])
+            build_version = engine_association.replace(f"{ue4v_prefix}{get_engine_prefix()}-", "")
 
             if "}" in build_version:
                 # Means we're using local build version in .uproject file
@@ -462,7 +464,7 @@ def download_engine(bundle_name=None, download_symbols=False):
             try:
                 import winreg
                 engine_ver = f"{bundle_name}-{version}"
-                engine_id = f"ue4v:{engine_ver}"
+                engine_id = f"{ue4v_prefix}{engine_ver}"
                 with winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, r"SOFTWARE\Epic Games\Unreal Engine\Builds", access=winreg.KEY_SET_VALUE) as key:
                     # This does not work for some reason.
                     winreg.SetValueEx(key, engine_id, 0, winreg.REG_SZ, str(os.path.join(root, engine_ver)))
