@@ -1,16 +1,50 @@
 import os.path
 import os
 import shutil
+import subprocess
+
+from urllib.parse import urlparse
 from zipfile import ZipFile
-from pathlib import Path
 
 from pbpy import pblog
 from pbpy import pbtools
 from pbpy import pbconfig
+from pbpy import pbgit
 
 hub_executable_path = ".github\\hub\\hub.exe"
-hub_config_path = f"{str(Path.home())}\\.config\\hub"
 binary_package_name = "Binaries.zip"
+
+
+def get_hub_credentials_env():
+    repo_str = pbtools.get_one_line_output([pbgit.get_git_executable(), "remote", "get-url", "origin"])
+    repo_url = urlparse(repo_str)
+
+    creds = f"protocol={repo_url.scheme}\n"
+    creds += f"host={repo_url.hostname}\n"
+    if repo_url.username:
+        creds += f"username={repo_url.username}\n"
+    creds += "\n"
+
+    proc = subprocess.run([pbgit.get_gcm_executable(), "get"], input=creds, capture_output=True, text=True, shell=True)
+
+    if proc.returncode != 0:
+        return 1
+
+    creds = proc.stdout
+
+    pairs = creds.splitlines()
+    kv = []
+    for pair in pairs:
+        if pair:
+            kv.append(pair.split("=", 1))
+    cred_dict = dict(kv)
+
+    gh_env = {
+        "GITHUB_USER": cred_dict.get("username"),
+        "GITHUB_PASSWORD": cred_dict.get("password")
+    }
+
+    return gh_env
 
 
 def is_pull_binaries_required():
@@ -38,21 +72,13 @@ def pull_binaries(version_number: str, pass_checksum=False):
             os.remove(binary_package_name)
         except Exception as e:
             pblog.exception(str(e))
-            pblog.error(f"Exception thrown while trying to remove {binary_package_name}. Please remove it manually")
+            pblog.error(f"Exception thrown while trying to remove {binary_package_name}. Please remove it manually.")
             return -1
 
-    if not os.path.isfile(hub_config_path):
-        pblog.info("You will now be asked to log in to your GitHub account. Please note that for security reasons, your password will not be shown as you type it.")
-        # If user didn't login with hub yet, do it now for once
-        output = pbtools.run([hub_executable_path, "release", "-L", "1"])
-        if not os.path.isfile(hub_config_path):
-            pblog.error("Failed to login into hub with git credentials. Please check if your provided credentials are valid.")
-            return pull_binaries(version_number, pass_checksum)
-        else:
-            pblog.info("Login to hub API was successful")
+    creds = get_hub_credentials_env()
 
     try:
-        output = pbtools.get_combined_output([hub_executable_path, "release", "download", version_number, "-i", binary_package_name])
+        output = pbtools.get_combined_output([hub_executable_path, "release", "download", version_number, "-i", binary_package_name], env=creds)
         if f"Downloading {binary_package_name}" in output:
             pass
         elif "Unable to find release with tag name" in output:
@@ -118,8 +144,10 @@ def push_package(version_number, file_name):
         pblog.error(f"Provided file {file_name} doesn't exist")
         return False
 
+    creds = get_hub_credentials_env()
+
     try:
-        output = pbtools.get_combined_output([hub_executable_path, "release", "edit", version_number, "-m", "", "-a", file_name])
+        output = pbtools.get_combined_output([hub_executable_path, "release", "edit", version_number, "-m", "", "-a", file_name], env=creds)
         if "Attaching 1 asset..." in output:
             return True
         else:
