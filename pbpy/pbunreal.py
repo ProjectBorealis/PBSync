@@ -497,7 +497,7 @@ def download_engine(bundle_name=None, download_symbols=False):
             return False
 
     # if not CI, run the setup tasks
-    if True:
+    if root is not None and not is_ci and needs_exe:
         pblog.info("Installing Unreal Engine prerequisites")
         prereq_path = base_path / pathlib.Path("Engine/Extras/Redist/en-us/UE4PrereqSetup_x64.exe")
         pbtools.run([str(prereq_path), "/quiet"])
