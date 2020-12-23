@@ -42,7 +42,10 @@ def get_lfs_executable():
 
 
 def get_gcm_executable():
-    return pbtools.get_one_line_output([get_git_executable(), "config", "--get", "credential.helper"]).replace("\\", "")
+    gcm_exec = pbtools.get_one_line_output([get_git_executable(), "config", "--get", "credential.helper"]).replace("\\", "")
+    if "git-credential-manager-core" not in gcm_exec:
+        return None
+    return gcm_exec
 
 
 def get_lfs_version():
@@ -62,7 +65,7 @@ def get_lfs_version():
 
 def get_gcm_version():
     gcm_exec = get_gcm_executable()
-    if "git-credential-manager-core" not in gcm_exec:
+    if gcm_exec is None:
         return None
     installed_version_split = pbtools.get_one_line_output([gcm_exec, "--version"]).split(" ")
 
