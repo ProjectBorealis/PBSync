@@ -7,6 +7,8 @@ from pbpy import pblog
 from pbpy import pbconfig
 from pbpy import pbtools
 
+missing_version = "not installed"
+
 
 @lru_cache()
 def get_current_branch_name():
@@ -18,13 +20,13 @@ def get_git_version():
 
     list_len = len(installed_version_split)
     if list_len == 0:
-        return None
+        return missing_version
 
     # Get latest index as full version of git
     installed_version = str(installed_version_split[list_len - 1])
 
     if installed_version == "":
-        return None
+        return missing_version
 
     return installed_version
 
@@ -52,13 +54,13 @@ def get_lfs_version():
     installed_version_split = pbtools.get_one_line_output([get_lfs_executable(), "--version"]).split(" ")
 
     if len(installed_version_split) == 0:
-        return None
+        return missing_version
 
     # Get first index as full version of git-lfs
     installed_version = str(installed_version_split[0])
 
     if installed_version == "":
-        return None
+        return missing_version
 
     return installed_version.split("/")[1]
 
@@ -66,17 +68,17 @@ def get_lfs_version():
 def get_gcm_version():
     gcm_exec = get_gcm_executable()
     if gcm_exec is None:
-        return None
+        return missing_version
     installed_version_split = pbtools.get_one_line_output([gcm_exec, "--version"]).split(" ")
 
     if len(installed_version_split) < 5:
-        return None
+        return missing_version
 
     # Get index as full version of GCM
     installed_version = str(installed_version_split[4])
 
     if installed_version == "":
-        return None
+        return missing_version
 
     # strip git commit
     installed_version = installed_version.split("+")[0]
