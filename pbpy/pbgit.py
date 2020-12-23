@@ -61,8 +61,10 @@ def get_lfs_version():
 
 
 def get_gcm_version():
-    pblog.info(get_gcm_executable())
-    installed_version_split = pbtools.get_one_line_output([get_gcm_executable(), "--version"]).split(" ")
+    gcm_exec = get_gcm_executable()
+    if "git-credential-manager-core" not in gcm_exec:
+        return None
+    installed_version_split = pbtools.get_one_line_output([gcm_exec, "--version"]).split(" ")
 
     if len(installed_version_split) < 5:
         return None
