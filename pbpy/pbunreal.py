@@ -297,8 +297,8 @@ def generate_ddc_data():
             ue_editor_executable = os.path.join(
                 installation_dir, ue4_editor_relative_path)
             if os.path.isfile(ue_editor_executable):
-                err = subprocess.run([str(ue_editor_executable), os.path.join(
-                    os.getcwd(), pbconfig.get('uproject_name')), "-run=DerivedDataCache", "-fill"], shell=True).returncode
+                err = pbtools.run([str(ue_editor_executable), os.path.join(
+                    os.getcwd(), pbconfig.get('uproject_name')), "-run=DerivedDataCache", "-fill"]).returncode
                 if err == 0:
                     pblog.info(f"DDC generate command has exited with {err}")
                 else:
@@ -459,7 +459,7 @@ def download_engine(bundle_name=None, download_symbols=False):
 
     # Extract and register with ue4versionator
     # TODO: handle registration
-    if False:
+    if False and root is not None:
         if os.name == "nt":
             try:
                 import winreg
@@ -471,7 +471,6 @@ def download_engine(bundle_name=None, download_symbols=False):
             except Exception as e:
                 pblog.exception(str(e))
                 return False
-        return True
     else:
         command_set = ["ue4versionator.exe"]
 
@@ -494,5 +493,16 @@ def download_engine(bundle_name=None, download_symbols=False):
             with open(pbconfig.get('ue4v_user_config'), 'w') as user_config_file:
                 pbconfig.get_user_config().write(user_config_file)
 
-        return subprocess.run(command_set, shell=True).returncode == 0
-    return False
+        if pbtools.run(command_set).returncode != 0:
+            return False
+
+    # if not CI, run the setup tasks
+    if True:
+        pblog.info("Installing Unreal Engine prerequisites")
+        prereq_path = base_path / pathlib.Path("Engine/Extras/Redist/en-us/UE4PrereqSetup_x64.exe")
+        pbtools.run([str(prereq_path), "/quiet"])
+        pblog.info("Registering Unreal Engine file associations")
+        selector_path = base_path / pathlib.Path("Engine/Binaries/Win64/UnrealVersionSelector-Win64-Shipping.exe")
+        pbtools.run([str(selector_path), "/fileassociations"])
+
+    return True

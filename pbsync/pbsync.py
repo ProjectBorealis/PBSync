@@ -252,8 +252,6 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
         pblog.info("------------------")
 
-        # TODO: install prerequisites
-
         if pbunreal.check_ue4_file_association():
             try:
                 os.startfile(os.path.normpath(os.path.join(os.getcwd(), uproject_file)))
@@ -263,7 +261,6 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                 else:
                     pblog.info(f"You may now launch {uproject_file} with Unreal Engine 4.")
         else:
-            # TODO: automatically run UnrealVersionSelector
             pbtools.error_state(".uproject extension is not correctly set into Unreal Engine. Make sure you have Epic Games Launcher installed. If problem still persists, please get help in #tech-support.")
 
     elif sync_val == "engineversion":
