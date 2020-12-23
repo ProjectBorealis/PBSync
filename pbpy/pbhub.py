@@ -3,7 +3,6 @@ import os
 import shutil
 import subprocess
 
-from urllib.parse import urlparse
 from zipfile import ZipFile
 
 from pbpy import pblog
@@ -16,35 +15,12 @@ binary_package_name = "Binaries.zip"
 
 
 def get_hub_credentials_env():
-    repo_str = pbtools.get_one_line_output([pbgit.get_git_executable(), "remote", "get-url", "origin"])
-    repo_url = urlparse(repo_str)
+    username, password = pbgit.get_credentials()
 
-    creds = f"protocol={repo_url.scheme}\n"
-    creds += f"host={repo_url.hostname}\n"
-    if repo_url.username:
-        creds += f"username={repo_url.username}\n"
-    creds += "\n"
-
-    proc = subprocess.run([pbgit.get_gcm_executable(), "get"], input=creds, capture_output=True, text=True, shell=True)
-
-    if proc.returncode != 0:
-        return 1
-
-    creds = proc.stdout
-
-    pairs = creds.splitlines()
-    kv = []
-    for pair in pairs:
-        if pair:
-            kv.append(pair.split("=", 1))
-    cred_dict = dict(kv)
-
-    gh_env = {
-        "GITHUB_USER": cred_dict.get("username"),
-        "GITHUB_PASSWORD": cred_dict.get("password")
+    return {
+        "GITHUB_USER": username,
+        "GITHUB_PASSWORD": password
     }
-
-    return gh_env
 
 
 def is_pull_binaries_required():

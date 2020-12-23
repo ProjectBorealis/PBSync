@@ -20,6 +20,7 @@ import gslib
 from pbpy import pbconfig
 from pbpy import pbtools
 from pbpy import pblog
+from pbpy import pbgit
 
 # Those variable values are not likely to be changed in the future, it's safe to keep them hardcoded
 ue4v_prefix = "ue4v:"
@@ -506,3 +507,26 @@ def download_engine(bundle_name=None, download_symbols=False):
         pbtools.run([str(selector_path), "/fileassociations"])
 
     return True
+
+
+def update_source_control():
+    source_control_config = configparser.ConfigParser(allow_no_value=True, delimiters=("=",))
+    # case sensitive
+    source_control_config.optionxform = lambda option: option
+    ini_path = "Saved/Config/Windows/SourceControlSettings.ini"
+    source_control_config.read(ini_path)
+    pbconfig.get_user_config()["ue4v-user"]["symbols"] = "true"
+    source_control_config["SourceControl.SourceControlSettings"]["Provider"] = pbconfig.get_user("project", "provider", "Git LFS 2")
+    git_lfs_2 = source_control_config["GitSourceControl.GitSourceControlSettings"]
+    binary_path = pbgit.get_git_executable()
+    if binary_path != "git":
+        git_lfs_2["BinaryPath"] = binary_path
+    else:
+        git_paths = pbtools.whereis("git")
+        if len(git_paths) > 0:
+            git_lfs_2["BinaryPath"] = str(git_paths[0].resolve())
+    git_lfs_2["UsingGitLfsLocking"] = "True"
+    username, _ = pbgit.get_credentials()
+    git_lfs_2["LfsUserName"] = username
+    with open(ini_path, 'w') as ini_file:
+        source_control_config.write(ini_file, space_around_delimiters=False)

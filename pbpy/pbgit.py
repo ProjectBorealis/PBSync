@@ -2,7 +2,9 @@ import os
 import shutil
 import subprocess
 
+from urllib.parse import urlparse
 from functools import lru_cache
+
 from pbpy import pblog
 from pbpy import pbconfig
 from pbpy import pbtools
@@ -185,3 +187,30 @@ def setup_config():
 
     for cfg in clear_config_list:
         pbtools.run_with_output([get_git_executable(), "config", "--unset", cfg])
+
+
+def get_credentials():
+    repo_str = pbtools.get_one_line_output([get_git_executable(), "remote", "get-url", "origin"])
+    repo_url = urlparse(repo_str)
+
+    creds = f"protocol={repo_url.scheme}\n"
+    creds += f"host={repo_url.hostname}\n"
+    if repo_url.username:
+        creds += f"username={repo_url.username}\n"
+    creds += "\n"
+
+    proc = subprocess.run([get_gcm_executable(), "get"], input=creds, capture_output=True, text=True, shell=True)
+
+    if proc.returncode != 0:
+        return 1
+
+    creds = proc.stdout
+
+    pairs = creds.splitlines()
+    kv = []
+    for pair in pairs:
+        if pair:
+            kv.append(pair.split("=", 1))
+    cred_dict = dict(kv)
+
+    return cred_dict.get("username"), cred_dict.get("password")

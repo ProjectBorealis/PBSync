@@ -252,6 +252,8 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
         pblog.info("------------------")
 
+        pbunreal.update_source_control()
+
         if pbunreal.check_ue4_file_association():
             try:
                 os.startfile(os.path.normpath(os.path.join(os.getcwd(), uproject_file)))
