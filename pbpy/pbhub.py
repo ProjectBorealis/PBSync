@@ -133,7 +133,7 @@ def pull_binaries(version_number: str, pass_checksum=False):
 
     except Exception as e:
         pblog.exception(str(e))
-        pblog.error(f"Exception thrown while trying do extract binary package for {version_number}")
+        pblog.error(f"Exception thrown while trying extract binary package for {version_number}")
         return 1
 
     return 0
