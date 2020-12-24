@@ -522,7 +522,7 @@ def update_source_control():
     if binary_path != "git":
         git_lfs_2["BinaryPath"] = binary_path
     else:
-        git_paths = pbtools.whereis("git")
+        git_paths = [path for path in pbtools.whereis("git") if "cmd" in path.parts]
         if len(git_paths) > 0:
             git_lfs_2["BinaryPath"] = str(git_paths[0].resolve())
     git_lfs_2["UsingGitLfsLocking"] = "True"
