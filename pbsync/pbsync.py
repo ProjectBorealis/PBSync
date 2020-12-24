@@ -155,6 +155,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         pbgit.check_credentials()
 
         partial_sync = sync_val == "partial"
+        is_ci = pbconfig.get("is_ci")
 
         status_out = pbtools.run_with_combined_output([pbgit.get_git_executable(), "status", "-uno"]).stdout
         # continue a trivial rebase
@@ -171,7 +172,12 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         current_branch = pbgit.get_current_branch_name()
         expected_branch = pbconfig.get('expected_branch_name')
         is_on_expected_branch = current_branch == expected_branch
-        # repo was already fetched in UpdateProject
+
+        # undo single branch clone
+        if not is_ci:
+            pbtools.run([pbgit.get_git_executable(), "config", "remote.origin.fetch", "+refs/heads/*:refs/remotes/origin/*"])
+
+        # repo was already fetched in UpdateProject for the expected branch, so do it here only for dev
         if not partial_sync and not is_on_expected_branch:
             pblog.info("Fetching recent changes on the repository...")
             fetch_base = [pbgit.get_git_executable(), "fetch", "origin"]

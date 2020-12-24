@@ -272,35 +272,38 @@ def wipe_workspace():
 def maintain_repo():
     pblog.info("Starting repo maintenance...")
 
-    batch_size = 2 * 1024 * 1024 * 1024
     expire_date = (datetime.datetime.now() - datetime.timedelta(days=7)).strftime("%x")
 
     # try to remove commit graph lock before running commit graph
+    do_commit_graph = True
     try:
         commit_graph_lock = os.path.join(os.getcwd(), ".git", "objects", "info", "commit-graphs", "commit-graph-chain.lock")
         if (os.path.exists(commit_graph_lock)):
             os.remove(commit_graph_lock)
     except Exception as e:
         pblog.exception(str(e))
+        do_commit_graph = False
 
     commands = [
-        f"{pbgit.get_git_executable()} commit-graph write --split --size-multiple=4 --reachable --changed-paths --expire-time={expire_date}",
-        f"{pbgit.get_git_executable()} gc",
+        f"{pbgit.get_git_executable()} maintenance --task gc --task loose-objects"
+        f"{pbgit.get_lfs_executable()} prune -c"
         f"{pbgit.get_lfs_executable()} dedup"
     ]
 
-    multi_pack_commands = [
-        f"{pbgit.get_git_executable()} multi-pack-index write",
-        f"{pbgit.get_git_executable()} multi-pack-index expire",
-        f"{pbgit.get_git_executable()} multi-pack-index repack --batch-size={batch_size}"
-    ]
+    if do_commit_graph:
+        commands.insert(1, f"{pbgit.get_git_executable()} commit-graph write --split --size-multiple=4 --reachable --changed-paths --expire-time={expire_date}")
 
+    # if we use multi-pack index, take advantage of it
     if get_one_line_output([pbgit.get_git_executable(), "config", "core.multipackIndex"]) == "true":
-        commands += multi_pack_commands
+        commands[0] += " --task incremental-repack"
 
-    # if we have a stash or working files, don't prune
-    if not (len(get_combined_output([pbgit.get_git_executable(), "stash", "list"])) >= 3 or len(get_combined_output([pbgit.get_git_executable(), "status", "--porcelain", "-uno"])) >= 3):
-        commands.append(f"{pbgit.get_lfs_executable()} prune -c")
+    # fill in the git repo optionally
+    is_shallow = get_one_line_output([pbgit.get_git_executable(), "rev-parse", "--is-shallow-repository"])
+
+    # add in the front, so everything else can clean up after the fetch
+    if is_shallow == "true":
+        pblog.info("Shallow clone detected. PBSync will fill in history in the background.")
+        commands.insert(0, f"{pbgit.get_git_executable()} fetch --unshallow")
 
     run_non_blocking(*commands)
 
