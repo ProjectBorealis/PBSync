@@ -21,6 +21,7 @@ from pbpy import pbconfig
 from pbpy import pbtools
 from pbpy import pblog
 from pbpy import pbgit
+from pbpy import pbuac
 
 # Those variable values are not likely to be changed in the future, it's safe to keep them hardcoded
 ue4v_prefix = "ue4v:"
@@ -498,13 +499,17 @@ def download_engine(bundle_name=None, download_symbols=False):
             return False
 
     # if not CI, run the setup tasks
-    if root is not None and not is_ci and needs_exe:
+    if True or root is not None and not is_ci and needs_exe:
         pblog.info("Installing Unreal Engine prerequisites")
         prereq_path = base_path / pathlib.Path("Engine/Extras/Redist/en-us/UE4PrereqSetup_x64.exe")
         pbtools.run([str(prereq_path), "/quiet"])
         pblog.info("Registering Unreal Engine file associations")
         selector_path = base_path / pathlib.Path("Engine/Binaries/Win64/UnrealVersionSelector-Win64-Shipping.exe")
-        pbtools.run([str(selector_path), "/fileassociations"])
+        cmdline = [str(selector_path), "/fileassociations"]
+        if not pbuac.isUserAdmin():
+            pbuac.runAsAdmin(cmdline)
+        else:
+            pbtools.run(cmdline)
 
     return True
 

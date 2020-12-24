@@ -97,7 +97,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                 if not is_admin and len(delete_paths) > 0:
                     pblog.info("Requesting permission to delete bundled Git LFS which is overriding your installed version...")
                     quoted_paths = [f'"{path}"' for path in delete_paths]
-                    delete_cmdline = ["cmd.exe",  "/c", "DEL", "/q", "/f"] + quoted_paths
+                    delete_cmdline = ["cmd.exe", "/c", "DEL", "/q", "/f"] + quoted_paths
                     try:
                         ret = pbuac.runAsAdmin(delete_cmdline)
                     except OSError:
