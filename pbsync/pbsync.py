@@ -261,11 +261,12 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         pbunreal.update_source_control()
 
         if pbunreal.check_ue4_file_association():
+            path = str(pathlib.Path(uproject_file).resolve())
             try:
-                os.startfile(os.path.normpath(os.path.join(os.getcwd(), uproject_file)))
+                os.startfile(path)
             except NotImplementedError:
                 if sys.platform.startswith('linux'):
-                    pbtools.run_non_blocking([f"xdg-open {uproject_file}"])
+                    pbtools.run_non_blocking([f"xdg-open {path}"])
                 else:
                     pblog.info(f"You may now launch {uproject_file} with Unreal Engine 4.")
         else:

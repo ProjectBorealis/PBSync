@@ -103,7 +103,7 @@ def set_engine_version(version_string):
             with open(temp_path, "wt") as fout:
                 for ln in uproject_file:
                     if uproject_version_key in ln:
-                        fout.write(f"\t\"EngineAssociation\": \"{ue4v_prefix}{version_string}\",\n")
+                        fout.write(f"\t\"{uproject_version_key}\": \"{ue4v_prefix}{version_string}\",\n")
                     else:
                         fout.write(ln)
         remove(pbconfig.get('uproject_name'))
@@ -299,8 +299,7 @@ def generate_ddc_data():
             ue_editor_executable = os.path.join(
                 installation_dir, ue4_editor_relative_path)
             if os.path.isfile(ue_editor_executable):
-                err = pbtools.run([str(ue_editor_executable), os.path.join(
-                    os.getcwd(), pbconfig.get('uproject_name')), "-run=DerivedDataCache", "-fill"]).returncode
+                err = pbtools.run([str(ue_editor_executable), str(pathlib.Path(pbconfig.get('uproject_name')).resolve()), "-run=DerivedDataCache", "-fill"]).returncode
                 if err == 0:
                     pblog.info(f"DDC generate command has exited with {err}")
                 else:
