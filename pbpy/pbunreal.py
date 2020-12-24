@@ -499,7 +499,7 @@ def download_engine(bundle_name=None, download_symbols=False):
             return False
 
     # if not CI, run the setup tasks
-    if True or root is not None and not is_ci and needs_exe:
+    if root is not None and not is_ci and needs_exe:
         pblog.info("Installing Unreal Engine prerequisites")
         prereq_path = base_path / pathlib.Path("Engine/Extras/Redist/en-us/UE4PrereqSetup_x64.exe")
         pbtools.run([str(prereq_path), "/quiet"])
@@ -510,6 +510,13 @@ def download_engine(bundle_name=None, download_symbols=False):
             pbuac.runAsAdmin(cmdline)
         else:
             pbtools.run(cmdline)
+        # generate project files for developers
+        current_branch = pbgit.get_current_branch_name()
+        expected_branch = pbconfig.get("expected_branch_name")
+        is_on_expected_branch = current_branch == expected_branch
+        if not is_on_expected_branch:
+            uproject = str(pathlib.Path(pbconfig.get("uproject_name")).resolve())
+            pbtools.run([selector_path, "/projectfiles", uproject])
 
     return True
 
