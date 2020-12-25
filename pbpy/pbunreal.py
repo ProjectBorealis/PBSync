@@ -359,12 +359,9 @@ def get_versionator_gsuri(fallback=None):
 
 @lru_cache()
 def is_versionator_symbols_enabled():
-    symbols = pbconfig.get_user_config().getboolean("ue4v-user", "symbols", fallback=None)
+    symbols = pbconfig.get_user_config().getboolean("ue4v-user", "symbols", fallback=True if pbconfig.get("is_ci") else None)
     if symbols is not None:
         return symbols
-
-    if pbconfig.get("is_ci"):
-        return False
 
     # Symbols configuration variable is not on the file, let's add it
     response = input("Do you want to download debugging symbols for accurate crash logging? You can change this setting later in the .ue4v-user config file. [y/N] ")

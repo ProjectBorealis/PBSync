@@ -119,9 +119,9 @@ def check_remote_connection():
 
     if current_url != recent_url:
         output = pbtools.get_combined_output([get_git_executable(), "remote", "set-url", "origin", recent_url])
+        current_url = recent_url
         pblog.info(output)
 
-    current_url = pbtools.get_one_line_output([get_git_executable(), "remote", "get-url", "origin"])
     out = pbtools.run_with_output([get_git_executable(), "ls-remote", "--exit-code", "-h"]).returncode
     return out == 0, current_url
 
@@ -161,32 +161,6 @@ def abort_rebase():
 
 def setup_config():
     pbtools.run_with_output([get_git_executable(), "config", "include.path", "../.gitconfig"])
-
-    # Temporary code to clear previous git config variables:
-    clear_config_list = [
-        "core.hookspath",
-        "core.autocrlf",
-        "core.multipackindex",
-        "core.fsmonitor",
-        "commit.template",
-        "merge.diffstyle",
-        "push.default",
-        "blame.coloring",
-        "fetch.prune",
-        "fetch.prunetags",
-        "help.autocorrect",
-        "index.threads",
-        "pack.threads",
-        "pack.usesparse",
-        "protocol.version",
-        "pull.rebase",
-        "repack.writebitmaps",
-        "rerere.autoupdate",
-        "rerere.enabled"
-    ]
-
-    for cfg in clear_config_list:
-        pbtools.run_with_output([get_git_executable(), "config", "--unset", cfg])
 
 
 def get_credentials():

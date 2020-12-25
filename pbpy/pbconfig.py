@@ -30,9 +30,17 @@ class CustomConfigParser(configparser.ConfigParser):
         return self._proxies[key]
 
 
+class CustomInterpolation(configparser.BasicInterpolation):
+    def before_get(self, parser, section: str, option: str, value: str, defaults) -> str:
+        val = super().before_get(parser, section, option, value, defaults)
+        if get("is_ci"):
+            return os.getenv(val)
+        return val
+
+
 def init_user_config():
     global user_config
-    user_config = CustomConfigParser()
+    user_config = CustomConfigParser(interpolation=CustomInterpolation())
     user_config.read(get_user_config_filename())
 
 
@@ -42,10 +50,7 @@ def get_user_config():
     return user_config
 
 def get_user(section, key, default=None):
-    val = get_user_config().get(section, key, fallback=default)
-    if get("is_ci") and val != default:
-        return os.getenv(val)
-    return val
+    return get_user_config().get(section, key, fallback=default)
 
 
 def shutdown():
