@@ -513,9 +513,7 @@ def download_engine(bundle_name=None, download_symbols=False):
         else:
             pbtools.run(cmdline)
         # generate project files for developers
-        current_branch = pbgit.get_current_branch_name()
-        expected_branch = pbconfig.get("expected_branch_name")
-        is_on_expected_branch = current_branch == expected_branch
+        is_on_expected_branch = pbgit.compare_with_current_branch_name(pbconfig.get('expected_branch_name'))
         if not is_on_expected_branch:
             uproject = str(pathlib.Path(pbconfig.get("uproject_name")).resolve())
             pbtools.run([selector_path, "/projectfiles", uproject])
