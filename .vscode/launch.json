@@ -72,6 +72,7 @@
             "name": "Sync All",
             "args": ["--sync", "all", "--debugpath", "${input:debugPath}", "--debugbranch", "${input:debugBranch}"],
             "type": "python",
+            "justMyCode": false,
             "request": "launch",
             "program": "pbsync/pbsync.py",
             "console": "integratedTerminal"

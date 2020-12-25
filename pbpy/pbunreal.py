@@ -523,9 +523,42 @@ def download_engine(bundle_name=None, download_symbols=False):
     return True
 
 
+class multi_dict(dict):
+    def __setitem__(self, key, value):
+        if isinstance(value, list) and key in self:
+            self[key].extend(value)
+        else:
+            super().__setitem__(key, value)
+
+
+class MultiConfigParser(configparser.ConfigParser):
+    def _write_section(self, fp, section_name, section_items, delimiter):
+        """Write a single section to the specified `fp'."""
+        fp.write("[{}]\n".format(section_name))
+        for key, value in section_items:
+            value = self._interpolation.before_write(self, section_name, key,
+                                                     value)
+            if not isinstance(value, list):
+                value = [value]
+            for value in value:
+                if self._allow_no_value and value is None:
+                    value = ""
+                value = delimiter + str(value).replace('\n', '\n\t')
+                fp.write("{}{}\n".format(key, value))
+        fp.write("\n")
+
+    def __getitem__(self, key):
+        if key != self.default_section and not self.has_section(key):
+            self.add_section(key)
+        return self._proxies[key]
+
+    def _join_multiline_values(self):
+        pass
+
+
 @contextlib.contextmanager
 def ue4_config(path):
-    config = configparser.ConfigParser(allow_no_value=True, delimiters=("=",))
+    config = MultiConfigParser(allow_no_value=True, delimiters=("=",), strict=False, comment_prefixes=(";",), dict_type=multi_dict, interpolation=configparser.Interpolation())
     # case sensitive
     config.optionxform = lambda option: option
     config.read(path)
