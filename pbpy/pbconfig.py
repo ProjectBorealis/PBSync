@@ -23,12 +23,17 @@ def get_user_config_filename():
     return get(config_key)
 
 
+class CustomConfigParser(configparser.ConfigParser):
+    def __getitem__(self, key):
+        if key != self.default_section and not self.has_section(key):
+            self.add_section(key)
+        return self._proxies[key]
+
+
 def init_user_config():
     global user_config
-    user_config = configparser.ConfigParser()
+    user_config = CustomConfigParser()
     user_config.read(get_user_config_filename())
-    if not user_config.has_section("ue4v-user"):
-        user_config["ue4v-user"] = {}
 
 
 def get_user_config():

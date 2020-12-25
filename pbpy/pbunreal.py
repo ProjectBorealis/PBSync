@@ -421,7 +421,7 @@ def download_engine(bundle_name=None, download_symbols=False):
         exe_path = base_path / pathlib.Path(verification_file + "exe")
         needs_exe = not exe_path.exists()
         try:
-            legacy_archives = pbconfig.get_user_config().getboolean("ue4v-user", "legacy", fallback=False) or int(get_engine_version()) <= 20201030
+            legacy_archives = pbconfig.get_user_config().getboolean("ue4v-user", "legacy", fallback=False) or int(get_engine_version()) <= 20201224
         except:
             legacy_archives = True
 
@@ -531,7 +531,7 @@ class multi_dict(dict):
             super().__setitem__(key, value)
 
 
-class MultiConfigParser(configparser.ConfigParser):
+class MultiConfigParser(pbconfig.CustomConfigParser):
     def _write_section(self, fp, section_name, section_items, delimiter):
         """Write a single section to the specified `fp'."""
         fp.write("[{}]\n".format(section_name))
@@ -546,11 +546,6 @@ class MultiConfigParser(configparser.ConfigParser):
                 value = delimiter + str(value).replace('\n', '\n\t')
                 fp.write("{}{}\n".format(key, value))
         fp.write("\n")
-
-    def __getitem__(self, key):
-        if key != self.default_section and not self.has_section(key):
-            self.add_section(key)
-        return self._proxies[key]
 
     def _join_multiline_values(self):
         pass
