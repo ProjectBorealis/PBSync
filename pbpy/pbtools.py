@@ -48,6 +48,8 @@ def run_with_combined_output(cmd, env=None):
 def run_non_blocking(*commands):
     if os.name == "nt":
         cmdline = " & ".join(commands)
+        print(commands)
+        print(cmdline)
         subprocess.Popen(cmdline, shell=True, creationflags=subprocess.DETACHED_PROCESS)
     elif os.name == "posix":
         forked_commands = [f"nohup {command}" for command in commands]
@@ -285,8 +287,8 @@ def maintain_repo():
         do_commit_graph = False
 
     commands = [
-        f"{pbgit.get_git_executable()} maintenance --task gc --task loose-objects"
-        f"{pbgit.get_lfs_executable()} prune -c"
+        f"{pbgit.get_git_executable()} maintenance --task gc --task loose-objects",
+        f"{pbgit.get_lfs_executable()} prune -c",
         f"{pbgit.get_lfs_executable()} dedup"
     ]
 
