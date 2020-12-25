@@ -327,12 +327,12 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         # Make sure upstream is tracked correctly
         branch_name = pbgit.get_current_branch_name()
         pbgit.set_tracking_information(branch_name)
-        pblog.info("Trying to stash local work...")
+        pblog.info("Stashing local work...")
         proc = run_with_combined_output([pbgit.get_git_executable(), "stash"])
         out = proc.stdout
         stashed = proc.returncode == 0 and "Saved working directory and index state" in out
         pblog.info(out)
-        pblog.info("Trying to rebase workspace with the latest changes from the repository...")
+        pblog.info("Rebasing workspace with the latest changes from the repository...")
         # Get the latest files, but skip smudge so we can super charge a LFS pull as one batch
         result = run_with_combined_output([pbgit.get_git_executable(), "-c", "filter.lfs.smudge=", "-c", "filter.lfs.required=false", "rebase", f"origin/{branch_name}", "--no-autostash"])
         # Pull LFS in one go since we skipped smudge (faster)

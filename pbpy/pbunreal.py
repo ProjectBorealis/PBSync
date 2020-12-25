@@ -315,7 +315,7 @@ def generate_ddc_data():
         pbtools.error_state(
         "Engine installation not found. Please get support from #tech-support")  
     pbtools.error_state(
-    "Error occurred while trying to read project version for DDC data generation. Please get support from #tech-support")
+    "Error occurred while reading project version for DDC data generation. Please get support from #tech-support")
 
 
 def clean_old_engine_installations(keep=1):

@@ -10,21 +10,20 @@ from pbpy import pbtools
 from pbpy import pbconfig
 from pbpy import pbgit
 
-hub_executable_path = ".github\\hub\\hub.exe"
+gh_executable_path = ".github\\gh\\gh.exe"
 binary_package_name = "Binaries.zip"
 
 
-def get_hub_credentials_env():
-    username, password = pbgit.get_credentials()
+def get_token_env():
+    _, token = pbgit.get_credentials()
 
     return {
-        "GITHUB_USER": username,
-        "GITHUB_PASSWORD": password
+        "GITHUB_TOKEN": token
     }
 
 
 def is_pull_binaries_required():
-    if not os.path.isfile(hub_executable_path):
+    if not os.path.isfile(gh_executable_path):
         return True
     checksum_json_path = pbconfig.get("checksum_file")
     if not os.path.exists(checksum_json_path):
@@ -33,8 +32,8 @@ def is_pull_binaries_required():
 
 
 def pull_binaries(version_number: str, pass_checksum=False):
-    if not os.path.isfile(hub_executable_path):
-        pblog.error(f"Hub executable is not found at {hub_executable_path}")
+    if not os.path.isfile(gh_executable_path):
+        pblog.error(f"GH CLI executable not found at {gh_executable_path}")
         return 1
 
     # Backward compatibility with old PBGet junctions. If it still exists, remove the junction
@@ -48,28 +47,22 @@ def pull_binaries(version_number: str, pass_checksum=False):
             os.remove(binary_package_name)
         except Exception as e:
             pblog.exception(str(e))
-            pblog.error(f"Exception thrown while trying to remove {binary_package_name}. Please remove it manually.")
+            pblog.error(f"Exception thrown while removing {binary_package_name}. Please remove it manually.")
             return -1
 
-    creds = get_hub_credentials_env()
+    creds = get_token_env()
 
     try:
-        output = pbtools.get_combined_output([hub_executable_path, "release", "download", version_number, "-i", binary_package_name], env=creds)
-        if f"Downloading {binary_package_name}" in output:
+        proc = pbtools.run_with_combined_output([gh_executable_path, "release", "download", version_number, "-p", binary_package_name], env=creds)
+        output = proc.stdout
+        if proc.returncode == 0:
             pass
-        elif "Unable to find release with tag name" in output:
-            pblog.error(f"Failed to find release tag {version_number}. Please wait and try again later.")
+        elif "release not found" in output:
+            pblog.error(f"Release {version_number} not found. Please wait and try again later.")
             return -1
         elif "The file exists" in output:
             pblog.error(f"File {binary_package_name} was not able to be overwritten. Please remove it manually and run UpdateProject again.")
             return -1
-        elif "did not match any available assets" in output:
-            pblog.error("Binaries for release {version_number} are not pushed into GitHub yet. Please wait and try again later.")
-            return -1
-        elif not output:
-            # hub doesn't print any output if package doesn't exist in release
-            pblog.error(f"Failed to find binary package for release {version_number}")
-            return 1
         else:
             pblog.error(f"Unknown error occurred while pulling binaries for release {version_number}")
             pblog.error(f"Command output was: {output}")
@@ -77,7 +70,7 @@ def pull_binaries(version_number: str, pass_checksum=False):
     except Exception as e:
         pblog.exception(str(e))
         pblog.error(
-            f"Exception thrown while trying do pull binaries for {version_number}")
+            f"Exception thrown while pulling binaries for {version_number}")
         return 1
 
     # Temp fix for Binaries folder with unnecessary content
@@ -86,7 +79,7 @@ def pull_binaries(version_number: str, pass_checksum=False):
             shutil.rmtree("Binaries")
         except Exception as e:
             pblog.exception(str(e))
-            pblog.error("Exception thrown while trying do clean Binaries folder")
+            pblog.error("Exception thrown while cleaning Binaries folder")
             return 1
     try:
         if pass_checksum:
@@ -109,7 +102,7 @@ def pull_binaries(version_number: str, pass_checksum=False):
 
     except Exception as e:
         pblog.exception(str(e))
-        pblog.error(f"Exception thrown while trying extract binary package for {version_number}")
+        pblog.error(f"Exception thrown while extracting binary package for {version_number}")
         return 1
 
     return 0
@@ -120,10 +113,10 @@ def push_package(version_number, file_name):
         pblog.error(f"Provided file {file_name} doesn't exist")
         return False
 
-    creds = get_hub_credentials_env()
+    creds = get_token_env()
 
     try:
-        output = pbtools.get_combined_output([hub_executable_path, "release", "edit", version_number, "-m", "", "-a", file_name], env=creds)
+        output = pbtools.get_combined_output([gh_executable_path, "release", "upload", version_number, file_name, "--clobber"], env=creds)
         if "Attaching 1 asset..." in output:
             return True
         else:

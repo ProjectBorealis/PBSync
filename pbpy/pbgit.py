@@ -95,7 +95,7 @@ def set_tracking_information(upstream_branch_name: str):
 
 
 def stash_pop():
-    pblog.info("Trying to pop stash...")
+    pblog.info("Popping stash...")
 
     output = pbtools.get_combined_output([get_git_executable(), "stash", "pop"])
     pblog.info(output)

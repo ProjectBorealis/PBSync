@@ -9,7 +9,7 @@ import pathlib
 import stat
 
 from pbpy import pblog
-from pbpy import pbhub
+from pbpy import pbgh
 from pbpy import pbtools
 from pbpy import pbunreal
 from pbpy import pbgit
@@ -211,9 +211,9 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             if is_custom_version:
                 pbtools.run_with_combined_output([pbgit.get_git_executable(), "restore", "-WSs", project_version, "--", checksum_json_path])
 
-            if pbhub.is_pull_binaries_required():
-                pblog.info("Binaries are not up to date, trying to pull new binaries...")
-                ret = pbhub.pull_binaries(project_version)
+            if pbgh.is_pull_binaries_required():
+                pblog.info("Binaries are not up to date, pulling new binaries...")
+                ret = pbgh.pull_binaries(project_version)
                 if ret == 0:
                     pblog.info("Binaries were pulled successfully")
                 elif ret < 0:
@@ -239,7 +239,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
         engine_version = pbunreal.get_engine_version_with_prefix()
 
-        pblog.info("Trying to register current engine build if it exists. Otherwise, the build will be downloaded...")
+        pblog.info("Registering current engine build if it exists. Otherwise, the build will be downloaded...")
 
         symbols_needed = pbunreal.is_versionator_symbols_enabled()
         bundle_name = pbconfig.get("ue4v_default_bundle")
@@ -278,9 +278,9 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                 pbtools.error_state("--repository <URL> argument should be provided with --sync engine command")
         engine_version = pbunreal.get_latest_available_engine_version(str(repository_val))
         if engine_version is None:
-            pbtools.error_state("Error while trying to fetch latest engine version")
+            pbtools.error_state("Error while fetching latest engine version")
         if not pbunreal.set_engine_version(engine_version):
-            pbtools.error_state("Error while trying to update engine version in .uproject file")
+            pbtools.error_state("Error while updating engine version in .uproject file")
         pblog.info(f"Successfully changed engine version as {str(engine_version)}")
 
     elif sync_val == "ddc":
@@ -288,7 +288,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
     elif sync_val == "binaries":
         project_version = pbunreal.get_project_version()
-        ret = pbhub.pull_binaries(project_version, True)
+        ret = pbgh.pull_binaries(project_version, True)
         if ret == 0:
             pblog.info(f"Binaries for {project_version} pulled and extracted successfully")
         else:
@@ -351,7 +351,7 @@ def autoversion_handler(autoversion_val):
     if pbunreal.project_version_increase(autoversion_val):
         pblog.info("Successfully increased project version")
     else:
-        pbtools.error_state("Error occurred while trying to increase project version")
+        pbtools.error_state("Error occurred while increasing project version")
 
 
 def publish_handler(publish_val, dispatch_exec_path):
@@ -366,7 +366,7 @@ def publish_handler(publish_val, dispatch_exec_path):
 def push_handler(file_name):
     project_version = pbunreal.get_project_version()
     pblog.info(f"Attaching {file_name} into GitHub release {project_version}")
-    if not pbhub.push_package(project_version, file_name):
+    if not pbgh.push_package(project_version, file_name):
         pbtools.error_state(f"Error occurred while pushing package for release {project_version}")
 
 
