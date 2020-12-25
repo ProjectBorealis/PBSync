@@ -57,7 +57,7 @@ def pull_binaries(version_number: str, pass_checksum=False):
         output = proc.stdout
         if proc.returncode == 0:
             pass
-        elif "release not found" in output:
+        elif pbtools.it_has_any(output, "release not found", "no assets"):
             pblog.error(f"Release {version_number} not found. Please wait and try again later.")
             return -1
         elif "The file exists" in output:
