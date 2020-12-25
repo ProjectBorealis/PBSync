@@ -15,6 +15,8 @@ import json
 import glob
 import pathlib
 import configparser
+import contextlib
+
 import gslib
 
 from pbpy import pbconfig
@@ -35,6 +37,7 @@ ue4_editor_relative_path = "Engine/Binaries/Win64/UE4Editor.exe"
 # TODO: make these config variables
 engine_installation_folder_regex = r"[0-9].[0-9]{2}.*-PB-[0-9]{8}"
 engine_version_prefix = "PB"
+p4merge_path = ".github/p4merge/p4merge.exe"
 
 
 def get_plugin_version(plugin_name):
@@ -520,24 +523,33 @@ def download_engine(bundle_name=None, download_symbols=False):
     return True
 
 
-def update_source_control():
-    source_control_config = configparser.ConfigParser(allow_no_value=True, delimiters=("=",))
+@contextlib.contextmanager
+def ue4_config(path):
+    config = configparser.ConfigParser(allow_no_value=True, delimiters=("=",))
     # case sensitive
-    source_control_config.optionxform = lambda option: option
-    ini_path = "Saved/Config/Windows/SourceControlSettings.ini"
-    source_control_config.read(ini_path)
-    pbconfig.get_user_config()["ue4v-user"]["symbols"] = "true"
-    source_control_config["SourceControl.SourceControlSettings"]["Provider"] = pbconfig.get_user("project", "provider", "Git LFS 2")
-    git_lfs_2 = source_control_config["GitSourceControl.GitSourceControlSettings"]
-    binary_path = pbgit.get_git_executable()
-    if binary_path != "git":
-        git_lfs_2["BinaryPath"] = binary_path
-    else:
-        git_paths = [path for path in pbtools.whereis("git") if "cmd" in path.parts]
-        if len(git_paths) > 0:
-            git_lfs_2["BinaryPath"] = str(git_paths[0].resolve())
-    git_lfs_2["UsingGitLfsLocking"] = "True"
-    username, _ = pbgit.get_credentials()
-    git_lfs_2["LfsUserName"] = username
-    with open(ini_path, 'w') as ini_file:
-        source_control_config.write(ini_file, space_around_delimiters=False)
+    config.optionxform = lambda option: option
+    config.read(path)
+    try:
+        yield config
+    finally:
+        with open(path, 'w') as ini_file:
+            config.write(ini_file, space_around_delimiters=False)
+
+
+def update_source_control():
+    with ue4_config("Saved/Config/Windows/SourceControlSettings.ini") as source_control_config:
+        source_control_config["SourceControl.SourceControlSettings"]["Provider"] = pbconfig.get_user("project", "provider", "Git LFS 2")
+        git_lfs_2 = source_control_config["GitSourceControl.GitSourceControlSettings"]
+        binary_path = pbgit.get_git_executable()
+        if binary_path != "git":
+            git_lfs_2["BinaryPath"] = binary_path
+        else:
+            git_paths = [path for path in pbtools.whereis("git") if "cmd" in path.parts]
+            if len(git_paths) > 0:
+                git_lfs_2["BinaryPath"] = str(git_paths[0].resolve())
+        git_lfs_2["UsingGitLfsLocking"] = "True"
+        username, _ = pbgit.get_credentials()
+        git_lfs_2["LfsUserName"] = username
+    with ue4_config("Saved/Config/Windows/EditorPerProjectUserSettings.ini") as editor_config:
+        p4merge = str(pathlib.Path(p4merge_path).resolve())
+        editor_config["/Script/UnrealEd.EditorLoadingSavingSettings"]["TextDiffToolPath"] = f"(FilePath=\"{p4merge}\")"
