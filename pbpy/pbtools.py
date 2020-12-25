@@ -48,8 +48,6 @@ def run_with_combined_output(cmd, env=None):
 def run_non_blocking(*commands):
     if os.name == "nt":
         cmdline = " & ".join(commands)
-        print(commands)
-        print(cmdline)
         subprocess.Popen(cmdline, shell=True, creationflags=subprocess.DETACHED_PROCESS)
     elif os.name == "posix":
         forked_commands = [f"nohup {command}" for command in commands]
