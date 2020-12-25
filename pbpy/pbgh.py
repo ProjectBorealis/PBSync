@@ -106,22 +106,3 @@ def pull_binaries(version_number: str, pass_checksum=False):
         return 1
 
     return 0
-
-
-def push_package(version_number, file_name):
-    if not os.path.exists(file_name):
-        pblog.error(f"Provided file {file_name} doesn't exist")
-        return False
-
-    creds = get_token_env()
-
-    try:
-        output = pbtools.get_combined_output([gh_executable_path, "release", "upload", version_number, file_name, "--clobber"], env=creds)
-        if "Attaching 1 asset..." in output:
-            return True
-        else:
-            pblog.error(output)
-    except Exception as e:
-        pblog.exception(str(e))
-    pblog.error(f"Error occurred while attaching {file_name} into release {version_number}")
-    return False
