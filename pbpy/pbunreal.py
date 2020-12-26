@@ -1,3 +1,4 @@
+import itertools
 import subprocess
 import re
 from shutil import move
@@ -521,29 +522,55 @@ def download_engine(bundle_name=None, download_symbols=False):
 class multi_dict(dict):
     def __setitem__(self, key, value):
         if isinstance(value, list) and key in self:
+            if len(value) > 1:
+                print("long value: " + value)
             self[key].extend(value)
         else:
             super().__setitem__(key, value)
+    def force_set(self, key, value):
+        super().__setitem__(key, value)
 
 
 class MultiConfigParser(pbconfig.CustomConfigParser):
     def _write_section(self, fp, section_name, section_items, delimiter):
-        """Write a single section to the specified `fp'."""
+        """Write a single section to the specified `fp'. Extended to write multi-value, single key."""
         fp.write("[{}]\n".format(section_name))
         for key, value in section_items:
             value = self._interpolation.before_write(self, section_name, key,
                                                      value)
-            if not isinstance(value, list):
-                value = [value]
-            for value in value:
+            if isinstance(value, list):
+                values = value
+            else:
+                values = [value]
+            for value in values:
                 if self._allow_no_value and value is None:
                     value = ""
-                value = delimiter + str(value).replace('\n', '\n\t')
+                else:
+                    value = delimiter + str(value).replace('\n', '\n\t')
                 fp.write("{}{}\n".format(key, value))
         fp.write("\n")
 
     def _join_multiline_values(self):
-        pass
+        """Handles newlines being parsed as bogus values."""
+        defaults = self.default_section, self._defaults
+        all_sections = itertools.chain((defaults,),
+                                       self._sections.items())
+        for section, options in all_sections:
+            for name, val in options.items():
+                if isinstance(val, list):
+                    # check if this is a multi value
+                    length = len(val)
+                    if length > 1:
+                        last_entry = val[length - 1]
+                        # if the last entry is empty (newline!), clear it out
+                        if not last_entry:
+                            del val[-1]
+                    # restore it back to single value
+                    if len(val) == 1:
+                        val = val[0]
+                val = self._interpolation.before_read(self, section, name, val)
+                options.force_set(name, val)
+
 
 
 @contextlib.contextmanager
