@@ -1,22 +1,20 @@
 import itertools
-import subprocess
 import re
+import os
+import json
+import glob
+import configparser
+import contextlib
+
 from shutil import move
 from shutil import rmtree
 from shutil import disk_usage
-from os import remove
 from functools import lru_cache
 from urllib.parse import urlparse
 from pathlib import Path
 from gslib.command_runner import CommandRunner
 from gslib.commands.cp import CpCommand
-from gslib.commands.rsync import RsyncCommand
-import os
-import json
-import glob
-import pathlib
-import configparser
-import contextlib
+# from gslib.commands.rsync import RsyncCommand
 
 import gslib
 
@@ -91,7 +89,7 @@ def set_project_version(version_string):
                         fout.write(f"ProjectVersion={version_string}\n")
                     else:
                         fout.write(ln)
-        remove(pbconfig.get('defaultgame_path'))
+        os.remove(pbconfig.get('defaultgame_path'))
         move(temp_path, pbconfig.get('defaultgame_path'))
     except Exception as e:
         pblog.exception(str(e))
@@ -110,7 +108,7 @@ def set_engine_version(version_string):
                         fout.write(f"\t\"{uproject_version_key}\": \"{ue4v_prefix}{version_string}\",\n")
                     else:
                         fout.write(ln)
-        remove(pbconfig.get('uproject_name'))
+        os.remove(pbconfig.get('uproject_name'))
         move(temp_path, pbconfig.get('uproject_name'))
     except Exception as e:
         pblog.exception(str(e))
@@ -230,12 +228,7 @@ def get_engine_install_root():
                         try:
                             response = input("\nCustom location: ")
                             directory = Path(response.strip()).resolve()
-                            try:
-                                directory.relative_to(curdir)
-                                relative = True
-                            except ValueError:
-                                relative = False
-                            if relative:
+                            if directory.is_relative_to(curdir):
                                 print("download directory cannot reside in the project directory")
                                 continue
                         except Exception as e:
@@ -303,7 +296,7 @@ def generate_ddc_data():
             ue_editor_executable = os.path.join(
                 installation_dir, ue4_editor_relative_path)
             if os.path.isfile(ue_editor_executable):
-                err = pbtools.run([str(ue_editor_executable), str(pathlib.Path(pbconfig.get('uproject_name')).resolve()), "-run=DerivedDataCache", "-fill"]).returncode
+                err = pbtools.run([str(ue_editor_executable), str(Path(pbconfig.get('uproject_name')).resolve()), "-run=DerivedDataCache", "-fill"]).returncode
                 if err == 0:
                     pblog.info(f"DDC generate command has exited with {err}")
                 else:
@@ -401,7 +394,7 @@ def download_engine(bundle_name=None, download_symbols=False):
                 clean_old_engine_installations()
                 total, used, free = disk_usage(root)
                 if free < required_free_space:
-                    pblog.error(f"You do not have enough available space to install the engine. Please free up space on f{pathlib.Path(root).anchor}")
+                    pblog.error(f"You do not have enough available space to install the engine. Please free up space on f{Path(root).anchor}")
                     available_gb = int(free / (1000 * 1000 * 1000))
                     pblog.error(f"Available space: {available_gb}GB")
                     pblog.error(f"Total install size: {required_free_gb}GB")
@@ -413,10 +406,10 @@ def download_engine(bundle_name=None, download_symbols=False):
 
         verification_file = get_bundle_verification_file(bundle_name)
         version = get_engine_version_with_prefix()
-        base_path = pathlib.Path(root) / pathlib.Path(version)
-        symbols_path = base_path / pathlib.Path(verification_file + "pdb")
+        base_path = Path(root) / Path(version)
+        symbols_path = base_path / Path(verification_file + "pdb")
         needs_symbols = download_symbols and not symbols_path.exists()
-        exe_path = base_path / pathlib.Path(verification_file + "exe")
+        exe_path = base_path / Path(verification_file + "exe")
         needs_exe = not exe_path.exists()
         try:
             legacy_archives = pbconfig.get_user_config().getboolean("ue4v-user", "legacy", fallback=False) or int(get_engine_version()) <= 20201224
@@ -439,7 +432,7 @@ def download_engine(bundle_name=None, download_symbols=False):
                 gslib.command.InitializeThreadingVariables()
             command_runner = CommandRunner(command_map={
                 "cp": CpCommand,
-                "rs": RsyncCommand
+                # "rs": RsyncCommand
             })
             patterns = []
             if needs_exe and needs_symbols:
@@ -501,10 +494,10 @@ def download_engine(bundle_name=None, download_symbols=False):
     # if not CI, run the setup tasks
     if root is not None and not is_ci and needs_exe:
         pblog.info("Installing Unreal Engine prerequisites")
-        prereq_path = base_path / pathlib.Path("Engine/Extras/Redist/en-us/UE4PrereqSetup_x64.exe")
+        prereq_path = base_path / Path("Engine/Extras/Redist/en-us/UE4PrereqSetup_x64.exe")
         pbtools.run([str(prereq_path), "/quiet"])
         pblog.info("Registering Unreal Engine file associations")
-        selector_path = base_path / pathlib.Path("Engine/Binaries/Win64/UnrealVersionSelector-Win64-Shipping.exe")
+        selector_path = base_path / Path("Engine/Binaries/Win64/UnrealVersionSelector-Win64-Shipping.exe")
         cmdline = [str(selector_path), "/fileassociations"]
         if not pbuac.isUserAdmin():
             pbuac.runAsAdmin(cmdline)
@@ -513,7 +506,7 @@ def download_engine(bundle_name=None, download_symbols=False):
         # generate project files for developers
         is_on_expected_branch = pbgit.compare_with_current_branch_name(pbconfig.get('expected_branch_name'))
         if not is_on_expected_branch:
-            uproject = str(pathlib.Path(pbconfig.get("uproject_name")).resolve())
+            uproject = str(Path(pbconfig.get("uproject_name")).resolve())
             pbtools.run([selector_path, "/projectfiles", uproject])
 
     return True
@@ -599,5 +592,44 @@ def update_source_control():
         username, _ = pbgit.get_credentials()
         git_lfs_2["LfsUserName"] = username
     with ue4_config("Saved/Config/Windows/EditorPerProjectUserSettings.ini") as editor_config:
-        p4merge = str(pathlib.Path(p4merge_path).resolve())
+        p4merge = str(Path(p4merge_path).resolve())
         editor_config["/Script/UnrealEd.EditorLoadingSavingSettings"]["TextDiffToolPath"] = f"(FilePath=\"{p4merge}\")"
+
+
+# we will either error out, or succeed, so this won't matter
+@lru_cache()
+def is_ue4_closed():
+    # check if there is a UE4 running at all
+    p = pbtools.get_running_process("UE4Editor")
+    if p is None:
+        # ue4 is not running at all
+        return True
+    # cheap check for our engine
+    root = get_engine_install_root()
+    if root is None:
+        # we don't have an engine install, impossible to run
+        return True
+    else:
+        exe = Path(p.info["exe"])
+        root = Path(root)
+        if not exe.is_relative_to(root):
+            # not our engine
+            return True
+    # finally, do an expensive open files check to ensure the project is open
+    files = p.open_files()
+    project_path = Path().resolve()
+    found_project = False
+    for file in files:
+        path = Path(file.path)
+        if path.is_relative_to(project_path):
+            found_project = True
+            break
+    # if we didn't get any files, something went wrong, so take the safe route
+    if len(files) < 1 or found_project:
+        return False
+    return True
+
+
+def ensure_ue4_closed():
+    if not is_ue4_closed():
+        pbtools.error_state("Unreal Editor is currently running. Please close it before running PBSync. It may be listed only in Task Manager as a background process. As a last resort, you should log off and log in again.")

@@ -16,9 +16,9 @@ from pathlib import Path
 from pbpy import pbconfig
 from pbpy import pblog
 from pbpy import pbgit
+from pbpy import pbunreal
 
 error_file = ".pbsync_err"
-watchman_exec_name = "watchman.exe"
 
 
 def run(cmd, env=None):
@@ -230,17 +230,12 @@ def error_state(msg=None, fatal_error=False, hush=False, term=False):
     sys.exit(1)
 
 
-def disable_watchman():
-    run_with_output([pbgit.get_git_executable(), "config", "--unset", "core.fsmonitor"])
-    p = get_running_process(watchman_exec_name)
-    if p is not None:
-        p.kill()
-
-
 def get_running_process(process_name):
+    if os.name == "nt":
+        process_name += ".exe"
     try:
-        for p in psutil.process_iter(['name']):
-            if process_name in p.info['name']:
+        for p in psutil.process_iter(["name", "exe"]):
+            if process_name == p.info["name"]:
                 return p
     except Exception:
         # An exception occurred while checking, assume the program is not running
@@ -256,7 +251,6 @@ def wipe_workspace():
         return False
 
     pbgit.abort_all()
-    disable_watchman()
     output = get_combined_output([pbgit.get_git_executable(), "fetch", "origin", current_branch])
     pblog.info(output)
     proc = run_with_combined_output([pbgit.get_git_executable(), "reset", "--hard", f"origin/{current_branch}"])
@@ -316,13 +310,11 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         # wait a little bit if retrying (exponential)
         time.sleep(0.25 * (1 << retry_count))
 
-    # Disable watchman for now
-    disable_watchman()
-
     out = get_combined_output([pbgit.get_git_executable(), "status", "--ahead-behind", "-uno"])
     pblog.info(out)
 
     if "ahead" not in out:
+        pbunreal.ensure_ue4_closed()
         pblog.info("Please wait while getting the latest changes from the repository. It may take a while...")
         # Make sure upstream is tracked correctly
         branch_name = pbgit.get_current_branch_name()

@@ -1,12 +1,11 @@
 from pbpy.pbtools import error_state
 import os.path
 import os
-import pathlib
 import sys
 import argparse
 import webbrowser
-import pathlib
-import stat
+
+from pathlib import Path
 
 from pbpy import pblog
 from pbpy import pbgh
@@ -26,7 +25,7 @@ default_config_name = "PBSync.xml"
 def config_handler(config_var, config_parser_func):
     if not pbconfig.generate_config(config_var, config_parser_func):
         # Logger is not initialized yet, so use print instead
-        pbtools.error_state(f"{str(config_var)} config file is not valid or not found. Please check the integrity of the file", hush=True, term=True)
+        error_state(f"{str(config_var)} config file is not valid or not found. Please check the integrity of the file", hush=True, term=True)
 
 
 def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None):
@@ -37,7 +36,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         # Firstly, check our remote connection before doing anything
         remote_state, remote_url = pbgit.check_remote_connection()
         if not remote_state:
-            pbtools.error_state(
+            error_state(
                 f"Remote connection was not successful. Please verify that you have a valid git remote URL and internet connection. Current git remote URL: {remote_url}")
         else:
             pblog.info("Remote connection is up")
@@ -104,13 +103,13 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                         pblog.error("User declined permission. Automatic delete failed.")
 
                 for delete_path in delete_paths:
-                    path = pathlib.Path(delete_path)
+                    path = Path(delete_path)
                     if path.exists():
                         bundled_git_lfs = True
                         pblog.error(f"Git LFS is bundled with Git, overriding your installed version. Please remove {path}.")
 
                 if bundled_git_lfs:
-                    pbtools.error_state()
+                    error_state()
 
         detected_lfs_version = pbgit.get_lfs_version()
         supported_lfs_version = pbconfig.get('supported_lfs_version')
@@ -150,13 +149,9 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             needs_git_update = True
 
         if needs_git_update:
-            pbtools.error_state()
+            error_state()
 
         pblog.info("------------------")
-
-        # Do not execute if Unreal Editor is running
-        if pbtools.get_running_process("UE4Editor") is not None:
-            pbtools.error_state("Unreal Editor is currently running. Please close it before running PBSync. It may be listed only in Task Manager as a background process. As a last resort, you should log off and log in again.")
 
         # Do some housekeeping for git configuration
         pbgit.setup_config()
@@ -171,12 +166,13 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         # continue a trivial rebase
         if "rebase" in status_out:
             if pbtools.it_has_any(status_out, "nothing to commit", "git rebase --continue", "all conflicts fixed"):
+                pbunreal.ensure_ue4_closed()
                 rebase_out = pbtools.run_with_combined_output([pbgit.get_git_executable(), "rebase", "--continue"]).stdout
                 if pbtools.it_has_any(rebase_out, "must edit all merge conflicts"):
                     # this is an improper state, since git told us otherwise before. abort all.
                     pbgit.abort_all()
             else:
-                pbtools.error_state("You are in the middle of a rebase. Changes on one of your commits will be overridden by incoming changes. Please request help in #tech-support to resolve conflicts, and please do not run UpdateProject until the issue is resolved.",
+                error_state("You are in the middle of a rebase. Changes on one of your commits will be overridden by incoming changes. Please request help in #tech-support to resolve conflicts, and please do not run UpdateProject until the issue is resolved.",
                                     fatal_error=True)
 
         current_branch = pbgit.get_current_branch_name()
@@ -214,7 +210,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                 else:
                     pblog.info(f"Current project version: {project_version}")
             else:
-                pbtools.error_state("Something went wrong while fetching project version. Please request help in #tech-support.")
+                error_state("Something went wrong while fetching project version. Please request help in #tech-support.")
 
             # checkout old md5 from tag
             checksum_json_path = pbconfig.get("checksum_file")
@@ -227,9 +223,9 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                 if ret == 0:
                     pblog.info("Binaries were pulled successfully")
                 elif ret < 0:
-                    pbtools.error_state("Binaries pull failed, please view log for instructions.")
+                    error_state("Binaries pull failed, please view log for instructions.")
                 elif ret > 0:
-                    pbtools.error_state("An error occurred while pulling binaries. Please request help in #tech-support to resolve it, and please do not run UpdateProject until the issue is resolved.", True)
+                    error_state("An error occurred while pulling binaries. Please request help in #tech-support to resolve it, and please do not run UpdateProject until the issue is resolved.", True)
             else:
                 pblog.info("Binaries are up-to-date")
 
@@ -245,7 +241,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         pblog.info("Checking for engine updates...")
         uproject_file = pbconfig.get('uproject_name')
         if pbgit.sync_file(uproject_file) != 0:
-            pbtools.error_state("Something went wrong while updating the .uproject file. Please request help in #tech-support.")
+            error_state("Something went wrong while updating the .uproject file. Please request help in #tech-support.")
 
         engine_version = pbunreal.get_engine_version_with_prefix()
 
@@ -257,7 +253,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         if pbunreal.download_engine(bundle_name, symbols_needed):
             pblog.info(f"Engine build {bundle_name}-{engine_version} successfully registered")
         else:
-            pbtools.error_state(f"Something went wrong while registering engine build {bundle_name}-{engine_version}. Please request help in #tech-support.")
+            error_state(f"Something went wrong while registering engine build {bundle_name}-{engine_version}. Please request help in #tech-support.")
 
         # Clean old engine installations, do that only in expected branch
         if is_on_expected_branch:
@@ -270,8 +266,8 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
         pbunreal.update_source_control()
 
-        if pbunreal.check_ue4_file_association():
-            path = str(pathlib.Path(uproject_file).resolve())
+        if pbunreal.check_ue4_file_association() and pbunreal.is_ue4_closed():
+            path = str(Path(uproject_file).resolve())
             try:
                 os.startfile(path)
             except NotImplementedError:
@@ -280,17 +276,17 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                 else:
                     pblog.info(f"You may now launch {uproject_file} with Unreal Engine 4.")
         else:
-            pbtools.error_state(".uproject extension is not correctly set into Unreal Engine. Make sure you have Epic Games Launcher installed. If problem still persists, please get help in #tech-support.")
+            error_state(".uproject extension is not correctly set into Unreal Engine. Make sure you have Epic Games Launcher installed. If problem still persists, please get help in #tech-support.")
 
     elif sync_val == "engineversion":
         repository_val = pbunreal.get_versionator_gsuri(repository_val)
         if repository_val is None:
-                pbtools.error_state("--repository <URL> argument should be provided with --sync engine command")
+                error_state("--repository <URL> argument should be provided with --sync engine command")
         engine_version = pbunreal.get_latest_available_engine_version(str(repository_val))
         if engine_version is None:
-            pbtools.error_state("Error while fetching latest engine version")
+            error_state("Error while fetching latest engine version")
         if not pbunreal.set_engine_version(engine_version):
-            pbtools.error_state("Error while updating engine version in .uproject file")
+            error_state("Error while updating engine version in .uproject file")
         pblog.info(f"Successfully changed engine version as {str(engine_version)}")
 
     elif sync_val == "ddc":
@@ -302,7 +298,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         if ret == 0:
             pblog.info(f"Binaries for {project_version} pulled and extracted successfully")
         else:
-            pbtools.error_state(f"Failed to pull binaries for {project_version}")
+            error_state(f"Failed to pull binaries for {project_version}")
 
     elif sync_val == "engine":
         # Pull engine build with ue4versionator and register it
@@ -318,7 +314,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                 pblog.info(f"Keeping the last {keep} engine versions and removing the rest.")
                 pbunreal.clean_old_engine_installations(keep=keep)
         else:
-            pbtools.error_state(f"Something went wrong while registering engine build {requested_bundle_name}-{engine_version}")
+            error_state(f"Something went wrong while registering engine build {requested_bundle_name}-{engine_version}")
 
 
 def clean_handler(clean_val):
@@ -326,11 +322,11 @@ def clean_handler(clean_val):
         if pbtools.wipe_workspace():
             pblog.info("Workspace wipe successful")
         else:
-            pbtools.error_state("Something went wrong while wiping the workspace")
+            error_state("Something went wrong while wiping the workspace")
 
     elif clean_val == "engine":
         if not pbunreal.clean_old_engine_installations():
-            pbtools.error_state(
+            error_state(
                 "Something went wrong while cleaning old engine installations. You may want to clean them manually.")
 
 
@@ -338,22 +334,22 @@ def printversion_handler(print_val, repository_val=None):
     if print_val == "latest-engine":
         repository_val = pbunreal.get_versionator_gsuri(repository_val)
         if repository_val is None:
-            pbtools.error_state("--repository <URL> argument should be provided with --print latest-engine command")
+            error_state("--repository <URL> argument should be provided with --print latest-engine command")
         engine_version = pbunreal.get_latest_available_engine_version(str(repository_val))
         if engine_version is None:
-            pbtools.error_state("Could not find latest engine version.")
+            error_state("Could not find latest engine version.")
         print(engine_version, end="")
 
     elif print_val == "current-engine":
         engine_version = pbunreal.get_engine_version()
         if engine_version is None:
-            pbtools.error_state("Could not find latest engine version.")
+            error_state("Could not find latest engine version.")
         print(engine_version, end="")
 
     elif print_val == "project":
         project_version = pbunreal.get_project_version()
         if project_version is None:
-            pbtools.error_state("Could not find latest engine version.")
+            error_state("Could not find latest engine version.")
         print(project_version, end="")
 
 
@@ -361,16 +357,16 @@ def autoversion_handler(autoversion_val):
     if pbunreal.project_version_increase(autoversion_val):
         pblog.info("Successfully increased project version")
     else:
-        pbtools.error_state("Error occurred while increasing project version")
+        error_state("Error occurred while increasing project version")
 
 
 def publish_handler(publish_val, dispatch_exec_path):
     if dispatch_exec_path is None:
-        pbtools.error_state(
+        error_state(
             "--dispatch argument should be provided for --publish command", hush=True)
 
     if not pbdispatch.push_build(publish_val, dispatch_exec_path, pbconfig.get('dispatch_config'), pbconfig.get('dispatch_stagedir'), pbconfig.get('dispatch_drm')):
-       pbtools.error_state("Something went wrong while pushing a new playable build.")
+       error_state("Something went wrong while pushing a new playable build.")
 
 
 def main(argv):
@@ -404,7 +400,7 @@ def main(argv):
         pblog.error("At least one valid argument should be passed!")
         pblog.error("Did you mean to launch UpdateProject?")
         input("Press enter to continue...")
-        pbtools.error_state(hush=True, term=True)
+        error_state(hush=True, term=True)
 
     if not (args.debugpath is None):
         # Work on provided debug path
@@ -439,7 +435,7 @@ def main(argv):
 
     # Do not process further if we're in an error state
     if pbtools.check_error_state():
-        pbtools.error_state(f"""Repository is currently in an error state. Please fix the issues in your workspace 
+        error_state(f"""Repository is currently in an error state. Please fix the issues in your workspace 
         before running PBSync.\nIf you have already fixed the problem, you may remove {pbtools.error_file} from your project folder and 
         run UpdateProject again.""", True)
 
@@ -458,7 +454,7 @@ def main(argv):
         pblog.error("At least one valid argument should be passed!")
         pblog.error("Did you mean to launch UpdateProject?")
         input("Press enter to continue...")
-        pbtools.error_state(hush=True)
+        error_state(hush=True)
 
     pbconfig.shutdown()
 

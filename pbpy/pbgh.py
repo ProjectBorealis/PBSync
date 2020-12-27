@@ -9,6 +9,7 @@ from pbpy import pblog
 from pbpy import pbtools
 from pbpy import pbconfig
 from pbpy import pbgit
+from pbpy import pbunreal
 
 gh_executable_path = ".github\\gh\\gh.exe"
 binary_package_name = "Binaries.zip"
@@ -72,6 +73,8 @@ def pull_binaries(version_number: str, pass_checksum=False):
         pblog.error(
             f"Exception thrown while pulling binaries for {version_number}")
         return 1
+
+    pbunreal.ensure_ue4_closed()
 
     # Temp fix for Binaries folder with unnecessary content
     if os.path.isdir("Binaries"):

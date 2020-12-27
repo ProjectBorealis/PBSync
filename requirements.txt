@@ -5,3 +5,4 @@ verboselogs
 pywin32
 gsutil
 crcmod
+pefile
