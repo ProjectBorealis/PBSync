@@ -232,6 +232,8 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             # restore md5
             if is_custom_version:
                 pbtools.run_with_combined_output([pbgit.get_git_executable(), "restore", "-WSs", "HEAD", "--", checksum_json_path])
+        elif pbconfig.get_user("project", "autosync", default=False):
+            pbtools.resolve_conflicts_and_pull()
         else:
             pblog.info(f"Current branch does not need auto synchronization: {pbgit.get_current_branch_name()}.")
             pbtools.maintain_repo()
