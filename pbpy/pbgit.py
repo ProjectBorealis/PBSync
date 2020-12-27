@@ -47,8 +47,12 @@ def get_lfs_executable():
 
 def get_gcm_executable():
     gcm_exec = pbtools.get_one_line_output([get_git_executable(), "config", "--get", "credential.helper"]).replace("\\", "")
-    if "git-credential-manager-core" not in gcm_exec:
+    # no helper installed
+    if not gcm_exec:
         return None
+    # helper installed, but not GCM Core
+    if "git-credential-manager-core" not in gcm_exec:
+        return f"diff.{gcm_exec}"
     return gcm_exec
 
 
@@ -71,6 +75,8 @@ def get_gcm_version():
     gcm_exec = get_gcm_executable()
     if gcm_exec is None:
         return missing_version
+    if gcm_exec.startswith("diff"):
+        return gcm_exec
     installed_version_split = pbtools.get_one_line_output([gcm_exec, "--version"]).split(" ")
 
     if len(installed_version_split) < 5:

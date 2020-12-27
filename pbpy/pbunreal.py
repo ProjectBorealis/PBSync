@@ -522,8 +522,6 @@ def download_engine(bundle_name=None, download_symbols=False):
 class multi_dict(dict):
     def __setitem__(self, key, value):
         if isinstance(value, list) and key in self:
-            if len(value) > 1:
-                print("long value: " + value)
             self[key].extend(value)
         else:
             super().__setitem__(key, value)

@@ -134,6 +134,16 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             pblog.error("Git Credential Manager Core is not updated to the supported version in your system")
             pblog.error(f"Supported Git Credential Manager Core Version: {supported_gcm_version}")
             pblog.error(f"Current Git Credential Manager Core Version: {detected_gcm_version}")
+            if detected_gcm_version.startswith("diff"):
+                # remove the old credential helper (it may get stuck, and Core won't be able to install)
+                pbtools.run_with_combined_output([pbgit.get_git_executable(), "config", "--unset-all", "credential.helper"])
+                exe_location = detected_gcm_version.split(".", 1)
+                # if they actually have a Windows program installed, inform them.
+                if exe_location.endswith(".exe"):
+                    pblog.error(f"It seems like you have another Git credential helper installed at: {exe_location}.")
+                    pblog.error("Please uninstall this and Git Credential Manager Core if you have it in \"Add or remove programs\" and then install Git Credential Manager Core again.")
+                else:
+                    pblog.error("Please uninstall Git Credential Manager Core if you have it in \"Add or remove programs\" and then install Git Credential Manager Core again.")
             pblog.error("Please install the supported Git Credential Manager Core version from https://github.com/microsoft/Git-Credential-Manager-Core/releases")
             if os.name == "nt":
                 webbrowser.open(f"https://github.com/microsoft/Git-Credential-Manager-Core/releases/download/v{supported_gcm_version}/gcmcore-win-x86-{supported_gcm_version_raw}.{pbconfig.get('gcm_download_suffix')}.exe")
