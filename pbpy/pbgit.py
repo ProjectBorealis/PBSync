@@ -144,9 +144,10 @@ def check_credentials():
         pbtools.run_with_output([get_git_executable(), "config", "user.email", user_mail])
 
 
-def sync_file(file_path):
-    sync_head = f"origin/{get_current_branch_name()}"
-    proc = pbtools.run([get_git_executable(), "restore", "-qWSs", sync_head, "--", file_path])
+def sync_file(file_path, sync_target=None):
+    if sync_target is None:
+        sync_target = f"origin/{get_current_branch_name()}"
+    proc = pbtools.run([get_git_executable(), "restore", "-qWSs", sync_target, "--", file_path])
     return proc.returncode
 
 

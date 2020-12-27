@@ -212,10 +212,13 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             else:
                 error_state("Something went wrong while fetching project version. Please request help in #tech-support.")
 
-            # checkout old md5 from tag
             checksum_json_path = pbconfig.get("checksum_file")
             if is_custom_version:
-                pbtools.run_with_combined_output([pbgit.get_git_executable(), "restore", "-WSs", project_version, "--", checksum_json_path])
+                # checkout old md5 from tag
+                pbgit.sync_file(checksum_json_path, project_version)
+            else:
+                # force restore .md5 file
+                pbgit.sync_file(checksum_json_path, "HEAD")
 
             if pbgh.is_pull_binaries_required():
                 pblog.info("Binaries are not up to date, pulling new binaries...")
@@ -231,7 +234,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
             # restore md5
             if is_custom_version:
-                pbtools.run_with_combined_output([pbgit.get_git_executable(), "restore", "-WSs", "HEAD", "--", checksum_json_path])
+                pbgit.sync_file(checksum_json_path, "HEAD")
         elif pbconfig.get_user("project", "autosync", default=False):
             pbtools.resolve_conflicts_and_pull()
         else:
