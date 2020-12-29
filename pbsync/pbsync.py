@@ -136,7 +136,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             if detected_gcm_version.startswith("diff"):
                 # remove the old credential helper (it may get stuck, and Core won't be able to install)
                 pbtools.run_with_combined_output([pbgit.get_git_executable(), "config", "--unset-all", "credential.helper"])
-                exe_location = detected_gcm_version.split(".", 1)
+                exe_location = detected_gcm_version.split(".", 1)[1]
                 # if they actually have a Windows program installed, inform them.
                 if exe_location.endswith(".exe"):
                     pblog.error(f"It seems like you have another Git credential helper installed at: {exe_location}.")
