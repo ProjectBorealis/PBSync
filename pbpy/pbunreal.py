@@ -394,11 +394,11 @@ def download_engine(bundle_name=None, download_symbols=False):
                 clean_old_engine_installations()
                 total, used, free = disk_usage(root)
                 if free < required_free_space:
-                    pblog.error(f"You do not have enough available space to install the engine. Please free up space on f{Path(root).anchor}")
+                    pblog.error(f"You do not have enough available space to install the engine. Please free up space on {Path(root).anchor}")
                     available_gb = int(free / (1000 * 1000 * 1000))
                     pblog.error(f"Available space: {available_gb}GB")
                     pblog.error(f"Total install size: {required_free_gb}GB")
-                    pblog.error(f"Required space: {int((free - required_free_space) / (1000 * 1000 * 1000))}")
+                    pblog.error(f"Required space: {int((required_free_space - free) / (1000 * 1000 * 1000))}GB")
                     pbtools.error_state()
 
         # create install dir if doesn't exist
