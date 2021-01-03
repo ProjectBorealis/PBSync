@@ -578,7 +578,8 @@ def ue4_config(path):
     try:
         yield config
     finally:
-        with open(path, 'w') as ini_file:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, 'w+') as ini_file:
             config.write(ini_file, space_around_delimiters=False)
 
 
