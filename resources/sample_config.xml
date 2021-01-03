@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <config>
     <project>
-        <enginebaseversion>4.24</enginebaseversion>
+        <enginebaseversion>4.26</enginebaseversion>
         <uprojectname>SampleProject.uproject</uprojectname>
         <defaultgameinipath>Config/DefaultGame.ini</defaultgameinipath>
     </project>
     <git>
-        <version>2.26.2.vfs.1.2</version>
-        <lfsversion>2.11.0</lfsversion>
+        <version>2.29.0.vfs.0.0</version>
+        <lfsversion>2.13.1</lfsversion>
         <gcmversion>2.0.289</gcmversion>
         <gcmversionsuffix>-beta</gcmversionsuffix>
         <gcmsuffix>48418</gcmsuffix>
