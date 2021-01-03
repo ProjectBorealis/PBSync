@@ -22,27 +22,33 @@ error_file = ".pbsync_err"
 
 
 def run(cmd, env=None):
+    cmdline = " ".join(cmd) if isinstance(cmd, list) else cmd
+
     if env is None:
         env = os.environ
     else:
         env = os.environ | env
-    return subprocess.run(cmd, shell=True, env=env)
+    return subprocess.run(cmdline, shell=True, env=env)
 
 
 def run_with_output(cmd, env=None):
+    cmdline = " ".join(cmd) if isinstance(cmd, list) else cmd
+
     if env is None:
         env = os.environ
     else:
         env = os.environ | env
-    return subprocess.run(cmd, capture_output=True, text=True, shell=True, env=env)
+    return subprocess.run(cmdline, capture_output=True, text=True, shell=True, env=env)
 
 
 def run_with_combined_output(cmd, env=None):
+    cmdline = " ".join(cmd) if isinstance(cmd, list) else cmd
+
     if env is None:
         env = os.environ
     else:
         env = os.environ | env
-    return subprocess.run(cmd, text=True, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
+    return subprocess.run(cmdline, text=True, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
 
 
 def run_non_blocking(*commands):
