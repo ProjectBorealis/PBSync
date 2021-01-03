@@ -413,27 +413,46 @@ def main(argv):
         os.chdir(str(args.debugpath))
 
     # Parser function object for PBSync config file
-    def pbsync_config_parser_func(root): return {
-        'supported_git_version': root.find('git/version').text,
-        'supported_lfs_version': root.find('git/lfsversion').text,
-        'supported_gcm_version': root.find('git/gcmversion').text,
-        'supported_gcm_version_suffix': root.find('git/gcmversionsuffix').text,
-        'gcm_download_suffix': root.find('git/gcmsuffix').text,
-        'expected_branch_name': root.find('git/expectedbranch').text if args.debugbranch is None else str(args.debugbranch),
-        'git_url': root.find('git/url').text,
-        'checksum_file': root.find('git/checksumfile').text,
-        'log_file_path': root.find('log/file').text,
-        'ue4v_user_config': root.find('versionator/userconfig').text,
-        'ue4v_ci_config': root.find('versionator/ciconfig').text,
-        'ue4v_default_bundle': root.find('versionator/defaultbundle').text,
-        'ue4v_ci_bundle': root.find('versionator/cibundle').text,
-        'engine_base_version': root.find('project/enginebaseversion').text,
-        'uproject_name': root.find('project/uprojectname').text,
-        'defaultgame_path': root.find('project/defaultgameinipath').text,
-        'dispatch_config': root.find('dispatch/config').text,
-        'dispatch_drm': root.find('dispatch/drm').text,
-        'dispatch_stagedir': root.find('dispatch/stagedir').text
-    }
+    def pbsync_config_parser_func(root):
+        config_args_map = {
+            'supported_git_version': ('git/version', None),
+            'supported_lfs_version': ('git/lfsversion', None),
+            'supported_gcm_version': ('git/gcmversion', None),
+            'supported_gcm_version_suffix': ('git/gcmversionsuffix', None),
+            'gcm_download_suffix': ('git/gcmsuffix', None),
+            'expected_branch_name': ('git/expectedbranch', None if args.debugbranch is None else str(args.debugbranch)),
+            'git_url': ('git/url', None),
+            'checksum_file': ('git/checksumfile', None),
+            'log_file_path': ('log/file', None),
+            'ue4v_user_config': ('versionator/userconfig', None),
+            'ue4v_ci_config': ('versionator/ciconfig', None),
+            'ue4v_default_bundle': ('versionator/defaultbundle', None),
+            'ue4v_ci_bundle': ('versionator/cibundle', None),
+            'engine_base_version': ('project/enginebaseversion', None),
+            'uproject_name': ('project/uprojectname', None),
+            'defaultgame_path': ('project/defaultgameinipath', None),
+            'dispatch_config': ('dispatch/config', None),
+            'dispatch_drm': ('dispatch/drm', None),
+            'dispatch_stagedir': ('dispatch/stagedir', None)
+        }
+
+        missing_keys = []
+        config_map = {}
+        for key, val in config_args_map.items():
+            key1, override = val
+            if (override):
+                config_map[key] = override
+                continue
+            el = root.find(key1)
+            if (el is None):
+                missing_keys.append(key1)
+                continue
+            config_map[key] = el.text
+
+        if (missing_keys):
+            raise KeyError("Missing keys: %s" % ", ".join(missing_keys))
+
+        return config_map
 
     # Preparation
     config_handler(args.config, pbsync_config_parser_func)
