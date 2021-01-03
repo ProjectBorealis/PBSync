@@ -374,13 +374,17 @@ def get_bundle_verification_file(bundle_name):
         return "Engine/Binaries/Win64/UE4Editor."
 
 
+gb_multiplier = 1000 * 1000 * 1000
+gb_div = 1.0 / gb_multiplier
+    
+
 def download_engine(bundle_name=None, download_symbols=False):
     required_free_gb = 7
     
     if download_symbols:
-        required_free_gb += 23
+        required_free_gb += 25
 
-    required_free_space = required_free_gb * 1000 * 1000 * 1000
+    required_free_space = required_free_gb * gb_multiplier
 
     is_ci = pbconfig.get("is_ci")
 
@@ -394,11 +398,12 @@ def download_engine(bundle_name=None, download_symbols=False):
                 clean_old_engine_installations()
                 total, used, free = disk_usage(root)
                 if free < required_free_space:
-                    pblog.error(f"You do not have enough available space to install the engine. Please free up space on f{Path(root).anchor}")
-                    available_gb = int(free / (1000 * 1000 * 1000))
-                    pblog.error(f"Available space: {available_gb}GB")
+                    pblog.error(f"You do not have enough available space to install the engine. Please free up space on {Path(root).anchor}")
+                    available_gb = free * gb_div
+                    pblog.error(f"Available space: {available_gb:.2f}GB")
                     pblog.error(f"Total install size: {required_free_gb}GB")
-                    pblog.error(f"Required space: {int((free - required_free_space) / (1000 * 1000 * 1000))}")
+                    must_free = required_free_gb - available_gb
+                    pblog.error(f"Required space: {must_free:.2f}GB")
                     pbtools.error_state()
 
         # create install dir if doesn't exist
