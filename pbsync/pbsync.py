@@ -4,6 +4,7 @@ import os
 import sys
 import argparse
 import webbrowser
+import threading
 
 from pathlib import Path
 
@@ -242,6 +243,9 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             pblog.info(f"Current branch does not need auto synchronization: {pbgit.get_current_branch_name()}.")
             pbtools.maintain_repo()
 
+        fix_attr_thread = threading.Thread(target=pbgit.fix_lfs_ro_attr)
+        fix_attr_thread.start()
+
         pblog.info("------------------")
 
         pblog.info("Checking for engine updates...")
@@ -271,6 +275,8 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         pblog.info("------------------")
 
         pbunreal.update_source_control()
+
+        fix_attr_thread.join()
 
         if pbunreal.check_ue4_file_association() and pbunreal.is_ue4_closed():
             path = str(Path(uproject_file).resolve())

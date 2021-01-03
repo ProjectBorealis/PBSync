@@ -1,6 +1,8 @@
 import os
 import shutil
 import subprocess
+import json
+import stat
 
 from urllib.parse import urlparse
 from functools import lru_cache
@@ -92,6 +94,40 @@ def get_gcm_version():
     installed_version = installed_version.split("+")[0]
 
     return installed_version
+
+
+def get_lockables():
+    proc = pbtools.run_with_combined_output([get_lfs_executable(), "ls-files", "-n"])
+    if proc.returncode:
+        return None
+    lfs_files = proc.stdout
+    proc = subprocess.run([get_git_executable(), "check-attr", "lockable", "--stdin"], input=lfs_files, capture_output=True, text=True, shell=True)
+    attrs = proc.stdout.splitlines()
+    lockables = set()
+    for attr in attrs:
+        at = attr.split(": ", 2)
+        file = at[0]
+        is_set = at[2] == "set"
+        if is_set:
+            lockables.add(file)
+    return lockables
+
+
+def get_locked(key="ours"):
+    proc = pbtools.run_with_combined_output([get_lfs_executable(), "locks", "--verify", "--json"])
+    if proc.returncode:
+        return None
+    return set(json.loads(proc.stdout)[key])
+
+
+def fix_lfs_ro_attr():
+    lockables = get_lockables()
+    locked = get_locked()
+    not_locked = lockables - locked
+    for file in not_locked:
+        os.chmod(file, stat.S_IREAD)
+    for file in locked:
+        os.chmod(file, stat.S_IWRITE)
 
 
 def set_tracking_information(upstream_branch_name: str):
