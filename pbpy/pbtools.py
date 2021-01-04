@@ -313,7 +313,7 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
     out = get_combined_output([pbgit.get_git_executable(), "status", "--ahead-behind", "-uno"])
     pblog.info(out)
 
-    if "ahead" not in out:
+    if not it_has_any(out, "ahead", "up to date"):
         pbunreal.ensure_ue4_closed()
         pblog.info("Please wait while getting the latest changes from the repository. It may take a while...")
         # Make sure upstream is tracked correctly
