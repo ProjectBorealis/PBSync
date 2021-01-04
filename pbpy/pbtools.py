@@ -320,7 +320,7 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         branch_name = pbgit.get_current_branch_name()
         pbgit.set_tracking_information(branch_name)
         pblog.info("Stashing local work...")
-        proc = run_with_combined_output([pbgit.get_git_executable(), "stash"])
+        proc = run_with_combined_output([pbgit.get_git_executable(), "stash", "-u"])
         out = proc.stdout
         stashed = proc.returncode == 0 and "Saved working directory and index state" in out
         pblog.info(out)
