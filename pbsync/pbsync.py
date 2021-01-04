@@ -278,17 +278,18 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
         fix_attr_thread.join()
 
-        if pbunreal.check_ue4_file_association() and pbunreal.is_ue4_closed():
-            path = str(Path(uproject_file).resolve())
-            try:
-                os.startfile(path)
-            except NotImplementedError:
-                if sys.platform.startswith('linux'):
-                    pbtools.run_non_blocking([f"xdg-open {path}"])
-                else:
-                    pblog.info(f"You may now launch {uproject_file} with Unreal Engine 4.")
-        else:
-            error_state(".uproject extension is not correctly set into Unreal Engine. Make sure you have Epic Games Launcher installed. If problem still persists, please get help in #tech-support.")
+        if pbunreal.is_ue4_closed():
+            if pbunreal.check_ue4_file_association():
+                path = str(Path(uproject_file).resolve())
+                try:
+                    os.startfile(path)
+                except NotImplementedError:
+                    if sys.platform.startswith('linux'):
+                        pbtools.run_non_blocking([f"xdg-open {path}"])
+                    else:
+                        pblog.info(f"You may now launch {uproject_file} with Unreal Engine 4.")
+            else:
+                error_state(".uproject extension is not correctly set into Unreal Engine. Make sure you have Epic Games Launcher installed. If problem still persists, please get help in #tech-support.")
 
     elif sync_val == "engineversion":
         repository_val = pbunreal.get_versionator_gsuri(repository_val)
