@@ -22,33 +22,36 @@ error_file = ".pbsync_err"
 
 
 def run(cmd, env=None):
-    cmdline = " ".join(cmd) if isinstance(cmd, list) else cmd
+    if os.name == "posix":
+        cmd = " ".join(cmd) if isinstance(cmd, list) else cmd
 
     if env is None:
         env = os.environ
     else:
         env = os.environ | env
-    return subprocess.run(cmdline, shell=True, env=env)
+    return subprocess.run(cmd, shell=True, env=env)
 
 
 def run_with_output(cmd, env=None):
-    cmdline = " ".join(cmd) if isinstance(cmd, list) else cmd
+    if os.name == "posix":
+        cmd = " ".join(cmd) if isinstance(cmd, list) else cmd
 
     if env is None:
         env = os.environ
     else:
         env = os.environ | env
-    return subprocess.run(cmdline, capture_output=True, text=True, shell=True, env=env)
+    return subprocess.run(cmd, capture_output=True, text=True, shell=True, env=env)
 
 
 def run_with_combined_output(cmd, env=None):
-    cmdline = " ".join(cmd) if isinstance(cmd, list) else cmd
+    if os.name == "posix":
+        cmd = " ".join(cmd) if isinstance(cmd, list) else cmd
 
     if env is None:
         env = os.environ
     else:
         env = os.environ | env
-    return subprocess.run(cmdline, text=True, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
+    return subprocess.run(cmd, text=True, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
 
 
 def run_non_blocking(*commands):
@@ -316,20 +319,22 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         # wait a little bit if retrying (exponential)
         time.sleep(0.25 * (1 << retry_count))
 
-    out = get_combined_output([pbgit.get_git_executable(), "status", "--ahead-behind", "-uno"])
-    pblog.info(out)
+    out = get_combined_output([pbgit.get_git_executable(), "status", "--porcelain=2", "--branch"])
 
-    if not it_has_any(out, "ahead", "up to date"):
+    if not it_has_any(out, "-0"):
         pbunreal.ensure_ue4_closed()
         pblog.info("Please wait while getting the latest changes from the repository. It may take a while...")
         # Make sure upstream is tracked correctly
         branch_name = pbgit.get_current_branch_name()
         pbgit.set_tracking_information(branch_name)
-        pblog.info("Stashing local work...")
-        proc = run_with_combined_output([pbgit.get_git_executable(), "stash", "-u"])
-        out = proc.stdout
-        stashed = proc.returncode == 0 and "Saved working directory and index state" in out
-        pblog.info(out)
+        if len(out.splitlines()) > 4:
+            pblog.info("Stashing local work...")
+            proc = run_with_combined_output([pbgit.get_git_executable(), "stash", "-u"])
+            out = proc.stdout
+            stashed = proc.returncode == 0 and "Saved working directory and index state" in out
+            pblog.info(out)
+        else:
+            stashed = False
         pblog.info("Rebasing workspace with the latest changes from the repository...")
         # Get the latest files, but skip smudge so we can super charge a LFS pull as one batch
         result = run_with_combined_output([pbgit.get_git_executable(), "-c", "filter.lfs.smudge=", "-c", "filter.lfs.process=", "-c", "filter.lfs.required=false", "rebase", f"origin/{branch_name}", "--no-autostash"])
