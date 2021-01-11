@@ -258,7 +258,8 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         pblog.info("Registering current engine build if it exists. Otherwise, the build will be downloaded...")
 
         symbols_needed = pbunreal.is_versionator_symbols_enabled()
-        bundle_name = pbconfig.get("ue4v_default_bundle")
+        bundle_name = pbconfig.get("ue4v_ci_bundle") if pbconfig.get("is_ci") else pbconfig.get("ue4v_default_bundle")
+        bundle_name = pbconfig.get_user("project", "bundle", default=bundle_name)
 
         if pbunreal.download_engine(bundle_name, symbols_needed):
             pblog.info(f"Engine build {bundle_name}-{engine_version} successfully registered")
@@ -316,7 +317,8 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
     elif sync_val == "engine":
         # Pull engine build with ue4versionator and register it
         if requested_bundle_name is None:
-            requested_bundle_name = pbconfig.get("ue4v_default_bundle")
+            requested_bundle_name = pbconfig.get("ue4v_ci_bundle") if pbconfig.get("is_ci") else pbconfig.get("ue4v_default_bundle")
+            requested_bundle_name = pbconfig.get_user("project", "bundle", default=requested_bundle_name)
 
         engine_version = pbunreal.get_engine_version_with_prefix()
         symbols_needed = pbunreal.is_versionator_symbols_enabled()

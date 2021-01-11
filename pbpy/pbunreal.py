@@ -254,13 +254,11 @@ def get_engine_install_root():
 
 def get_latest_available_engine_version(bucket_url):
     output = pbtools.get_combined_output(["gsutil", "ls", bucket_url])
-    build_type = pbconfig.get("ue4v_default_bundle")
-    if pbconfig.get("is_ci"):
-        # We should get latest version of ciengine instead
-        build_type = pbconfig.get("ue4v_ci_bundle")
+    bundle_name = pbconfig.get("ue4v_ci_bundle") if pbconfig.get("is_ci") else pbconfig.get("ue4v_default_bundle")
+    bundle_name = pbconfig.get_user("project", "bundle", default=bundle_name)
 
     # e.g, "engine-4.24-PB"
-    regex_prefix = f"{build_type}-{pbconfig.get('engine_base_version')}-{engine_version_prefix}"
+    regex_prefix = f"{bundle_name}-{pbconfig.get('engine_base_version')}-{engine_version_prefix}"
     versions = re.findall(regex_prefix + "-[0-9]{8}", output)
     if len(versions) == 0:
         return None
@@ -269,7 +267,7 @@ def get_latest_available_engine_version(bucket_url):
 
     # Strip the build type prefix back
     result = str(versions[len(versions) - 1])
-    result = result.replace(f"{build_type}-", '')
+    result = result.replace(f"{bundle_name}-", '')
     return result.rstrip()
 
 
