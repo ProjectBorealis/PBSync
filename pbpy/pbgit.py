@@ -117,7 +117,8 @@ def get_locked(key="ours"):
     proc = pbtools.run_with_combined_output([get_lfs_executable(), "locks", "--verify", "--json"])
     if proc.returncode:
         return None
-    return set(json.loads(proc.stdout)[key])
+    locked_objects = json.loads(proc.stdout)[key]
+    return set([l.path for l in locked_dict])
 
 
 def fix_lfs_ro_attr():
