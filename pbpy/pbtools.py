@@ -327,17 +327,9 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         # Make sure upstream is tracked correctly
         branch_name = pbgit.get_current_branch_name()
         pbgit.set_tracking_information(branch_name)
-        if len(out.splitlines()) > 4:
-            pblog.info("Stashing local work...")
-            proc = run_with_combined_output([pbgit.get_git_executable(), "stash", "-u"])
-            out = proc.stdout
-            stashed = proc.returncode == 0 and "Saved working directory and index state" in out
-            pblog.info(out)
-        else:
-            stashed = False
         pblog.info("Rebasing workspace with the latest changes from the repository...")
         # Get the latest files, but skip smudge so we can super charge a LFS pull as one batch
-        result = run_with_combined_output([pbgit.get_git_executable(), "-c", "filter.lfs.smudge=", "-c", "filter.lfs.process=", "-c", "filter.lfs.required=false", "rebase", f"origin/{branch_name}", "--no-autostash"])
+        result = run_with_combined_output([pbgit.get_git_executable(), "-c", "filter.lfs.smudge=", "-c", "filter.lfs.process=", "-c", "filter.lfs.required=false", "rebase", "--autostash", f"origin/{branch_name}"])
         # Pull LFS in one go since we skipped smudge (faster)
         run([pbgit.get_lfs_executable(), "pull"])
         code = result.returncode
@@ -346,20 +338,12 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         out = out.lower()
         error = code != 0
     else:
-        stashed = False
         error = False
 
-    def pop_if_stashed():
-        if stashed:
-            pbgit.stash_pop()
-
     def handle_success():
-        pop_if_stashed()
         pblog.success("Success! You are now on the latest changes without any conflicts.")
 
     def handle_error(msg=None):
-        pbgit.abort_all()
-        pop_if_stashed()
         error_state(msg, fatal_error=True)
 
     if not error:
@@ -375,8 +359,6 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
     elif it_has_any(out, "failed to merge in the changes", "could not apply"):
         handle_error("Aborting the rebase. Changes on one of your commits will be overridden by incoming changes. Please request help in #tech-support to resolve conflicts, and please do not run UpdateProject until the issue is resolved.")
     elif it_has_any(out, "unmerged files", "merge_head exists"):
-        # we can't abort anything, but don't let stash linger to restore the original repo state
-        pop_if_stashed()
         error_state("You are in the middle of a merge. Please request help in #tech-support to resolve it, and please do not run UpdateProject until the issue is resolved.", fatal_error=True)
     elif "unborn" in out:
         if should_attempt_auto_resolve():
