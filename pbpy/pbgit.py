@@ -220,15 +220,20 @@ def get_credentials():
     proc = subprocess.run([get_gcm_executable(), "get"], input=creds, capture_output=True, text=True, shell=True)
 
     if proc.returncode != 0:
-        return 1
+        return (None, None)
 
-    creds = proc.stdout
+    out = proc.stdout
 
-    pairs = creds.splitlines()
+    pairs = out.splitlines()
     kv = []
     for pair in pairs:
         if pair:
             kv.append(pair.split("=", 1))
     cred_dict = dict(kv)
+
+    # force reauthentication
+    if cred_dict.get("username") == "PersonalAccessToken":
+        proc = subprocess.run([get_gcm_executable(), "erase"], input=creds, capture_output=True, text=True, shell=True)
+        check_remote_connection()
 
     return cred_dict.get("username"), cred_dict.get("password")

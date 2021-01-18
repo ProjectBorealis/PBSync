@@ -18,9 +18,12 @@ binary_package_name = "Binaries.zip"
 def get_token_env():
     _, token = pbgit.get_credentials()
 
-    return {
-        "GITHUB_TOKEN": token
-    }
+    if token:
+        return {
+            "GITHUB_TOKEN": token
+        }
+    else:
+        pbtools.error_state("Credential retrieval failed. Please get help from #tech-support")
 
 
 def is_pull_binaries_required():

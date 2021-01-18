@@ -594,7 +594,10 @@ def update_source_control():
                 git_lfs_2["BinaryPath"] = str(git_paths[0].resolve())
         git_lfs_2["UsingGitLfsLocking"] = "True"
         username, _ = pbgit.get_credentials()
-        git_lfs_2["LfsUserName"] = username
+        if username:
+            git_lfs_2["LfsUserName"] = username
+        else:
+            pblog.warning("Credential retrieval failed. Please get help from #tech-support.")
     with ue4_config("Saved/Config/Windows/EditorPerProjectUserSettings.ini") as editor_config:
         p4merge = str(Path(p4merge_path).resolve())
         editor_config["/Script/UnrealEd.EditorLoadingSavingSettings"]["TextDiffToolPath"] = f"(FilePath=\"{p4merge}\")"
