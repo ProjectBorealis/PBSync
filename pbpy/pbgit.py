@@ -118,7 +118,7 @@ def get_locked(key="ours"):
     if proc.returncode:
         return None
     locked_objects = json.loads(proc.stdout)[key]
-    return set([l.path for l in locked_dict])
+    return set([l.get("path") for l in locked_objects])
 
 
 def fix_lfs_ro_attr():
