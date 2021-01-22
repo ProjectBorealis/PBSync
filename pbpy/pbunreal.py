@@ -377,10 +377,12 @@ gb_div = 1.0 / gb_multiplier
     
 
 def download_engine(bundle_name=None, download_symbols=False):
-    required_free_gb = 7
+    required_free_gb = 7 # extracted
+    required_free_gb += 2 # archive
     
     if download_symbols:
-        required_free_gb += 25
+        required_free_gb += 25 # extracted
+        required_free_gb += 1 # archive
 
     required_free_space = required_free_gb * gb_multiplier
 
