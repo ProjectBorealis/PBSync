@@ -126,9 +126,15 @@ def fix_lfs_ro_attr():
     locked = get_locked()
     not_locked = lockables - locked
     for file in not_locked:
-        os.chmod(file, stat.S_IREAD)
+        try:
+            os.chmod(file, stat.S_IREAD)
+        except OSError as e:
+            pblog.warning(str(e))
     for file in locked:
-        os.chmod(file, stat.S_IWRITE)
+        try:
+            os.chmod(file, stat.S_IWRITE)
+        except OSError as e:
+            pblog.warning(str(e))
 
 
 def set_tracking_information(upstream_branch_name: str):
