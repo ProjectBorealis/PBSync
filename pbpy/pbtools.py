@@ -42,6 +42,15 @@ def run_with_output(cmd, env=None):
         env = os.environ | env
     return subprocess.run(cmd, capture_output=True, text=True, shell=True, env=env)
 
+def run_with_stdin(cmd, input, env=None):
+    if os.name == "posix":
+        cmd = " ".join(cmd) if isinstance(cmd, list) else cmd
+
+    if env is None:
+        env = os.environ
+    else:
+        env = os.environ | env
+    return subprocess.run(cmd, input=input, capture_output=True, text=True, shell=True, env=env)
 
 def run_with_combined_output(cmd, env=None):
     if os.name == "posix":
