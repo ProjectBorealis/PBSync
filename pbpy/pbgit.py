@@ -101,7 +101,7 @@ def get_lockables():
     if proc.returncode:
         return None
     lfs_files = proc.stdout
-    proc = subprocess.run([get_git_executable(), "check-attr", "lockable", "--stdin"], input=lfs_files, capture_output=True, text=True, shell=True)
+    proc = pbtools.run_with_stdin([get_git_executable(), "check-attr", "lockable", "--stdin"], input=lfs_files)
     attrs = proc.stdout.splitlines()
     lockables = set()
     for attr in attrs:
@@ -223,7 +223,7 @@ def get_credentials():
         creds += f"username={repo_url.username}\n"
     creds += "\n"
 
-    proc = subprocess.run([get_gcm_executable(), "get"], input=creds, capture_output=True, text=True, shell=True)
+    proc = pbtools.run_with_stdin([get_gcm_executable(), "get"], input=creds)
 
     if proc.returncode != 0:
         return (None, None)
@@ -239,7 +239,7 @@ def get_credentials():
 
     # force reauthentication
     if cred_dict.get("username") == "PersonalAccessToken":
-        proc = subprocess.run([get_gcm_executable(), "erase"], input=creds, capture_output=True, text=True, shell=True)
+        proc = pbtools.run_with_stdin([get_gcm_executable(), "erase"], input=creds)
         check_remote_connection()
 
     return cred_dict.get("username"), cred_dict.get("password")
