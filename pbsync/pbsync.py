@@ -380,7 +380,7 @@ def publish_handler(publish_val, dispatch_exec_path):
         error_state(
             "--dispatch argument should be provided for --publish command", hush=True)
 
-    if not pbdispatch.push_build(publish_val, dispatch_exec_path, pbconfig.get('dispatch_config'), pbconfig.get('dispatch_stagedir'), pbconfig.get('dispatch_drm')):
+    if not pbdispatch.push_build(publish_val, dispatch_exec_path, pbconfig.get('dispatch_config'), pbconfig.get('dispatch_stagedir')):
        error_state("Something went wrong while pushing a new playable build.")
 
 

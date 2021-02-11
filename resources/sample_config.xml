@@ -27,6 +27,5 @@
     <dispatch>
         <config>Dispatch/DispatchConfig.json</config>
         <stagedir>Saved/StagedBuilds</stagedir>
-        <drm>Saved/StagedBuilds/WindowsNoEditor/SampleProject/Binaries/Win64</drm>
     </dispatch>
 </config>
