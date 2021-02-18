@@ -134,7 +134,11 @@ def fix_lfs_ro_attr():
         try:
             os.chmod(file, stat.S_IWRITE)
         except OSError as e:
-            pblog.warning(str(e))
+            err_str = str(e)
+            if "The system cannot find the file specified" in err_str:
+                pblog.warning(f"You have a locked file which does not exist: {str(e.filename)}")
+            else:
+                pblog.warning(err_str)
 
 
 def set_tracking_information(upstream_branch_name: str):
