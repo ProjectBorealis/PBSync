@@ -32,7 +32,7 @@ PYTHONPATH=<path-to-local-PBSync> python <path-to-local-PBSync>/pbsync/pbsync.py
 
 ### Minor issues with gsutil
 
-**Note:** PBSync requires a modification to the gsutil dependency: remove `from gslib.tests.util import HAS_NON_DEFAULT_GS_HOST` and all usages of it from `gslib.command_runner`. You will have to do this every time gsutil updates and build again.
+**Note:** PBSync requires [a modification](https://github.com/GoogleCloudPlatform/gsutil/pull/1174/files) to the gsutil dependency. You will have to do this every time gsutil updates and build again.
 
 ## Available Commands
 
