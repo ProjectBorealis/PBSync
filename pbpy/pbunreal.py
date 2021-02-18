@@ -377,35 +377,10 @@ gb_div = 1.0 / gb_multiplier
     
 
 def download_engine(bundle_name=None, download_symbols=False):
-    required_free_gb = 7 # extracted
-    required_free_gb += 2 # archive
-    
-    if download_symbols:
-        required_free_gb += 25 # extracted
-        required_free_gb += 1 # archive
-
-    required_free_space = required_free_gb * gb_multiplier
-
     is_ci = pbconfig.get("is_ci")
 
     root = get_engine_install_root()
     if root is not None:
-        if not pbconfig.get("is_ci") and os.path.isdir(root):
-            total, used, free = disk_usage(root)
-
-            if free < required_free_space:
-                pblog.warning("Not enough free space. Cleaning old engine installations before download.")
-                clean_old_engine_installations()
-                total, used, free = disk_usage(root)
-                if free < required_free_space:
-                    pblog.error(f"You do not have enough available space to install the engine. Please free up space on {Path(root).anchor}")
-                    available_gb = free * gb_div
-                    pblog.error(f"Available space: {available_gb:.2f}GB")
-                    pblog.error(f"Total install size: {required_free_gb}GB")
-                    must_free = required_free_gb - available_gb
-                    pblog.error(f"Required space: {must_free:.2f}GB")
-                    pbtools.error_state()
-
         # create install dir if doesn't exist
         os.makedirs(root, exist_ok=True)
 
@@ -427,6 +402,31 @@ def download_engine(bundle_name=None, download_symbols=False):
             pblog.success("Using new remote sync method for engine update.")
 
         if needs_exe or needs_symbols:
+            if not is_ci and os.path.isdir(root):
+                required_free_gb = 7 # extracted
+                required_free_gb += 2 # archive
+                
+                if needs_symbols:
+                    required_free_gb += 25 # extracted
+                    required_free_gb += 1 # archive
+
+                required_free_space = required_free_gb * gb_multiplier
+
+                total, used, free = disk_usage(root)
+
+                if free < required_free_space:
+                    pblog.warning("Not enough free space. Cleaning old engine installations before download.")
+                    clean_old_engine_installations()
+                    total, used, free = disk_usage(root)
+                    if free < required_free_space:
+                        pblog.error(f"You do not have enough available space to install the engine. Please free up space on {Path(root).anchor}")
+                        available_gb = free * gb_div
+                        pblog.error(f"Available space: {available_gb:.2f}GB")
+                        pblog.error(f"Total install size: {required_free_gb}GB")
+                        must_free = required_free_gb - available_gb
+                        pblog.error(f"Required space: {must_free:.2f}GB")
+                        pbtools.error_state()
+
             # Use gsutil to download the files efficiently
             if (gslib.utils.parallelism_framework_util.CheckMultiprocessingAvailableAndInit().is_available):
                 # These setup methods must be called, and, on Windows, they can only be
