@@ -284,34 +284,17 @@ def wipe_workspace():
 def maintain_repo():
     pblog.info("Starting repo maintenance...")
 
-    expire_date = (datetime.datetime.now() - datetime.timedelta(days=7)).strftime("%x")
-
-    # try to remove commit graph lock before running commit graph
-    do_commit_graph = True
-    try:
-        commit_graph_lock = os.path.join(os.getcwd(), ".git", "objects", "info", "commit-graphs", "commit-graph-chain.lock")
-        if (os.path.exists(commit_graph_lock)):
-            os.remove(commit_graph_lock)
-    except Exception as e:
-        pblog.exception(str(e))
-        do_commit_graph = False
-
     commands = [
-        f"{pbgit.get_git_executable()} maintenance --task gc --task loose-objects",
         f"{pbgit.get_lfs_executable()} prune -c",
         f"{pbgit.get_lfs_executable()} dedup"
     ]
 
-    if do_commit_graph:
-        commands.insert(1, f"{pbgit.get_git_executable()} commit-graph write --split --size-multiple=4 --reachable --changed-paths --expire-time={expire_date}")
-
-    # if we use multi-pack index, take advantage of it
-    if get_one_line_output([pbgit.get_git_executable(), "config", "core.multipackIndex"]) == "true":
-        commands[0] += " --task incremental-repack"
+    does_maintainence = get_one_line_output([pbgit.get_git_executable(), "config", "maintenance.strategy"]) == "incremental"
+    if not does_maintainence:
+        commands.insert(0, f"{pbgit.get_git_executable()} maintenance start")
 
     # fill in the git repo optionally
     is_shallow = get_one_line_output([pbgit.get_git_executable(), "rev-parse", "--is-shallow-repository"])
-
     # add in the front, so everything else can clean up after the fetch
     if is_shallow == "true":
         pblog.info("Shallow clone detected. PBSync will fill in history in the background.")

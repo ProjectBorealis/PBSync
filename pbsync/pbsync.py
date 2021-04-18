@@ -275,9 +275,12 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
         pblog.info("------------------")
 
+        pblog.info("Updating Unreal configuration settings")
         pbunreal.update_source_control()
 
+        pblog.info("Finishing LFS read flag fix...")
         fix_attr_thread.join()
+        pblog.info("Finished LFS read flag fix.")
 
         if pbunreal.is_ue4_closed():
             if pbunreal.check_ue4_file_association():
