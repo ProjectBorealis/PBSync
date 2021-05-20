@@ -30,10 +30,6 @@ git clone https://github.com/ProjectBorealis/PBSync
 PYTHONPATH=<path-to-local-PBSync> python <path-to-local-PBSync>/pbsync/pbsync.py --help
 ```
 
-### Minor issues with gsutil
-
-**Note:** PBSync requires [a modification](https://github.com/GoogleCloudPlatform/gsutil/pull/1174/files) to the gsutil dependency. You will have to do this every time gsutil updates and build again.
-
 ## Available Commands
 
 List of available commands can be printed to console by passing `--help` to generated executable.
