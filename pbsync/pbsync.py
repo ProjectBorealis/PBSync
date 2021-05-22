@@ -55,14 +55,26 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         if detected_git_version == pbconfig.get('supported_git_version'):
             pblog.info(f"Current Git version: {detected_git_version}")
         else:
-            pblog.error("Git is not updated to the supported version in your system")
-            pblog.error(f"Supported Git Version: {pbconfig.get('supported_git_version')}")
-            pblog.error(f"Current Git Version: {detected_git_version}")
-            pblog.error("Please install the supported Git version from https://github.com/microsoft/git/releases")
-            pblog.error("Visit https://github.com/ProjectBorealisTeam/pb/wiki/Prerequisites for installation instructions")
-            if os.name == "nt":
-                webbrowser.open(f"https://github.com/microsoft/git/releases/download/v{pbconfig.get('supported_git_version')}/Git-{pbconfig.get('supported_git_version')}-64-bit.exe")
             needs_git_update = True
+            if sys.platform == "win32" or sys.platform == "darwin":
+                pblog.info("Attempting auto-update of Git...")
+                proc = pbtools.run([pbgit.get_git_executable(), "update-microsoft-git"])
+                # if non-zero, error out
+                if proc.returncode:
+                    pblog.error(proc.out)
+                else:
+                    needs_git_update = False
+                    input("Launching Git update, please press enter when done installing. ")
+            else:
+                needs_git_update = True
+            if needs_git_update:
+                pblog.error("Git is not updated to the supported version in your system")
+                pblog.error(f"Supported Git Version: {pbconfig.get('supported_git_version')}")
+                pblog.error(f"Current Git Version: {detected_git_version}")
+                pblog.error("Please install the supported Git version from https://github.com/microsoft/git/releases")
+                pblog.error("Visit https://github.com/ProjectBorealisTeam/pb/wiki/Prerequisites for installation instructions")
+                if os.name == "nt":
+                    webbrowser.open(f"https://github.com/microsoft/git/releases/download/v{pbconfig.get('supported_git_version')}/Git-{pbconfig.get('supported_git_version')}-64-bit.exe")
 
 
         if os.name == "nt" and pbgit.get_git_executable() == "git" and pbgit.get_lfs_executable() == "git-lfs":
