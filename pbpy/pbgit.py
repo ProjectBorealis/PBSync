@@ -79,13 +79,7 @@ def get_gcm_version():
         return missing_version
     if gcm_exec.startswith("diff"):
         return gcm_exec
-    installed_version_split = pbtools.get_one_line_output([gcm_exec, "--version"]).split(" ")
-
-    if len(installed_version_split) < 5:
-        return missing_version
-
-    # Get index as full version of GCM
-    installed_version = str(installed_version_split[4])
+    installed_version = pbtools.get_one_line_output([gcm_exec, "--version"])
 
     if installed_version == "":
         return missing_version
