@@ -459,7 +459,7 @@ def main(argv):
             if (el is None):
                 missing_keys.append(key1)
                 continue
-            config_map[key] = el.text
+            config_map[key] = el.text if el.text else ""
 
         if (missing_keys):
             raise KeyError("Missing keys: %s" % ", ".join(missing_keys))
