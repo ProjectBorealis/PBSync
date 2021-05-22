@@ -58,10 +58,13 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             needs_git_update = True
             if sys.platform == "win32" or sys.platform == "darwin":
                 pblog.info("Attempting auto-update of Git...")
-                proc = pbtools.run([pbgit.get_git_executable(), "update-microsoft-git"])
+                if sys.platform == "win32":
+                    proc = pbtools.run([pbgit.get_git_executable(), "upgrade-git-for-windows", "-y"])
+                else:
+                    proc = pbtools.run([pbgit.get_git_executable(), "update-microsoft-git"])
                 # if non-zero, error out
                 if proc.returncode:
-                    pblog.error(proc.out)
+                    pblog.warning("Git auto-update failed. Please try manually:")
                 else:
                     needs_git_update = False
                     input("Launching Git update, please press enter when done installing. ")
