@@ -11,8 +11,12 @@
         <gcmversion>2.0.289</gcmversion>
         <gcmversionsuffix>-beta</gcmversionsuffix>
         <gcmsuffix>48418</gcmsuffix>
-        <expectedbranch>CreativeBranchName</expectedbranch>
+        <expectedbranch>promoted</expectedbranch>
         <url>https://github.com/GithubUser/samplerepository.git</url>
+        <branches>
+            <branch>main</branch>
+            <branch>trunk</branch>
+        </branches>
         <checksumfile>.md5</checksumfile>
     </git>
     <versionator>

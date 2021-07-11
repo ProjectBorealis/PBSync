@@ -204,7 +204,8 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         if not partial_sync and not is_on_expected_branch:
             pblog.info("Fetching recent changes on the repository...")
             fetch_base = [pbgit.get_git_executable(), "fetch", "origin"]
-            branches = {expected_branch, "master", "trunk", current_branch}
+            branches = {expected_branch, current_branch}
+            branches.update(pbconfig.get('branches'))
             fetch_base.extend(branches)
             pbtools.get_combined_output(fetch_base)
 
@@ -449,6 +450,7 @@ def main(argv):
             'gcm_download_suffix': ('git/gcmsuffix', None),
             'expected_branch_name': ('git/expectedbranch', None if args.debugbranch is None else str(args.debugbranch)),
             'git_url': ('git/url', None),
+            'branches': ('git/branches', None),
             'checksum_file': ('git/checksumfile', None),
             'log_file_path': ('log/file', None),
             'ue4v_user_config': ('versionator/userconfig', None),
@@ -466,17 +468,22 @@ def main(argv):
         missing_keys = []
         config_map = {}
         for key, val in config_args_map.items():
-            key1, override = val
-            if (override):
+            tag, override = val
+            if override:
                 config_map[key] = override
                 continue
-            el = root.find(key1)
-            if (el is None):
-                missing_keys.append(key1)
-                continue
-            config_map[key] = el.text if el.text else ""
+            el = root.findall(tag)
+            if el:
+                if len(el) > 1:
+                    # if there are multiple keys, use all non-empty ones
+                    config_map[key] = [e.text if e.text else "" for e in el]
+                else:
+                    # if there is just one key, use it
+                    config_map[key] = el[0].text if el[0].text else ""
+            else:
+                missing_keys.append(tag)
 
-        if (missing_keys):
+        if missing_keys:
             raise KeyError("Missing keys: %s" % ", ".join(missing_keys))
 
         return config_map

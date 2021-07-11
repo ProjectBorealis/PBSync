@@ -10,7 +10,7 @@
         {
             "id": "debugBranch",
             "description": "Please enter branch to be used as expected branch",
-            "default": "master",
+            "default": "main",
             "type": "promptString"
         },
         {
