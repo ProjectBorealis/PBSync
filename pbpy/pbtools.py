@@ -70,6 +70,15 @@ def run_with_output(cmd, env=None, env_out=None):
     return proc
 
 
+def run_stream(cmd, env=None):
+    if os.name == "posix":
+        cmd = " ".join(cmd) if isinstance(cmd, list) else cmd
+
+    proc = subprocess.Popen(cmd, text=True, shell=True, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
+    for line in iter(lambda: proc.stdout.readline(), ''): 
+        pblog.info(line)
+    return proc
+
 def run_with_stdin(cmd, input, env=None, env_out=None):
     handle_env_out(cmd, env_out)
     if os.name == "posix":

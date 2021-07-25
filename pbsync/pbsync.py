@@ -434,7 +434,7 @@ def main(argv):
         "--repository", help="gcloud repository url for --printversion latest-engine and --sync engine commands")
     parser.add_argument("--autoversion", help="Automatic version update for project version",
                         choices=["hotfix", "stable", "public"])
-    parser.add_argument("--build", help="Does build task according to the specified argument.", choices=["sln", "source", "package", "release"])
+    parser.add_argument("--build", help="Does build task according to the specified argument.", choices=["sln", "source", "package", "release", "inspect"])
     parser.add_argument("--clean", help="""Do cleanup according to specified argument. If engine is provided, old engine installations will be cleared
     If workspace is provided, workspace will be reset with latest changes from current branch (not revertible)""", choices=["engine", "workspace"])
     parser.add_argument("--config", help=f"Path of config XML file. If not provided, ./{default_config_name} is used as default", default=default_config_name)
