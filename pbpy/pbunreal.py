@@ -10,6 +10,7 @@ from shutil import move
 from shutil import rmtree
 from shutil import disk_usage
 from functools import lru_cache
+import shutil
 from urllib.parse import urlparse
 from pathlib import Path
 from gslib.command_runner import CommandRunner
@@ -61,12 +62,7 @@ def is_using_custom_version():
     return get_user_version() != "latest"
 
 
-def get_project_version():
-    # first check if the user selected their own version
-    user_version = get_user_version()
-    if user_version != "latest":
-        return user_version
-
+def get_latest_project_version():
     try:
         with open(pbconfig.get('defaultgame_path')) as ini_file:
             for ln in ini_file:
@@ -76,6 +72,15 @@ def get_project_version():
         pblog.exception(str(e))
         return None
     return None
+
+
+def get_project_version():
+    # first check if the user selected their own version
+    user_version = get_user_version()
+    if user_version != "latest":
+        return user_version
+
+    return get_latest_project_version()
 
 
 def set_project_version(version_string):
@@ -372,6 +377,26 @@ def get_bundle_verification_file(bundle_name):
         return "Engine/Binaries/Win64/UE4Editor."
 
 
+def get_engine_base_path():
+    root = get_engine_install_root()
+    if root is not None:
+        version = get_engine_version_with_prefix()
+        return Path(root) / Path(version)
+    return None
+
+
+def get_unreal_version_selector_path():
+    return get_engine_base_path() / Path("Engine/Binaries/Win64/UnrealVersionSelector-Win64-Shipping.exe")
+
+
+def get_uproject_path():
+    return Path(pbconfig.get("uproject_name")).resolve()
+
+
+def generate_project_files():
+    pbtools.run([str(get_unreal_version_selector_path()), "/projectfiles", str(get_uproject_path())])
+
+
 gb_multiplier = 1000 * 1000 * 1000
 gb_div = 1.0 / gb_multiplier
     
@@ -502,8 +527,8 @@ def download_engine(bundle_name=None, download_symbols=False):
         prereq_path = base_path / Path("Engine/Extras/Redist/en-us/UE4PrereqSetup_x64.exe")
         pbtools.run([str(prereq_path), "/quiet"])
         pblog.info("Registering Unreal Engine file associations")
-        selector_path = base_path / Path("Engine/Binaries/Win64/UnrealVersionSelector-Win64-Shipping.exe")
-        cmdline = [str(selector_path), "/fileassociations"]
+        selector_path = str(base_path / Path("Engine/Binaries/Win64/UnrealVersionSelector-Win64-Shipping.exe"))
+        cmdline = [selector_path, "/fileassociations"]
         if not pbuac.isUserAdmin():
             pbuac.runAsAdmin(cmdline)
         else:
@@ -511,7 +536,7 @@ def download_engine(bundle_name=None, download_symbols=False):
         # generate project files for developers
         is_on_expected_branch = pbgit.compare_with_current_branch_name(pbconfig.get('expected_branch_name'))
         if not is_on_expected_branch:
-            uproject = str(Path(pbconfig.get("uproject_name")).resolve())
+            uproject = str(get_uproject_path())
             pbtools.run([selector_path, "/projectfiles", uproject])
 
     return True
@@ -642,3 +667,29 @@ def is_ue4_closed():
 def ensure_ue4_closed():
     if not is_ue4_closed():
         pbtools.error_state("Unreal Editor is currently running. Please close it before running PBSync. It may be listed only in Task Manager as a background process. As a last resort, you should log off and log in again.")
+
+
+def build_source():
+    base = get_engine_base_path()
+    get_ms_build = base / "Engine" / "Build" / "BatchFiles" / "GetMSBuildPath.bat"
+    pbtools.run_with_output(get_ms_build, env_out=["MSBUILD_EXE"])
+    ms_build = os.environ.get("MSBUILD_EXE")
+    if ms_build is None:
+        pbtools.error_state("Could not find MSBuild.")
+    pblog.info(pbtools.get_combined_output([ms_build, str(get_uproject_path()), "/nologo", "/t:build", f'/property:configuration="Development Editor"', "/property:Platform=Win64"]))
+
+
+def package_binaries():
+    binaries_zip = Path("Binaries.zip")
+    binaries_zip.unlink(missing_ok=True)
+    binaries = Path("Binaries") / "Win64"
+    for ilk in binaries.glob("*.ilk"):
+        ilk.unlink()
+    shutil.make_archive("Binaries", "zip", ".", "Binaries")
+    binaries = Path("Binaries")
+    hashes = dict()
+    for file in binaries.glob("**/*"):
+        filename = str(file)
+        hashes[filename] = pbtools.get_md5_hash(filename)
+    hashes["Binaries.zip"] = pbtools.get_md5_hash("Binaries.zip")
+    pbtools.make_json_from_dict(hashes, pbconfig.get("checksum_file"))

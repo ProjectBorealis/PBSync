@@ -112,3 +112,16 @@ def pull_binaries(version_number: str, pass_checksum=False):
         return 1
 
     return 0
+
+
+def generate_release():
+    version = pbunreal.get_latest_project_version()
+    target_branch = pbconfig.get("expected_branch_name")
+    # TODO: changelog
+    pbtools.run_with_combined_output([
+        gh_executable_path,
+        "release",
+        "create", version, binary_package_name,
+        "--target", target_branch,
+        "-t", version
+    ])

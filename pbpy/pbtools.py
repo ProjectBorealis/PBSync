@@ -6,7 +6,6 @@ import subprocess
 import shutil
 import stat
 import json
-import datetime
 
 from hashlib import md5
 from subprocess import CalledProcessError
@@ -21,46 +20,75 @@ from pbpy import pbunreal
 error_file = ".pbsync_err"
 
 
+def handle_env(env):
+    if env is None:
+        return os.environ
+    else:
+        return os.environ | env
+    
+
+def handle_env_out(cmd, env_out):
+    if env_out:
+        for env_var in env_out:
+            if os.name == "posix":
+                cmd.extend(["&&", f"echo {env_var}=${env_var}"])
+            else:    
+                cmd.extend(["&&", f"set {env_var}"])
+
+
+def parse_environment(stdout, env_out):
+    for line in stdout.splitlines():
+        line = line.decode()
+        # if not a valid line for environment echo, skip it
+        if line.startswith("?") or line.startswith("Environment variable "):
+            continue
+        k, _, v = line.partition('=')
+        # v is empty if no partition (not a key=value) or no value set (key=)
+        # must check to see if we actually requested this key
+        # then, check if this was a set variable in posix
+        if v and k in env_out and not v.startswith("$"):
+            os.environ[k] = v
+
+
 def run(cmd, env=None):
     if os.name == "posix":
         cmd = " ".join(cmd) if isinstance(cmd, list) else cmd
 
-    if env is None:
-        env = os.environ
-    else:
-        env = os.environ | env
+    env = handle_env(env)
     return subprocess.run(cmd, shell=True, env=env)
 
 
-def run_with_output(cmd, env=None):
+def run_with_output(cmd, env=None, env_out=None):
+    handle_env_out(cmd, env_out)
     if os.name == "posix":
         cmd = " ".join(cmd) if isinstance(cmd, list) else cmd
 
-    if env is None:
-        env = os.environ
-    else:
-        env = os.environ | env
-    return subprocess.run(cmd, capture_output=True, text=True, shell=True, env=env)
+    env = handle_env(env)
+    proc = subprocess.run(cmd, capture_output=True, text=True, shell=True, env=env)
+    parse_environment(proc.stdout, env_out)
+    return proc
 
-def run_with_stdin(cmd, input, env=None):
+
+def run_with_stdin(cmd, input, env=None, env_out=None):
+    handle_env_out(cmd, env_out)
     if os.name == "posix":
         cmd = " ".join(cmd) if isinstance(cmd, list) else cmd
 
-    if env is None:
-        env = os.environ
-    else:
-        env = os.environ | env
-    return subprocess.run(cmd, input=input, capture_output=True, text=True, shell=True, env=env)
+    env = handle_env(env)
+    proc = subprocess.run(cmd, input=input, capture_output=True, text=True, shell=True, env=env)
+    parse_environment(proc.stdout, env_out)
+    return proc
 
-def run_with_combined_output(cmd, env=None):
+
+def run_with_combined_output(cmd, env=None, env_out=None):
+    handle_env_out(cmd, env_out)
     if os.name == "posix":
         cmd = " ".join(cmd) if isinstance(cmd, list) else cmd
 
-    if env is None:
-        env = os.environ
-    else:
-        env = os.environ | env
-    return subprocess.run(cmd, text=True, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
+    env = handle_env(env)
+    proc = subprocess.run(cmd, text=True, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
+    parse_environment(proc.stdout, env_out)
+    return proc
 
 
 def run_non_blocking(*commands):
@@ -73,12 +101,12 @@ def run_non_blocking(*commands):
         subprocess.Popen(cmdline, shell=True)
 
 
-def get_combined_output(cmd, env=None):
-    return run_with_combined_output(cmd, env=env).stdout
+def get_combined_output(cmd, env=None, env_out=None):
+    return run_with_combined_output(cmd, env=env, env_out=env_out).stdout
 
 
-def get_one_line_output(cmd, env=None):
-    return run_with_output(cmd, env=env).stdout.rstrip()
+def get_one_line_output(cmd, env=None, env_out=None):
+    return run_with_output(cmd, env=env, env_out=env_out).stdout.rstrip()
 
 
 def it_has_any(it, *args):
@@ -169,6 +197,11 @@ def compare_md5_all(md5_json_file_path, print_log=False, ignored_extension=".zip
                 pblog.error(f"Current MD5: {str(current_md5)}")
             is_success = False
     return is_success
+
+
+def make_json_from_dict(dictionary, json_file_path):
+    with open(json_file_path, "w") as f:
+        json.dump(dictionary, f)
 
 
 def get_dict_from_json(json_file_path):
