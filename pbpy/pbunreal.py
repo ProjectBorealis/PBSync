@@ -416,6 +416,14 @@ def download_engine(bundle_name=None, download_symbols=False):
         needs_symbols = download_symbols and not symbols_path.exists()
         exe_path = base_path / Path(verification_file + "exe")
         needs_exe = not exe_path.exists()
+        game_exe_path = None
+        # handle downgrading to non-engine bundles
+        if verification_file == "Engine/Binaries/Win64/UE4Editor.":
+            game_exe_path = base_path / Path("Engine/Binaries/Win64/UE4Game.exe")
+            if game_exe_path.exists():
+                needs_exe = True
+                needs_symbols = download_symbols
+                base_path.rmdir()
         try:
             legacy_archives = pbconfig.get_user_config().getboolean("ue4v-user", "legacy", fallback=False) or int(get_engine_version()) <= 20201224
         except:
@@ -491,7 +499,7 @@ def download_engine(bundle_name=None, download_symbols=False):
                 engine_ver = f"{bundle_name}-{version}"
                 engine_id = f"{ue4v_prefix}{engine_ver}"
                 with winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, r"SOFTWARE\Epic Games\Unreal Engine\Builds", access=winreg.KEY_SET_VALUE) as key:
-                    # This does not work for some reason.
+                    # TODO: This does not work for some reason.
                     winreg.SetValueEx(key, engine_id, 0, winreg.REG_SZ, str(os.path.join(root, engine_ver)))
             except Exception as e:
                 pblog.exception(str(e))
