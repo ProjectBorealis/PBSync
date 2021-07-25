@@ -687,7 +687,9 @@ def build_source():
         pbtools.error_state("Could not find MSBuild.")
     project_path = get_uproject_path()
     sln_path = Path(project_path.stem + ".sln").resolve()
-    pbtools.run_stream([ms_build, str(sln_path), "/nologo", "/t:build", '/property:configuration=Development Editor', "/property:Platform=Win64"])
+    proc = pbtools.run_stream([ms_build, str(sln_path), "/nologo", "/t:build", '/property:configuration=Development Editor', "/property:Platform=Win64"])
+    if proc.returncode:
+        pbtools.error_state("Build failed.")
 
 
 def package_binaries():

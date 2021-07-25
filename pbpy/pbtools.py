@@ -75,8 +75,13 @@ def run_stream(cmd, env=None):
         cmd = " ".join(cmd) if isinstance(cmd, list) else cmd
 
     proc = subprocess.Popen(cmd, text=True, shell=True, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
-    for line in iter(lambda: proc.stdout.readline(), ''): 
-        pblog.info(line)
+    returncode = None
+    while True:
+        for line in iter(lambda: proc.stdout.readline(), ''):
+            pblog.info(line)
+        returncode = proc.poll()
+        if returncode is not None:
+            break
     return proc
 
 
