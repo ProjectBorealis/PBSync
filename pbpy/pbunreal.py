@@ -680,7 +680,7 @@ def ensure_ue4_closed():
 def build_source():
     base = get_engine_base_path()
     get_ms_build = base / "Engine" / "Build" / "BatchFiles" / "GetMSBuildPath.bat"
-    pbtools.run_with_output(get_ms_build, env_out=["MSBUILD_EXE"])
+    pbtools.run_with_output([get_ms_build], env_out=["MSBUILD_EXE"])
     ms_build = os.environ.get("MSBUILD_EXE")
     if ms_build is None:
         pbtools.error_state("Could not find MSBuild.")
