@@ -31,14 +31,15 @@ def handle_env_out(cmd, env_out):
     if env_out:
         for env_var in env_out:
             if os.name == "posix":
-                cmd.extend(["&&", f"echo {env_var}=${env_var}"])
+                cmd.extend(["&&", "echo", f"{env_var}=${env_var}"])
             else:    
-                cmd.extend(["&&", f"set {env_var}"])
+                cmd.extend(["&&", "set", env_var])
 
 
 def parse_environment(stdout, env_out):
+    if env_out is None:
+        return
     for line in stdout.splitlines():
-        line = line.decode()
         # if not a valid line for environment echo, skip it
         if line.startswith("?") or line.startswith("Environment variable "):
             continue
@@ -47,7 +48,7 @@ def parse_environment(stdout, env_out):
         # must check to see if we actually requested this key
         # then, check if this was a set variable in posix
         if v and k in env_out and not v.startswith("$"):
-            os.environ[k] = v
+            os.environ[k] = v.strip('"')
 
 
 def run(cmd, env=None):

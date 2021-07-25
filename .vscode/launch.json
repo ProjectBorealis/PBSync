@@ -103,6 +103,14 @@
             "console": "integratedTerminal"
         },
         {
+            "name": "Build Source",
+            "args": ["--build", "source", "--debugpath", "${input:debugPath}"],
+            "type": "python",
+            "request": "launch",
+            "program": "pbsync/pbsync.py",
+            "console": "integratedTerminal"
+        },
+        {
             "name": "Update Engine Version to Latest",
             "args": ["--sync", "engineversion", "--debugpath", "${input:debugPath}"],
             "type": "python",
