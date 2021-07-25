@@ -360,6 +360,9 @@ def build_handler(build_val):
         pbunreal.package_binaries()
     elif build_val == "release":
         pbgh.generate_release()
+    elif build_val == "inspect":
+        # TODO: inspect
+        pblog.warning("Inspect not implemented, ignoring")
 
 
 def clean_handler(clean_val):
