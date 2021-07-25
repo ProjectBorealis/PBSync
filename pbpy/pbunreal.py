@@ -395,6 +395,7 @@ def get_uproject_path():
 
 def generate_project_files():
     pbtools.run([str(get_unreal_version_selector_path()), "/projectfiles", str(get_uproject_path())])
+    # TODO: grab latest UnrealVersionSelector log from Saved\Logs, and print it out?
 
 
 gb_multiplier = 1000 * 1000 * 1000

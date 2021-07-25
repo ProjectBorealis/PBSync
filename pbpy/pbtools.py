@@ -79,6 +79,7 @@ def run_stream(cmd, env=None):
         pblog.info(line)
     return proc
 
+
 def run_with_stdin(cmd, input, env=None, env_out=None):
     handle_env_out(cmd, env_out)
     if os.name == "posix":
