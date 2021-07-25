@@ -423,7 +423,7 @@ def download_engine(bundle_name=None, download_symbols=False):
             if game_exe_path.exists():
                 needs_exe = True
                 needs_symbols = download_symbols
-                shutil.rmtree(str(base_path))
+                shutil.rmtree(str(base_path), ignore_errors=True)
         try:
             legacy_archives = pbconfig.get_user_config().getboolean("ue4v-user", "legacy", fallback=False) or int(get_engine_version()) <= 20201224
         except:
