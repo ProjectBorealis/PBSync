@@ -1,6 +1,5 @@
 import os
 import shutil
-import subprocess
 import json
 import stat
 
@@ -241,3 +240,8 @@ def get_credentials():
         check_remote_connection()
 
     return cred_dict.get("username"), cred_dict.get("password")
+
+
+def get_modified_files():
+    proc = pbtools.run_with_output([get_git_executable(), "status", "--porcelain"])
+    return [line[3:] for line in proc.stdout.splitlines()]
