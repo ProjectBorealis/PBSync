@@ -120,13 +120,19 @@ def pull_binaries(version_number: str, pass_checksum=False):
 def generate_release():
     version = pbunreal.get_latest_project_version()
     target_branch = pbconfig.get("expected_branch_name")
-    pbtools.run_with_combined_output([
+    proc = pbtools.run_with_combined_output([
         chglog_executable_path,
         "-c", chglog_config_path,
         "-o", release_file,
+        "--next-tag", version,
         version
     ])
-    pbtools.run_with_combined_output([
+    if proc.returncode != 0:
+        os.remove(release_file)
+        pbtools.error_state(proc.stdout)
+    else:
+        pblog.info(proc.stdout)
+    proc = pbtools.run_with_combined_output([
         gh_executable_path,
         "release",
         "create", version, binary_package_name,
@@ -134,4 +140,9 @@ def generate_release():
         "--target", target_branch,
         "-t", version
     ])
+    if proc.returncode != 0:
+        os.remove(release_file)
+        pbtools.error_state(proc.stdout)
+    else:
+        pblog.info(proc.stdout)
     os.remove(release_file)
