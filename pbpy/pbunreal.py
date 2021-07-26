@@ -684,6 +684,9 @@ def get_base_name():
     return project_path.stem
 
 
+def get_sln_path():
+    return Path(get_base_name() + ".sln")
+
 def build_source():
     base = get_engine_base_path()
     get_ms_build = base / "Engine" / "Build" / "BatchFiles" / "GetMSBuildPath.bat"
@@ -691,7 +694,7 @@ def build_source():
     ms_build = os.environ.get("MSBUILD_EXE")
     if ms_build is None:
         pbtools.error_state("Could not find MSBuild.")
-    sln_path = Path(get_base_name() + ".sln").resolve()
+    sln_path = get_sln_path().resolve()
     proc = pbtools.run_stream([ms_build, str(sln_path), "/nologo", "/t:build", '/property:configuration=Development Editor', "/property:Platform=Win64"])
     if proc.returncode:
         pbtools.error_state("Build failed.")
@@ -730,6 +733,7 @@ def inspect_source():
     inspect_file = "Saved\InspectionResults.txt"
     pbtools.run_stream([
         str(resharper_exe),
+        str(get_sln_path()),
         "--no-swea",
         "--properties:Platform=Win64;Configuration=Development Editor",
         "--include=Source\**\*",
