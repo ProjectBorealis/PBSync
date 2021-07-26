@@ -169,7 +169,7 @@ def compare_md5_single(compared_file_path, md5_json_file_path):
     if current_hash is None:
         return False
 
-    dict_search_string = f".\\{compared_file_path}"
+    dict_search_string = f"{compared_file_path}"
     hash_dict = get_dict_from_json(md5_json_file_path)
 
     if hash_dict is None or not (dict_search_string in hash_dict):
