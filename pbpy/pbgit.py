@@ -2,6 +2,7 @@ import os
 import shutil
 import json
 import stat
+import pathlib
 
 from urllib.parse import urlparse
 from functools import lru_cache
@@ -244,4 +245,4 @@ def get_credentials():
 
 def get_modified_files():
     proc = pbtools.run_with_output([get_git_executable(), "status", "--porcelain"])
-    return [line[3:] for line in proc.stdout.splitlines()]
+    return [pathlib.Path(line[3:]) for line in proc.stdout.splitlines()]

@@ -734,7 +734,8 @@ def inspect_source():
     resharper_exe = resharper_dir / Path("inspectcode.exe")
     inspect_file = "Saved\InspectionResults.txt"
     pblog.info(f"Running Resharper {version}")
-    modified_files_list = ";".join(pbgit.get_modified_files())
+    modified_paths = [str(path) for path in pbgit.get_modified_files()]
+    modified_files_list = ";".join(modified_paths)
     proc = pbtools.run_stream([
         str(resharper_exe),
         str(get_sln_path()),
