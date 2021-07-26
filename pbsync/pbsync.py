@@ -361,8 +361,7 @@ def build_handler(build_val):
     elif build_val == "release":
         pbgh.generate_release()
     elif build_val == "inspect":
-        # TODO: inspect
-        pblog.warning("Inspect not implemented, ignoring")
+        pbunreal.inspect_source()
 
 
 def clean_handler(clean_val):
@@ -483,7 +482,8 @@ def main(argv):
             'defaultgame_path': ('project/defaultgameinipath', None),
             'dispatch_config': ('dispatch/config', None),
             'dispatch_drm': ('dispatch/drm', None),
-            'dispatch_stagedir': ('dispatch/stagedir', None)
+            'dispatch_stagedir': ('dispatch/stagedir', None),
+            'resharper_version': ('resharper/version', None),
         }
 
         missing_keys = []

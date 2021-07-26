@@ -5,6 +5,7 @@ import json
 import glob
 import configparser
 import contextlib
+import urllib.request
 
 from shutil import move
 from shutil import rmtree
@@ -678,6 +679,11 @@ def ensure_ue4_closed():
         pbtools.error_state("Unreal Editor is currently running. Please close it before running PBSync. It may be listed only in Task Manager as a background process. As a last resort, you should log off and log in again.")
 
 
+def get_base_name():
+    project_path = get_uproject_path()
+    return project_path.stem
+
+
 def build_source():
     base = get_engine_base_path()
     get_ms_build = base / "Engine" / "Build" / "BatchFiles" / "GetMSBuildPath.bat"
@@ -685,8 +691,7 @@ def build_source():
     ms_build = os.environ.get("MSBUILD_EXE")
     if ms_build is None:
         pbtools.error_state("Could not find MSBuild.")
-    project_path = get_uproject_path()
-    sln_path = Path(project_path.stem + ".sln").resolve()
+    sln_path = Path(get_base_name() + ".sln").resolve()
     proc = pbtools.run_stream([ms_build, str(sln_path), "/nologo", "/t:build", '/property:configuration=Development Editor', "/property:Platform=Win64"])
     if proc.returncode:
         pbtools.error_state("Build failed.")
@@ -701,8 +706,50 @@ def package_binaries():
     shutil.make_archive("Binaries", "zip", ".", "Binaries")
     binaries = Path("Binaries")
     hashes = dict()
+    hashes["Binaries.zip"] = pbtools.get_md5_hash("Binaries.zip")
     for file in binaries.glob("**/*"):
+        if not file.is_file():
+            continue
         filename = str(file)
         hashes[filename] = pbtools.get_md5_hash(filename)
-    hashes["Binaries.zip"] = pbtools.get_md5_hash("Binaries.zip")
     pbtools.make_json_from_dict(hashes, pbconfig.get("checksum_file"))
+
+
+def inspect_source():
+    version = pbconfig.get("resharper_version")
+    saved_dir = Path("Saved")
+    zip_name = f"JetBrains.ReSharper.CommandLineTools.{version}.zip"
+    zip_path = saved_dir / Path(zip_name)
+    if not zip_path.exists():
+        url = f"https://download-cdn.jetbrains.com/resharper/dotUltimate.{version}/{zip_name}"
+        with urllib.request.urlopen(url) as response, open(str(zip_path), 'wb') as out_file:
+            shutil.copyfileobj(response, out_file)
+    resharper_dir = saved_dir / Path("ResharperCLI")
+    shutil.unpack_archive(str(zip_path), str(resharper_dir))
+    resharper_exe = resharper_dir / Path("inspectcode.exe")
+    inspect_file = "Saved\InspectionResults.txt"
+    pbtools.run_stream([
+        str(resharper_exe),
+        "--no-swea",
+        "--properties:Platform=Win64;Configuration=Development Editor",
+        "--include=Source\**\*",
+        f"--project={get_base_name()}",
+        "-f=Text",
+        f"-o={inspect_file}"
+    ])
+    # TODO: parse file for warnings & errors and add warning exceptions
+    # | Where-Object {$_ -match '      .*Source\\ProjectBorealis.*'} `
+    # | Where-Object {$_ -notmatch 'Possibly unused #include directive'} `
+    # | Where-Object {$_ -notmatch 'Non-virtual function .* is hidden in derived class .*'} `
+    # | Where-Object {$_ -notmatch 'Function .* hides a non-virtual function from class .*'} `
+    # | Where-Object {$_ -notmatch 'Possibly unintended object slicing'} `
+    # | Where-Object {$_ -notmatch 'Cannot resolve symbol'} `
+    # | Where-Object {$_ -notmatch '.* can be made const'} `
+    # | Where-Object {$_ -notmatch "Overriding function .* does not have a 'virtual' specifier"} `
+    # | Where-Object {$_ -notmatch 'style cast is used instead of'} `
+    # | Where-Object {$_ -notmatch 'Member function can be made static'} `
+    # TODO: maybe switch to XML for more robust parsing?
+    with open(inspect_file) as f:
+        print(f.read())
+    os.remove(inspect_file)
+    shutil.rmtree(str(resharper_dir))

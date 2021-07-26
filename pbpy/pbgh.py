@@ -12,6 +12,9 @@ from pbpy import pbgit
 from pbpy import pbunreal
 
 gh_executable_path = ".github\\gh\\gh.exe"
+chglog_executable_path = ".github\\gh\\git-chglog.exe"
+chglog_config_path = ".github\\chglog.yml"
+release_file = "RELEASE_MSG"
 binary_package_name = "Binaries.zip"
 
 
@@ -117,11 +120,18 @@ def pull_binaries(version_number: str, pass_checksum=False):
 def generate_release():
     version = pbunreal.get_latest_project_version()
     target_branch = pbconfig.get("expected_branch_name")
-    # TODO: changelog
+    pbtools.run_with_combined_output([
+        chglog_executable_path,
+        "-c", chglog_config_path,
+        "-o", release_file,
+        version
+    ])
     pbtools.run_with_combined_output([
         gh_executable_path,
         "release",
         "create", version, binary_package_name,
+        "-F", release_file,
         "--target", target_branch,
         "-t", version
     ])
+    os.remove(release_file)
