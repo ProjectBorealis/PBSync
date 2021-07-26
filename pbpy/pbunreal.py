@@ -724,14 +724,17 @@ def inspect_source():
     zip_name = f"JetBrains.ReSharper.CommandLineTools.{version}.zip"
     zip_path = saved_dir / Path(zip_name)
     if not zip_path.exists():
+        pblog.info(f"Downloading Resharper {version}")
         url = f"https://download-cdn.jetbrains.com/resharper/dotUltimate.{version}/{zip_name}"
         with urllib.request.urlopen(url) as response, open(str(zip_path), 'wb') as out_file:
             shutil.copyfileobj(response, out_file)
     resharper_dir = saved_dir / Path("ResharperCLI")
+    pblog.info(f"Unpacking Resharper {version}")
     shutil.unpack_archive(str(zip_path), str(resharper_dir))
     resharper_exe = resharper_dir / Path("inspectcode.exe")
     inspect_file = "Saved\InspectionResults.txt"
-    pbtools.run_stream([
+    pblog.info(f"Running Resharper {version}")
+    proc = pbtools.run_stream([
         str(resharper_exe),
         str(get_sln_path()),
         "--no-swea",
@@ -741,6 +744,8 @@ def inspect_source():
         "-f=Text",
         f"-o={inspect_file}"
     ])
+    if proc.returncode:
+        pbtools.error_state("Resharper inspectcode failed.")
     # TODO: parse file for warnings & errors and add warning exceptions
     # | Where-Object {$_ -match '      .*Source\\ProjectBorealis.*'} `
     # | Where-Object {$_ -notmatch 'Possibly unused #include directive'} `

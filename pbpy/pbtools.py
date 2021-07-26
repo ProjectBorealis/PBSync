@@ -77,8 +77,12 @@ def run_stream(cmd, env=None):
     proc = subprocess.Popen(cmd, text=True, shell=True, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
     returncode = None
     while True:
-        for line in iter(lambda: proc.stdout.readline(), ''):
-            pblog.info(line)
+        # TODO: handle encoding
+        try:
+            for line in iter(lambda: proc.stdout.readline(), ''):
+                pblog.info(line)
+        except:
+            continue
         returncode = proc.poll()
         if returncode is not None:
             break
