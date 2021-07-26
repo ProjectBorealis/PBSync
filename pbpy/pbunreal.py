@@ -741,7 +741,7 @@ def inspect_source():
         str(get_sln_path()),
         "--no-swea",
         "--properties:Platform=Win64;Configuration=Development Editor",
-        "--include={modified_files_list}",
+        f"--include={modified_files_list}",
         f"--project={get_base_name()}",
         "-f=Text",
         f"-o={inspect_file}"
