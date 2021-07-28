@@ -771,10 +771,15 @@ def inspect_source(all=False):
     with open(inspect_file) as f:
         lines = f.readlines()
         for line in lines:
-            if pbtools.it_has_any(line, *non_errors):
-                pblog.warning(line.strip())
+            # if blank, skip
+            if not line.strip():
+                continue
+            if line.startswith("Solution ") or line.startswith("Project "):
+                pblog.info(line)
+            elif pbtools.it_has_any(line, *non_errors):
+                pblog.warning(line)
             else:
-                pblog.error(line.strip())
+                pblog.error(line)
                 has_error = True
     if has_error:
         pbtools.error_state("Resharper inspectcode found errors.")
