@@ -718,7 +718,16 @@ def package_binaries():
     pbtools.make_json_from_dict(hashes, pbconfig.get("checksum_file"))
 
 
-def inspect_source():
+def inspect_source(all=False):
+    if all:
+        modified_files_list = "Source\**\*"
+    else:
+        modified_paths = pbgit.get_modified_files()
+        if len(modified_paths) < 1:
+            pblog.info("No modified files to inspect, done. Use --build inspectall if you'd like to inspect the entire project.")
+            return
+        modified_files = [str(path) for path in modified_paths]
+        modified_files_list = ";".join(modified_files)
     version = pbconfig.get("resharper_version")
     saved_dir = Path("Saved")
     zip_name = f"JetBrains.ReSharper.CommandLineTools.{version}.zip"
@@ -734,8 +743,6 @@ def inspect_source():
     resharper_exe = resharper_dir / Path("inspectcode.exe")
     inspect_file = "Saved\InspectionResults.txt"
     pblog.info(f"Running Resharper {version}")
-    modified_paths = [str(path) for path in pbgit.get_modified_files()]
-    modified_files_list = ";".join(modified_paths)
     proc = pbtools.run_stream([
         str(resharper_exe),
         str(get_sln_path()),
@@ -743,24 +750,33 @@ def inspect_source():
         "--properties:Platform=Win64;Configuration=Development Editor",
         f"--include={modified_files_list}",
         f"--project={get_base_name()}",
-        "-f=Text",
+        "-f=Text",  # TODO: maybe switch to XML for more robust parsing?
         f"-o={inspect_file}"
     ])
     if proc.returncode:
         pbtools.error_state("Resharper inspectcode failed.")
-    # TODO: parse file for warnings & errors and add warning exceptions
-    # | Where-Object {$_ -match '      .*Source\\ProjectBorealis.*'} `
-    # | Where-Object {$_ -notmatch 'Possibly unused #include directive'} `
-    # | Where-Object {$_ -notmatch 'Non-virtual function .* is hidden in derived class .*'} `
-    # | Where-Object {$_ -notmatch 'Function .* hides a non-virtual function from class .*'} `
-    # | Where-Object {$_ -notmatch 'Possibly unintended object slicing'} `
-    # | Where-Object {$_ -notmatch 'Cannot resolve symbol'} `
-    # | Where-Object {$_ -notmatch '.* can be made const'} `
-    # | Where-Object {$_ -notmatch "Overriding function .* does not have a 'virtual' specifier"} `
-    # | Where-Object {$_ -notmatch 'style cast is used instead of'} `
-    # | Where-Object {$_ -notmatch 'Member function can be made static'} `
-    # TODO: maybe switch to XML for more robust parsing?
+    has_error = False
+    # TODO: make this configurable
+    non_errors = [
+        "Possibly unused #include directive",
+        " is hidden in derived class ",
+        " hides a non-virtual function from class ",
+        "Possibly unintended object slicing",
+        "Cannot resolve symbol",
+        " can be made const",
+        " does not have a 'virtual' specifier",
+        "style cast is used instead of",
+        "Member function can be made static"
+    ]
     with open(inspect_file) as f:
-        print(f.read())
+        lines = f.readlines()
+        for line in lines:
+            if pbtools.it_has_any(line, *non_errors):
+                pblog.warning(line.strip())
+            else:
+                pblog.error(line.strip())
+                has_error = True
+    if has_error:
+        pbtools.error_state("Resharper inspectcode found errors.")
     os.remove(inspect_file)
     shutil.rmtree(str(resharper_dir))
