@@ -772,9 +772,10 @@ def inspect_source(all=False):
         lines = f.readlines()
         for line in lines:
             # if blank, skip
-            if not line.strip():
+            line_strip = line.strip()
+            if not line_strip:
                 continue
-            if line.startswith("Solution ") or line.startswith("Project "):
+            if line_strip.startswith("Solution ") or line_strip.startswith("Project "):
                 pblog.info(line)
             elif pbtools.it_has_any(line, *non_errors):
                 pblog.warning(line)
