@@ -726,7 +726,7 @@ def inspect_source(all=False):
         if len(modified_paths) < 1:
             pblog.info("No modified files to inspect, done. Use --build inspectall if you'd like to inspect the entire project.")
             return
-        modified_files = [str(path) for path in modified_paths]
+        modified_files = [str(path) for path in modified_paths if str(path).startswith("Source")]
         modified_files_list = ";".join(modified_files)
     version = pbconfig.get("resharper_version")
     saved_dir = Path("Saved")
@@ -768,7 +768,8 @@ def inspect_source(all=False):
         "style cast is used instead of",
         "Member function can be made static"
     ]
-    with open(inspect_file) as f:
+    # it is UTF-8 BOM
+    with open(inspect_file, encoding='utf-8-sig') as f:
         lines = f.readlines()
         for line in lines:
             # if blank, skip
