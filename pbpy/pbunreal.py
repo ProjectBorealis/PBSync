@@ -620,7 +620,7 @@ def ue4_config(path):
 
 def update_source_control():
     with ue4_config("Saved/Config/Windows/SourceControlSettings.ini") as source_control_config:
-        source_control_config["SourceControl.SourceControlSettings"]["Provider"] = pbconfig.get_user("project", "provider", "Git LFS 2")
+        source_control_config["SourceControl.SourceControlSettings"]["Provider"] = "Git LFS 2"
         git_lfs_2 = source_control_config["GitSourceControl.GitSourceControlSettings"]
         binary_path = pbgit.get_git_executable()
         if binary_path != "git":
