@@ -6,11 +6,11 @@
         <defaultgameinipath>Config/DefaultGame.ini</defaultgameinipath>
     </project>
     <git>
-        <version>2.29.0.vfs.0.0</version>
-        <lfsversion>2.13.1</lfsversion>
-        <gcmversion>2.0.289</gcmversion>
-        <gcmversionsuffix>-beta</gcmversionsuffix>
-        <gcmsuffix>48418</gcmsuffix>
+        <version>2.32.0.vfs.0.3</version>
+        <lfsversion>2.13.3</lfsversion>
+        <gcmversion>2.0.475</gcmversion>
+        <gcmversionsuffix></gcmversionsuffix>
+        <gcmsuffix>64295</gcmsuffix>
         <expectedbranch>promoted</expectedbranch>
         <url>https://github.com/GithubUser/samplerepository.git</url>
         <branches>

@@ -342,9 +342,9 @@ def maintain_repo():
         f"{pbgit.get_lfs_executable()} dedup"
     ]
 
-    does_maintainence = get_one_line_output([pbgit.get_git_executable(), "config", "maintenance.strategy"]) == "incremental"
+    does_maintainence = get_one_line_output([pbgit.get_git_executable(), "config", "maintenance.prefetch.schedule"]) == "hourly"
     if not does_maintainence:
-        commands.insert(0, f"{pbgit.get_git_executable()} maintenance start")
+        commands.insert(0, f"scalar register .")
 
     # fill in the git repo optionally
     is_shallow = get_one_line_output([pbgit.get_git_executable(), "rev-parse", "--is-shallow-repository"])
