@@ -214,7 +214,7 @@ def get_engine_install_root():
         options = [(path / 'ue4').resolve() for path in options]
 
         # remove duplicates
-        options = list(dict.fromkeys(options))
+        options = list(set(options))
 
         # add custom option
         custom = "custom location"

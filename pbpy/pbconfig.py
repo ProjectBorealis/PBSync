@@ -27,7 +27,7 @@ class CustomConfigParser(configparser.ConfigParser):
     def __getitem__(self, key):
         if key != self.default_section and not self.has_section(key):
             self.add_section(key)
-        return self._proxies[key]
+        return super().__getitem__(key)
 
 
 class CustomInterpolation(configparser.BasicInterpolation):
