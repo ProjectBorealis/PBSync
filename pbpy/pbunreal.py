@@ -766,7 +766,9 @@ def inspect_source(all=False):
         " can be made const",
         " does not have a 'virtual' specifier",
         "style cast is used instead of",
-        "Member function can be made static"
+        "Member function can be made static",
+        "can be moved to inner scope",
+        "Unreachable code",
     ]
     # it is UTF-8 BOM
     with open(inspect_file, encoding='utf-8-sig') as f:
