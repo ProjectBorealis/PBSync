@@ -543,6 +543,14 @@ def download_engine(bundle_name=None, download_symbols=False):
             pbuac.runAsAdmin(cmdline)
         else:
             pbtools.run(cmdline)
+        # work around bug
+        build_version = base_path / Path("Engine/Build/Build.version")
+        with open(str(build_version), "w") as f:
+            build_version = ""
+            for line in f.readlines():
+                if not pbtools.it_has_any(line, "BuildId", "BuildVersion"):
+                    build_version += line
+            f.write(build_version)
         # generate project files for developers
         is_on_expected_branch = pbgit.compare_with_current_branch_name(pbconfig.get('expected_branch_name'))
         if not is_on_expected_branch:
