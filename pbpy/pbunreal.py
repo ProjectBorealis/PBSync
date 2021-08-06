@@ -412,16 +412,18 @@ def download_engine(bundle_name=None, download_symbols=False):
         os.makedirs(root, exist_ok=True)
 
         verification_file = get_bundle_verification_file(bundle_name)
+        editor_verification = get_bundle_verification_file("editor")
+        engine_verification = get_bundle_verification_file("engine")
         version = get_engine_version_with_prefix()
         base_path = Path(root) / Path(version)
-        symbols_path = base_path / Path(verification_file + "pdb")
+        symbols_path = base_path / Path(editor_verification + "pdb")
         needs_symbols = download_symbols and not symbols_path.exists()
         exe_path = base_path / Path(verification_file + "exe")
         needs_exe = not exe_path.exists()
         game_exe_path = None
         # handle downgrading to non-engine bundles
-        if verification_file == "Engine/Binaries/Win64/UE4Editor.":
-            game_exe_path = base_path / Path("Engine/Binaries/Win64/UE4Game.exe")
+        if "engine" not in bundle_name:
+            game_exe_path = base_path / Path(engine_verification + "exe")
             if game_exe_path.exists():
                 needs_exe = True
                 needs_symbols = download_symbols
