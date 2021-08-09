@@ -713,7 +713,7 @@ def build_source():
 def build_game(configuration="Shipping"):
     base = get_engine_base_path()
     uat_path = base / "Engine" / "Build" / "BatchFiles" / "RunUAT.bat"
-    proc = pbtools.run_stream([uat_path, "BuildCookRun", f"-project={str(get_uproject_path())}", f"-clientconfig={configuration}", "-NoP4", "-cook", "-build", "-stage", "-prereqs", "-pak", "-CrashReporter"])
+    proc = pbtools.run_stream([uat_path, "BuildCookRun", f"-project={str(get_uproject_path())}", f"-clientconfig={configuration}", "-NoP4", "-NoSign", "-cook", "-build", "-stage", "-prereqs", "-pak", "-CrashReporter"])
     if proc.returncode:
         pbtools.error_state("Build failed.")
 
