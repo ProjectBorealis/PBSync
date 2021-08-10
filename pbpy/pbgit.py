@@ -112,7 +112,14 @@ def get_locked(key="ours"):
     if proc.returncode:
         return None
     locked_objects = json.loads(proc.stdout)[key]
-    return set([l.get("path") for l in locked_objects])
+    locked = set([l.get("path") for l in locked_objects])
+    # also check untracked and added files
+    proc = pbtools.run_with_combined_output([get_git_executable(), "status", "--porcelain"])
+    if not proc.returncode:
+        for line in proc.stdout:
+            if line[0] == "?" or line[1] == "?" or line[0] == "A" or line[1] == "A":
+                locked.add(line[3:])
+    return locked
 
 
 def fix_lfs_ro_attr():
