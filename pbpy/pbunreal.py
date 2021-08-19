@@ -6,6 +6,8 @@ import glob
 import configparser
 import contextlib
 import urllib.request
+import platform
+import zipfile
 
 from shutil import move
 from shutil import rmtree
@@ -717,22 +719,36 @@ def build_game(configuration="Shipping"):
     if proc.returncode:
         pbtools.error_state("Build failed.")
 
+platform_names = {"Windows": "Win64", "Darwin": "Mac", "Linux": "Linux"}
+
+
+def get_platform_name():
+    return platform_names[platform.system()]
+
+binaries_paths = ["Binaries", "Plugins/**/Binaries"]
+
 
 def package_binaries():
     binaries_zip = Path("Binaries.zip")
     binaries_zip.unlink(missing_ok=True)
-    binaries = Path("Binaries") / "Win64"
-    for ilk in binaries.glob("*.ilk"):
-        ilk.unlink()
-    shutil.make_archive("Binaries", "zip", ".", "Binaries")
-    binaries = Path("Binaries")
+    base_path = Path(".")
+
+    for binaries_path in binaries_paths:
+        for ilk in base_path.glob(f"{binaries_path}/Win64/*.ilk"):
+            ilk.unlink()
+    
     hashes = dict()
+    with zipfile.ZipFile("Binaries.zip", "a") as zipf:
+        for binaries_path in binaries_paths:
+            for file in base_path.glob(f"{binaries_path}/**/*"):
+                if not file.is_file():
+                    continue
+                filename = str(file)
+                zipf.write(filename, filename)
+                hashes[filename] = pbtools.get_md5_hash(filename)
+
     hashes["Binaries.zip"] = pbtools.get_md5_hash("Binaries.zip")
-    for file in binaries.glob("**/*"):
-        if not file.is_file():
-            continue
-        filename = str(file)
-        hashes[filename] = pbtools.get_md5_hash(filename)
+
     pbtools.make_json_from_dict(hashes, pbconfig.get("checksum_file"))
 
 

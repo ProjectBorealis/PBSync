@@ -43,11 +43,6 @@ def pull_binaries(version_number: str, pass_checksum=False):
         pblog.error(f"GH CLI executable not found at {gh_executable_path}")
         return 1
 
-    # Backward compatibility with old PBGet junctions. If it still exists, remove the junction
-    if pbtools.is_junction("Binaries") and not pbtools.remove_junction("Binaries"):
-        pblog.error("Something went wrong while removing junction for 'Binaries' folder. You should remove that folder manually to solve the problem")
-        return -1
-
     # Remove binary package if it exists, hub is not able to overwrite existing files
     if os.path.exists(binary_package_name):
         try:
