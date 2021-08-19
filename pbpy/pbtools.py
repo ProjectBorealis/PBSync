@@ -340,6 +340,7 @@ def maintain_repo():
     pblog.info("Starting repo maintenance...")
 
     commands = [
+        f"{pbgit.get_lfs_executable()} prune -c",
         f"{pbgit.get_lfs_executable()} dedup"
     ]
 
@@ -372,7 +373,7 @@ lfs_fetch_thread = None
 
 def do_lfs_fetch():
     branch_name = pbgit.get_current_branch_name()
-    run([pbgit.get_lfs_executable(), "fetch", "-p", "origin", f"origin/{branch_name}"])
+    run([pbgit.get_lfs_executable(), "fetch", "origin", f"origin/{branch_name}"])
 
 
 def start_lfs_fetch():
@@ -412,7 +413,7 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         finish_lfs_fetch()
         run([pbgit.get_lfs_executable(), "checkout"])
         # update plugin submodules
-        run([pbgit.pbgit.get_git_executable(), "submodule", "update", "--init", "--", "Plugins"])
+        run([pbgit.get_git_executable(), "submodule", "update", "--init", "--", "Plugins"])
         code = result.returncode
         out = result.stdout
         pblog.info(out)
