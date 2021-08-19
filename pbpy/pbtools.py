@@ -16,6 +16,7 @@ from pbpy import pbconfig
 from pbpy import pblog
 from pbpy import pbgit
 from pbpy import pbunreal
+from pbpy import pbuac
 
 error_file = ".pbsync_err"
 
@@ -341,6 +342,16 @@ def maintain_repo():
         f"{pbgit.get_lfs_executable()} prune -c",
         f"{pbgit.get_lfs_executable()} dedup"
     ]
+
+    if os.name == "nt":
+        proc = run(["schtasks" "/query", "/TN", "Git for Windows Updater"])
+        # if exists
+        if proc.returncode == 0:
+            cmdline = "schtasks /Delete /F /TN \"Git for Windows Updater\""
+            if not pbuac.isUserAdmin():
+                pbuac.runAsAdmin(cmdline)
+            else:
+                run(cmdline)
 
     does_maintainence = get_one_line_output([pbgit.get_git_executable(), "config", "maintenance.prefetch.schedule"]) == "hourly"
     if not does_maintainence:
