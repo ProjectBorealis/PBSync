@@ -69,12 +69,8 @@ def runAsAdmin(cmdLine=None, wait=True):
     import win32con, win32event, win32process, pywintypes
     from win32com.shell.shell import ShellExecuteEx
     from win32com.shell import shellcon
-    
-    python_exe = sys.executable
 
-    if cmdLine is None:
-        cmdLine = [python_exe] + sys.argv
-    elif not isinstance(cmdLine, (tuple, list)):
+    if not isinstance(cmdLine, (tuple, list)):
         raise ValueError("cmdLine is not a sequence.")
     cmd = '"%s"' % (cmdLine[0],)
     # XXX TODO: isn't there a function or something we can call to massage command line params?

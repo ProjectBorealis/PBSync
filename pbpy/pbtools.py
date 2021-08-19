@@ -348,7 +348,7 @@ def maintain_repo():
         proc = run(["schtasks" "/query", "/TN", "Git for Windows Updater"])
         # if exists
         if proc.returncode == 0:
-            cmdline = "schtasks /Delete /F /TN \"Git for Windows Updater\""
+            cmdline = ["schtasks", "/Delete", "/F", "/TN", "Git for Windows Updater"]
             if not pbuac.isUserAdmin():
                 pbuac.runAsAdmin(cmdline)
             else:
