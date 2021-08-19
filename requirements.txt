@@ -1,8 +1,8 @@
+-r pyinstaller/tests/requirements-developer.txt
+
 psutil
 coloredlogs
 colorama
 verboselogs
-pywin32
 gsutil
 crcmod
-pefile

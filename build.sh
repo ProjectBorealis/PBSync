@@ -5,8 +5,6 @@ PATH="$HOME/.local/bin:$PATH"
 
 export PATH
 
-python -m pip install -U pip
-pip install -Ur requirements-linux.txt
 set PYTHONOPTIMIZE=1
 pyinstaller --onefile \
             --additional-hooks-dir=hooks \

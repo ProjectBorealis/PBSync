@@ -18,8 +18,6 @@ You can run `install_pyinstaller.bat` to do this automatically.
 
 To generate a binary file from python source code, just run `build.bat` script. If generation was successful, the binary file will be put inside `dist` folder. To start using, generated executable should be put into root folder of the Unreal Engine project.
 
-You must also install PyWin32 [system wide](https://github.com/mhammond/pywin32#installing-via-pip).
-
 #### Linux
 
 On Linux systems, run the `build.sh` script to generate binary file.

@@ -1,8 +1,9 @@
+pyinstaller/tests/requirements-developer.txt
+
 psutil
 coloredlogs
 colorama
 verboselogs
 gsutil
 crcmod
-pefile
 pyinstaller
