@@ -6,6 +6,7 @@ import subprocess
 import shutil
 import stat
 import json
+import threading
 
 from hashlib import md5
 from subprocess import CalledProcessError
@@ -339,7 +340,6 @@ def maintain_repo():
     pblog.info("Starting repo maintenance...")
 
     commands = [
-        f"{pbgit.get_lfs_executable()} prune -c",
         f"{pbgit.get_lfs_executable()} dedup"
     ]
 
@@ -367,6 +367,27 @@ def maintain_repo():
     run_non_blocking(*commands)
 
 
+lfs_fetch_thread = None
+
+
+def do_lfs_fetch():
+    branch_name = pbgit.get_current_branch_name()
+    run([pbgit.get_lfs_executable(), "fetch", "-p", "origin", f"origin/{branch_name}"])
+
+
+def start_lfs_fetch():
+    pblog.info("Starting LFS fetch...")
+    global lfs_fetch_thread
+    lfs_fetch_thread = threading.Thread(target=do_lfs_fetch)
+    lfs_fetch_thread.start()
+
+
+def finish_lfs_fetch():
+    pblog.info("Finishing LFS fetch...")
+    lfs_fetch_thread.join()
+    pblog.info("Finished LFS fetch.")
+
+
 def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
     def should_attempt_auto_resolve():
         return retry_count <= max_retries
@@ -378,6 +399,7 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
     out = get_combined_output([pbgit.get_git_executable(), "status", "--porcelain=2", "--branch"])
 
     if not it_has_any(out, "-0"):
+        start_lfs_fetch()
         pbunreal.ensure_ue4_closed()
         pblog.info("Please wait while getting the latest changes from the repository. It may take a while...")
         # Make sure upstream is tracked correctly
@@ -386,8 +408,11 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         pblog.info("Rebasing workspace with the latest changes from the repository...")
         # Get the latest files, but skip smudge so we can super charge a LFS pull as one batch
         result = run_with_combined_output([pbgit.get_git_executable(), "-c", "filter.lfs.smudge=", "-c", "filter.lfs.process=", "-c", "filter.lfs.required=false", "rebase", "--autostash", f"origin/{branch_name}"])
-        # Pull LFS in one go since we skipped smudge (faster)
-        run([pbgit.get_lfs_executable(), "pull"])
+        # Checkout LFS in one go since we skipped smudge and fetched in the background
+        finish_lfs_fetch()
+        run([pbgit.get_lfs_executable(), "checkout"])
+        # update plugin submodules
+        run([pbgit.pbgit.get_git_executable(), "submodule", "update", "--init", "--", "Plugins"])
         code = result.returncode
         out = result.stdout
         pblog.info(out)
