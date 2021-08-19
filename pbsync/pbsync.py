@@ -59,7 +59,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             if sys.platform == "win32" or sys.platform == "darwin":
                 pblog.info("Attempting auto-update of Git...")
                 if sys.platform == "win32":
-                    proc = pbtools.run([pbgit.get_git_executable(), "upgrade-git-for-windows", "-y"])
+                    proc = pbtools.run([pbgit.get_git_executable(), "update-git-for-windows", "-y"])
                 else:
                     proc = pbtools.run([pbgit.get_git_executable(), "update-microsoft-git"])
                 # if non-zero, error out
