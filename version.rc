@@ -30,7 +30,7 @@ StringFileInfo(
   StringTable(
     u'040904B0',
     [StringStruct(u'CompanyName', u'Project Borealis'),
-    StringStruct(u'FileDescription', u'Project Borealis Workspace Synchronization Tool'),
+    StringStruct(u'FileDescription', u'PBSync'),
     StringStruct(u'FileVersion', u'0.2.23'),
     StringStruct(u'InternalName', u'pbsync'),
     StringStruct(u'LegalCopyright', u'Copyright (c) Project Borealis'),

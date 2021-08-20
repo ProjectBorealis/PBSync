@@ -401,7 +401,7 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
 
     if not it_has_any(out, "-0"):
         start_lfs_fetch()
-        pbunreal.ensure_ue4_closed()
+        pbunreal.ensure_ue_closed()
         pblog.info("Please wait while getting the latest changes from the repository. It may take a while...")
         # Make sure upstream is tracked correctly
         branch_name = pbgit.get_current_branch_name()
@@ -439,9 +439,9 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
     elif "successfully rebased and updated" in out:
         handle_success()
     elif it_has_any(out, "failed to merge in the changes", "could not apply"):
-        handle_error("Aborting the rebase. Changes on one of your commits will be overridden by incoming changes. Please request help in #tech-support to resolve conflicts, and please do not run UpdateProject until the issue is resolved.")
+        handle_error(f"Aborting the rebase. Changes on one of your commits will be overridden by incoming changes. Please request help in {pbconfig.get('support_channel')} to resolve conflicts, and please do not run UpdateProject until the issue is resolved.")
     elif it_has_any(out, "unmerged files", "merge_head exists"):
-        error_state("You are in the middle of a merge. Please request help in #tech-support to resolve it, and please do not run UpdateProject until the issue is resolved.", fatal_error=True)
+        error_state(f"You are in the middle of a merge. Please request help in {pbconfig.get('support_channel')} to resolve it, and please do not run UpdateProject until the issue is resolved.", fatal_error=True)
     elif "unborn" in out:
         if should_attempt_auto_resolve():
             pblog.error("Unborn branch detected. Retrying...")
@@ -449,7 +449,7 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
             resolve_conflicts_and_pull(retry_count)
             return
         else:
-            handle_error("You are on an unborn branch. Please request help in #tech-support to resolve it, and please do not run UpdateProject until the issue is resolved.")
+            handle_error(f"You are on an unborn branch. Please request help in {pbconfig.get('support_channel')} to resolve it, and please do not run UpdateProject until the issue is resolved.")
     elif it_has_any(out, "no remote", "no such remote", "refspecs without repo"):
         if should_attempt_auto_resolve():
             pblog.error("Remote repository not found. Retrying...")
@@ -457,7 +457,7 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
             resolve_conflicts_and_pull(retry_count, 2)
             return
         else:
-            handle_error("The remote repository could not be found. Please request help in #tech-support to resolve it, and please do not run UpdateProject until the issue is resolved.")
+            handle_error(f"The remote repository could not be found. Please request help in {pbconfig.get('support_channel')} to resolve it, and please do not run UpdateProject until the issue is resolved.")
     elif "cannot open" in out:
         if should_attempt_auto_resolve():
             pblog.error("Git file info could not be read. Retrying...")
@@ -465,9 +465,9 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
             resolve_conflicts_and_pull(retry_count, 3)
             return
         else:
-            handle_error("Git file info could not be read. Please request help in #tech-support to resolve it, and please do not run UpdateProject until the issue is resolved.")
+            handle_error(f"Git file info could not be read. Please request help in {pbconfig.get('support_channel')} to resolve it, and please do not run UpdateProject until the issue is resolved.")
     else:
         # We have no idea what the state of the repo is. Do nothing except bail.
-        error_state("Aborting the repo update because of an unknown error. Request help in #tech-support to resolve it, and please do not run UpdateProject until the issue is resolved.", fatal_error=True)
+        error_state(f"Aborting the repo update because of an unknown error. Request help in {pbconfig.get('support_channel')} to resolve it, and please do not run UpdateProject until the issue is resolved.", fatal_error=True)
 
     maintain_repo()

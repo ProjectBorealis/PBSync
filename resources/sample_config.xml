@@ -4,6 +4,8 @@
         <enginebaseversion>4.26</enginebaseversion>
         <uprojectname>SampleProject.uproject</uprojectname>
         <defaultgameinipath>Config/DefaultGame.ini</defaultgameinipath>
+        <userconfig>.user-sync</userconfig>
+        <ciconfig>.ci-sync</ciconfig>
     </project>
     <git>
         <version>2.32.0.vfs.0.3</version>
@@ -20,10 +22,11 @@
         <checksumfile>.md5</checksumfile>
     </git>
     <versionator>
-        <userconfig>.ue4v-user</userconfig>
-        <ciconfig>.ue4v-user-ci</ciconfig>
         <defaultbundle>editor</defaultbundle>
         <cibundle>ci-engine</cibundle>
+        <engineprefix>SP</engineprefix>
+        <enginetype>ue4</enginetype>
+        <uses_gcs>True</uses_gcs>
     </versionator>
     <log>
         <file>pbsync_log.txt</file>
@@ -36,4 +39,8 @@
     <resharper>
         <version>2021.1.5</version>
     </resharper>
+    <msg>
+        <git_instructions>https://gitforwindows.org/</git_instructions>
+        <support_channel>the support channel</support_channel>
+    </msg>
 </config>

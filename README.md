@@ -42,9 +42,9 @@ You can refer to our [Base-Project repo](https://github.com/ProjectBorealis/Base
 
 Essentially, we use a batch script to sync PBSync with the origin branch (`promoted`), and then launch PBSync (`UpdateProject.bat`). We have our configuration file in `PBSync.xml`.
 
-`PBSync.exe` and `ue4versionator.exe` are distributed as part of the repo, at the root game project level.
+`PBSync.exe` and `ueversionator.exe` are distributed as part of the repo, at the root game project level.
 
-`.ue4versionator` in the repo configures the engine download.
+`.ueversionator` in the repo configures the engine download.
 
 ### Available Commands
 

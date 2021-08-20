@@ -19,7 +19,7 @@ def get(key):
 
 @lru_cache()
 def get_user_config_filename():
-    config_key = 'ue4v_ci_config' if get("is_ci") else 'ue4v_user_config'
+    config_key = 'ci_config' if get("is_ci") else 'user_config'
     return get(config_key)
 
 

@@ -26,7 +26,7 @@ def get_token_env():
             "GITHUB_TOKEN": token
         }
     else:
-        pbtools.error_state("Credential retrieval failed. Please get help from #tech-support")
+        pbtools.error_state(f"Credential retrieval failed. Please get help from {pbconfig.get('support_channel')}")
 
 
 def is_pull_binaries_required():
@@ -75,7 +75,7 @@ def pull_binaries(version_number: str, pass_checksum=False):
             f"Exception thrown while pulling binaries for {version_number}")
         return 1
 
-    pbunreal.ensure_ue4_closed()
+    pbunreal.ensure_ue_closed()
 
     # Temp fix for Binaries folder with unnecessary content
     if os.path.isdir("Binaries"):

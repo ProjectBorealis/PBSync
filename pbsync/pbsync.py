@@ -75,7 +75,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                 pblog.error(f"Supported Git Version: {pbconfig.get('supported_git_version')}")
                 pblog.error(f"Current Git Version: {detected_git_version}")
                 pblog.error("Please install the supported Git version from https://github.com/microsoft/git/releases")
-                pblog.error("Visit https://github.com/ProjectBorealisTeam/pb/wiki/Prerequisites for installation instructions")
+                pblog.error(f"Visit {pbconfig.get('git_instructions')} for installation instructions")
                 if os.name == "nt":
                     webbrowser.open(f"https://github.com/microsoft/git/releases/download/v{pbconfig.get('supported_git_version')}/Git-{pbconfig.get('supported_git_version')}-64-bit.exe")
 
@@ -183,13 +183,13 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         # continue a trivial rebase
         if "rebase" in status_out:
             if pbtools.it_has_any(status_out, "nothing to commit", "git rebase --continue", "all conflicts fixed"):
-                pbunreal.ensure_ue4_closed()
+                pbunreal.ensure_ue_closed()
                 rebase_out = pbtools.run_with_combined_output([pbgit.get_git_executable(), "rebase", "--continue"]).stdout
                 if pbtools.it_has_any(rebase_out, "must edit all merge conflicts"):
                     # this is an improper state, since git told us otherwise before. abort all.
                     pbgit.abort_all()
             else:
-                error_state("You are in the middle of a rebase. Changes on one of your commits will be overridden by incoming changes. Please request help in #tech-support to resolve conflicts, and please do not run UpdateProject until the issue is resolved.",
+                error_state(f"You are in the middle of a rebase. Changes on one of your commits will be overridden by incoming changes. Please request help in {pbconfig.get('support_channel')} to resolve conflicts, and please do not run UpdateProject until the issue is resolved.",
                                     fatal_error=True)
 
         current_branch = pbgit.get_current_branch_name()
@@ -228,7 +228,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                 else:
                     pblog.info(f"Current project version: {project_version}")
             else:
-                error_state("Something went wrong while fetching project version. Please request help in #tech-support.")
+                error_state(f"Something went wrong while fetching project version. Please request help in {pbconfig.get('support_channel')}.")
 
             checksum_json_path = pbconfig.get("checksum_file")
             if is_custom_version:
@@ -246,7 +246,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                 elif ret < 0:
                     error_state("Binaries pull failed, please view log for instructions.")
                 elif ret > 0:
-                    error_state("An error occurred while pulling binaries. Please request help in #tech-support to resolve it, and please do not run UpdateProject until the issue is resolved.", True)
+                    error_state(f"An error occurred while pulling binaries. Please request help in {pbconfig.get('support_channel')} to resolve it, and please do not run UpdateProject until the issue is resolved.", True)
             else:
                 pblog.info("Binaries are up-to-date")
 
@@ -267,20 +267,20 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         pblog.info("Checking for engine updates...")
         uproject_file = pbconfig.get('uproject_name')
         if pbgit.sync_file(uproject_file) != 0:
-            error_state("Something went wrong while updating the .uproject file. Please request help in #tech-support.")
+            error_state(f"Something went wrong while updating the .uproject file. Please request help in {pbconfig.get('support_channel')}.")
 
         engine_version = pbunreal.get_engine_version_with_prefix()
 
         pblog.info("Registering current engine build if it exists. Otherwise, the build will be downloaded...")
 
         symbols_needed = pbunreal.is_versionator_symbols_enabled()
-        bundle_name = pbconfig.get("ue4v_ci_bundle") if pbconfig.get("is_ci") else pbconfig.get("ue4v_default_bundle")
+        bundle_name = pbconfig.get("uev_ci_bundle") if pbconfig.get("is_ci") else pbconfig.get("uev_default_bundle")
         bundle_name = pbconfig.get_user("project", "bundle", default=bundle_name)
 
         if pbunreal.download_engine(bundle_name, symbols_needed):
             pblog.info(f"Engine build {bundle_name}-{engine_version} successfully registered")
         else:
-            error_state(f"Something went wrong while registering engine build {bundle_name}-{engine_version}. Please request help in #tech-support.")
+            error_state(f"Something went wrong while registering engine build {bundle_name}-{engine_version}. Please request help in {pbconfig.get('support_channel')}.")
 
         # Clean old engine installations, do that only in expected branch
         if is_on_expected_branch:
@@ -298,8 +298,8 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         fix_attr_thread.join()
         pblog.info("Finished LFS read flag fix.")
 
-        if pbunreal.is_ue4_closed():
-            if pbunreal.check_ue4_file_association():
+        if pbunreal.is_ue_closed():
+            if pbunreal.check_ue_file_association():
                 path = str(Path(uproject_file).resolve())
                 try:
                     os.startfile(path)
@@ -307,9 +307,9 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                     if sys.platform.startswith('linux'):
                         pbtools.run_non_blocking([f"xdg-open {path}"])
                     else:
-                        pblog.info(f"You may now launch {uproject_file} with Unreal Engine 4.")
+                        pblog.info(f"You may now launch {uproject_file} with Unreal Engine.")
             else:
-                error_state(".uproject extension is not correctly set into Unreal Engine. Make sure you have Epic Games Launcher installed. If problem still persists, please get help in #tech-support.")
+                error_state(f".uproject extension is not correctly set into Unreal Engine. Make sure you have Epic Games Launcher installed. If problem still persists, please get help in {pbconfig.get('support_channel')}.")
 
     elif sync_val == "engineversion":
         repository_val = pbunreal.get_versionator_gsuri(repository_val)
@@ -334,9 +334,9 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             error_state(f"Failed to pull binaries for {project_version}")
 
     elif sync_val == "engine":
-        # Pull engine build with ue4versionator and register it
+        # Pull engine build with ueversionator and register it
         if requested_bundle_name is None:
-            requested_bundle_name = pbconfig.get("ue4v_ci_bundle") if pbconfig.get("is_ci") else pbconfig.get("ue4v_default_bundle")
+            requested_bundle_name = pbconfig.get("uev_ci_bundle") if pbconfig.get("is_ci") else pbconfig.get("uev_default_bundle")
             requested_bundle_name = pbconfig.get_user("project", "bundle", default=requested_bundle_name)
 
         engine_version = pbunreal.get_engine_version_with_prefix()
@@ -429,7 +429,7 @@ def publish_handler(publish_val, dispatch_exec_path):
 
 
 def main(argv):
-    parser = argparse.ArgumentParser(description=f"Project Borealis Workspace Synchronization Tool | PBpy Library Version: {pbpy_version.ver} | PBSync Program Version: {pbsync_version.ver}")
+    parser = argparse.ArgumentParser(description=f"PBSync | PBpy Library Version: {pbpy_version.ver} | PBSync Program Version: {pbsync_version.ver}")
 
     parser.add_argument("--sync", help="Main command for the PBSync, synchronizes the project with latest changes from the repo, and does some housekeeping",
                         choices=["all", "partial", "binaries", "engineversion", "engine", "force", "ddc"])
@@ -479,10 +479,10 @@ def main(argv):
             'branches': ('git/branches', None),
             'checksum_file': ('git/checksumfile', None),
             'log_file_path': ('log/file', None),
-            'ue4v_user_config': ('versionator/userconfig', None),
-            'ue4v_ci_config': ('versionator/ciconfig', None),
-            'ue4v_default_bundle': ('versionator/defaultbundle', None),
-            'ue4v_ci_bundle': ('versionator/cibundle', None),
+            'user_config': ('project/userconfig', None),
+            'ci_config': ('project/ciconfig', None),
+            'uev_default_bundle': ('versionator/defaultbundle', None),
+            'uev_ci_bundle': ('versionator/cibundle', None),
             'engine_base_version': ('project/enginebaseversion', None),
             'uproject_name': ('project/uprojectname', None),
             'defaultgame_path': ('project/defaultgameinipath', None),
@@ -490,6 +490,11 @@ def main(argv):
             'dispatch_drm': ('dispatch/drm', None),
             'dispatch_stagedir': ('dispatch/stagedir', None),
             'resharper_version': ('resharper/version', None),
+            'engine_prefix': ('versionator/engineprefix', None),
+            'engine_type': ('versionator/enginetype', None),
+            'uses_gcs': ('versionator/uses_gcs', None),
+            'git_instructions': ('msg/git_instructions', None),
+            'support_channel': ('msg/support_channel', None),
         }
 
         missing_keys = []

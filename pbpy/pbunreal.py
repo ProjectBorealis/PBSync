@@ -29,18 +29,25 @@ from pbpy import pbgit
 from pbpy import pbuac
 
 # Those variable values are not likely to be changed in the future, it's safe to keep them hardcoded
-ue4v_prefix = "ue4v:"
+uev_prefix = "uev:"
 uplugin_ext = ".uplugin"
 uproject_ext = ".uproject"
 uplugin_version_key = "VersionName"
 uproject_version_key = "EngineAssociation"
 project_version_key = "ProjectVersion="
 ddc_folder_name = "DerivedDataCache"
-ue4_editor_relative_path = "Engine/Binaries/Win64/UE4Editor.exe"
-# TODO: make these config variables
-engine_installation_folder_regex = r"[0-9].[0-9]{2}.*-PB-[0-9]{8}"
-engine_version_prefix = "PB"
+
+engine_installation_folder_regex = [r"[0-9].[0-9]{2}.*-", r"-[0-9]{8}"]
+
 p4merge_path = ".github/p4merge/p4merge.exe"
+
+
+def get_engine_version_prefix():
+    return pbconfig.get('engine_prefix')
+
+
+def get_editor_relative_path():
+    return "Engine/Binaries/Win64/UnrealEditor.exe" if is_ue5() else "Engine/Binaries/Win64/UE4Editor.exe"
 
 
 def get_plugin_version(plugin_name):
@@ -113,7 +120,7 @@ def set_engine_version(version_string):
             with open(temp_path, "wt") as fout:
                 for ln in uproject_file:
                     if uproject_version_key in ln:
-                        fout.write(f"\t\"{uproject_version_key}\": \"{ue4v_prefix}{version_string}\",\n")
+                        fout.write(f"\t\"{uproject_version_key}\": \"{uev_prefix}{version_string}\",\n")
                     else:
                         fout.write(ln)
         os.remove(pbconfig.get('uproject_name'))
@@ -151,7 +158,7 @@ def project_version_increase(increase_type):
 
 @lru_cache()
 def get_engine_prefix() -> str:
-    return f"{pbconfig.get('engine_base_version')}-{engine_version_prefix}"
+    return f"{pbconfig.get('engine_base_version')}-{get_engine_version_prefix()}"
 
 
 @lru_cache()
@@ -160,7 +167,7 @@ def get_engine_version():
         with open(pbconfig.get('uproject_name')) as uproject_file:
             data = json.load(uproject_file)
             engine_association = str(data[uproject_version_key])
-            build_version = engine_association.replace(f"{ue4v_prefix}{get_engine_prefix()}-", "")
+            build_version = engine_association.replace(f"{uev_prefix}{get_engine_prefix()}-", "")
 
             if "}" in build_version:
                 # Means we're using local build version in .uproject file
@@ -187,16 +194,16 @@ def get_engine_install_root():
 
         if pbconfig.get("is_ci"):
             if os.name == "nt":
-                directory = (Path(curdir.anchor) / "ue4").resolve()
+                directory = (Path(curdir.anchor) / get_engine_type()).resolve()
             else:
-                directory = (curdir.parent / "ue4").resolve()
+                directory = (curdir.parent / get_engine_type()).resolve()
             directory.mkdir(exist_ok=True)
             return str(directory)
 
-        print("======================================================================")
-        print("| A custom UE4 engine build needs to be downloaded for this project. |")
-        print("|  These builds can be quite large. Lots of disk space is required.  |")
-        print("======================================================================\n")
+        print("=========================================================================")
+        print("| A custom Unreal Engine build needs to be downloaded for this project. |")
+        print("|   These builds can be quite large. Lots of disk space is required.    |")
+        print("=========================================================================\n")
         print(f">>>>> Project path: {curdir}\n")
         print("Which directory should these engine downloads be stored in?\n")
 
@@ -212,8 +219,8 @@ def get_engine_install_root():
         if os.name == "nt":
             options.append(Path(curdir.anchor))
 
-        # go into ue4 folder
-        options = [(path / 'ue4').resolve() for path in options]
+        # go into ue folder
+        options = [(path / get_engine_type()).resolve() for path in options]
 
         # remove duplicates
         options = list(set(options))
@@ -261,12 +268,14 @@ def get_engine_install_root():
 
 
 def get_latest_available_engine_version(bucket_url):
+    if pbconfig.get('uses_gcs') != "True":
+        return None
     output = pbtools.get_combined_output(["gsutil", "ls", bucket_url])
-    bundle_name = pbconfig.get("ue4v_ci_bundle") if pbconfig.get("is_ci") else pbconfig.get("ue4v_default_bundle")
+    bundle_name = pbconfig.get("uev_ci_bundle") if pbconfig.get("is_ci") else pbconfig.get("uev_default_bundle")
     bundle_name = pbconfig.get_user("project", "bundle", default=bundle_name)
 
     # e.g, "engine-4.24-PB"
-    regex_prefix = f"{bundle_name}-{pbconfig.get('engine_base_version')}-{engine_version_prefix}"
+    regex_prefix = f"{bundle_name}-{pbconfig.get('engine_base_version')}-{get_engine_version_prefix()}"
     versions = re.findall(regex_prefix + "-[0-9]{8}", output)
     if len(versions) == 0:
         return None
@@ -279,7 +288,7 @@ def get_latest_available_engine_version(bucket_url):
     return result.rstrip()
 
 
-def check_ue4_file_association():
+def check_ue_file_association():
     if os.name == 'nt':
         file_assoc_result = pbtools.get_combined_output(["assoc", uproject_ext])
         return "Unreal.ProjectFile" in file_assoc_result
@@ -300,7 +309,7 @@ def generate_ddc_data():
         installation_dir = os.path.join(engine_install_root, current_version)
         if os.path.isdir(installation_dir):
             ue_editor_executable = os.path.join(
-                installation_dir, ue4_editor_relative_path)
+                installation_dir, get_editor_relative_path())
             if os.path.isfile(ue_editor_executable):
                 err = pbtools.run([str(ue_editor_executable), str(Path(pbconfig.get('uproject_name')).resolve()), "-run=DerivedDataCache", "-fill"]).returncode
                 if err == 0:
@@ -309,18 +318,19 @@ def generate_ddc_data():
                     pblog.error(f"DDC generate command has exited with {err}")
                 if not check_ddc_folder_created():
                     pbtools.error_state(
-                        "DDC folder doesn't exist. Please get support from #tech-support")
+                        f"DDC folder doesn't exist. Please get support from {pbconfig.get('support_channel')}")
                 pblog.info("DDC data successfully generated!")
                 return
         pbtools.error_state(
-        "Engine installation not found. Please get support from #tech-support")  
+        f"Engine installation not found. Please get support from {pbconfig.get('support_channel')}")  
     pbtools.error_state(
-    "Error occurred while reading project version for DDC data generation. Please get support from #tech-support")
+    f"Error occurred while reading project version for DDC data generation. Please get support from {pbconfig.get('support_channel')}")
 
 
 def clean_old_engine_installations(keep=1):
     current_version = get_engine_version_with_prefix()
-    p = re.compile(engine_installation_folder_regex)
+    regex_pattern = engine_installation_folder_regex[0] + get_engine_version_prefix() + engine_installation_folder_regex[1]
+    p = re.compile(regex_pattern)
     if current_version is not None:
         engine_install_root = get_engine_install_root()
         if engine_install_root is not None and os.path.isdir(engine_install_root):
@@ -345,15 +355,16 @@ def clean_old_engine_installations(keep=1):
 
 @lru_cache()
 def get_versionator_gsuri(fallback=None):
-    try:
-        ue4v_config = configparser.ConfigParser()
-        ue4v_config.read(".ue4versionator")
-        baseurl = ue4v_config.get("ue4versionator", "baseurl", fallback=fallback)
-        if baseurl:
-            domain = urlparse(baseurl).hostname
-            return f"gs://{domain}/"
-    except Exception as e:
-        pblog.exception(str(e))
+    if pbconfig.get('uses_gcs') == "True":
+        try:
+            uev_config = configparser.ConfigParser()
+            uev_config.read(".ueversionator")
+            baseurl = uev_config.get("ueversionator", "baseurl", fallback=fallback)
+            if baseurl:
+                domain = urlparse(baseurl).hostname
+                return f"gs://{domain}/"
+        except Exception as e:
+            pblog.exception(str(e))
     return None
 
 
@@ -364,7 +375,7 @@ def is_versionator_symbols_enabled():
         return symbols
 
     # Symbols configuration variable is not on the file, let's add it
-    response = input("Do you want to download debugging symbols for accurate crash logging? You can change this setting later in the .ue4v-user config file. [y/N] ")
+    response = input(f"Do you want to download debugging symbols for accurate crash logging? You can change this setting later in the {pbconfig.get('user_config')} config file. [y/N] ")
     if len(response) > 0 and response[0].lower() == "y":
         pbconfig.get_user_config()["ue4v-user"]["symbols"] = "true"
         return True
@@ -373,11 +384,20 @@ def is_versionator_symbols_enabled():
         return False
 
 
+def get_engine_type():
+    return pbconfig.get('engine_type')
+
+def is_ue5():
+    return get_engine_type() == "ue5"
+
+
 def get_bundle_verification_file(bundle_name):
     if bundle_name and "engine" in bundle_name:
-        return "Engine/Binaries/Win64/UE4Game."
+        unreal_game = "UnrealGame" if is_ue5() else "UE4Game"
+        return f"Engine/Binaries/Win64/{unreal_game}."
     else:
-        return "Engine/Binaries/Win64/UE4Editor."
+        unreal_editor = "UnrealEditor" if is_ue5() else "UE4Editor"
+        return f"Engine/Binaries/Win64/{unreal_editor}."
 
 
 def get_engine_base_path():
@@ -431,7 +451,7 @@ def download_engine(bundle_name=None, download_symbols=False):
                 needs_symbols = download_symbols
                 shutil.rmtree(str(base_path), ignore_errors=True)
         try:
-            legacy_archives = pbconfig.get_user_config().getboolean("ue4v-user", "legacy", fallback=False) or int(get_engine_version()) <= 20201224
+            legacy_archives = pbconfig.get_user_config().getboolean("ue4v-user", "legacy", fallback=True)
         except:
             legacy_archives = True
 
@@ -466,44 +486,45 @@ def download_engine(bundle_name=None, download_symbols=False):
                         pblog.error(f"Required space: {must_free:.2f}GB")
                         pbtools.error_state()
 
-            # Use gsutil to download the files efficiently
-            if (gslib.utils.parallelism_framework_util.CheckMultiprocessingAvailableAndInit().is_available):
-                # These setup methods must be called, and, on Windows, they can only be
-                # called from within an "if __name__ == '__main__':" block.
-                gslib.command.InitializeMultiprocessingVariables()
-                gslib.boto_translation.InitializeMultiprocessingVariables()
-            else:
-                gslib.command.InitializeThreadingVariables()
-            command_runner = CommandRunner(command_map={
-                "cp": CpCommand,
-                # "rs": RsyncCommand
-            })
-            patterns = []
-            if needs_exe and needs_symbols:
-                if legacy_archives:
-                    patterns.append(f"{bundle_name}*")
+            if pbconfig.get('uses_gcs') == "True":
+                # Use gsutil to download the files efficiently
+                if (gslib.utils.parallelism_framework_util.CheckMultiprocessingAvailableAndInit().is_available):
+                    # These setup methods must be called, and, on Windows, they can only be
+                    # called from within an "if __name__ == '__main__':" block.
+                    gslib.command.InitializeMultiprocessingVariables()
+                    gslib.boto_translation.InitializeMultiprocessingVariables()
+                else:
+                    gslib.command.InitializeThreadingVariables()
+                command_runner = CommandRunner(command_map={
+                    "cp": CpCommand,
+                    # "rs": RsyncCommand
+                })
+                patterns = []
+                if needs_exe and needs_symbols:
+                    if legacy_archives:
+                        patterns.append(f"{bundle_name}*")
+                    else:
+                        patterns.append(f"{bundle_name}")
+                        patterns.append(f"{bundle_name}-symbols")
+                elif needs_symbols:
+                    patterns.append(f"{bundle_name}-symbols")
                 else:
                     patterns.append(f"{bundle_name}")
-                    patterns.append(f"{bundle_name}-symbols")
-            elif needs_symbols:
-                patterns.append(f"{bundle_name}-symbols")
-            else:
-                patterns.append(f"{bundle_name}")
-            patterns = [f"{pattern}-{version}.7z" if legacy_archives else "/" for pattern in patterns]
-            gcs_bucket = get_versionator_gsuri()
-            for pattern in patterns:
-                gcs_uri = f"{gcs_bucket}{pattern}"
-                dst = f"file://{root}"
-                command_runner.RunNamedCommand('cp' if legacy_archives else 'rs', args=["-n", gcs_uri, dst], collect_analytics=False, skip_update_check=True, parallel_operations=needs_exe and needs_symbols)
+                patterns = [f"{pattern}-{version}.7z" if legacy_archives else "/" for pattern in patterns]
+                gcs_bucket = get_versionator_gsuri()
+                for pattern in patterns:
+                    gcs_uri = f"{gcs_bucket}{pattern}"
+                    dst = f"file://{root}"
+                    command_runner.RunNamedCommand('cp' if legacy_archives else 'rs', args=["-n", gcs_uri, dst], collect_analytics=False, skip_update_check=True, parallel_operations=needs_exe and needs_symbols)
 
-    # Extract and register with ue4versionator
+    # Extract and register with ueversionator
     # TODO: handle registration
     if False and root is not None:
         if os.name == "nt":
             try:
                 import winreg
                 engine_ver = f"{bundle_name}-{version}"
-                engine_id = f"{ue4v_prefix}{engine_ver}"
+                engine_id = f"{uev_prefix}{engine_ver}"
                 with winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, r"SOFTWARE\Epic Games\Unreal Engine\Builds", access=winreg.KEY_SET_VALUE) as key:
                     # TODO: This does not work for some reason.
                     winreg.SetValueEx(key, engine_id, 0, winreg.REG_SZ, str(os.path.join(root, engine_ver)))
@@ -511,13 +532,20 @@ def download_engine(bundle_name=None, download_symbols=False):
                 pblog.exception(str(e))
                 return False
     else:
-        command_set = ["ue4versionator.exe"]
+        command_set = ["ueversionator.exe"]
 
         command_set.append("-assume-valid")
+        command_set.append("-user-config")
+        command_set.append(pbconfig.get('user_config'))
 
         if bundle_name is not None:
             command_set.append("-bundle")
             command_set.append(str(bundle_name))
+
+        if is_ue5():
+            command_set.append("-ue5")
+            command_set.append("-basedir")
+            command_set.append("ue5")
 
         if is_ci:
             # If we're CI, write our environment variable to user config
@@ -529,7 +557,7 @@ def download_engine(bundle_name=None, download_symbols=False):
                         user_config[section][key] = val
                     else:
                         user_config.remove_option(section, key)
-            with open(pbconfig.get('ue4v_user_config'), 'w') as user_config_file:
+            with open(pbconfig.get('uev_user_config'), 'w') as user_config_file:
                 pbconfig.get_user_config().write(user_config_file)
 
         if pbtools.run(command_set).returncode != 0:
@@ -538,7 +566,8 @@ def download_engine(bundle_name=None, download_symbols=False):
     # if not CI, run the setup tasks
     if root is not None and not is_ci and needs_exe:
         pblog.info("Installing Unreal Engine prerequisites")
-        prereq_path = base_path / Path("Engine/Extras/Redist/en-us/UE4PrereqSetup_x64.exe")
+        prereq_exe = "UEPrereqSetup_x64" if is_ue5() else "UE4PrereqSetup_x64"
+        prereq_path = base_path / Path(f"Engine/Extras/Redist/en-us/{prereq_exe}.exe")
         pbtools.run([str(prereq_path), "/quiet"])
         pblog.info("Registering Unreal Engine file associations")
         selector_path = str(base_path / Path("Engine/Binaries/Win64/UnrealVersionSelector-Win64-Shipping.exe"))
@@ -617,7 +646,7 @@ class MultiConfigParser(pbconfig.CustomConfigParser):
 
 
 @contextlib.contextmanager
-def ue4_config(path):
+def ue_config(path):
     config = MultiConfigParser(allow_no_value=True, delimiters=("=",), strict=False, comment_prefixes=(";",), dict_type=multi_dict, interpolation=configparser.Interpolation())
     # case sensitive
     config.optionxform = lambda option: option
@@ -631,7 +660,7 @@ def ue4_config(path):
 
 
 def update_source_control():
-    with ue4_config("Saved/Config/Windows/SourceControlSettings.ini") as source_control_config:
+    with ue_config("Saved/Config/Windows/SourceControlSettings.ini") as source_control_config:
         source_control_config["SourceControl.SourceControlSettings"]["Provider"] = "Git LFS 2"
         git_lfs_2 = source_control_config["GitSourceControl.GitSourceControlSettings"]
         binary_path = pbgit.get_git_executable()
@@ -646,19 +675,19 @@ def update_source_control():
         if username:
             git_lfs_2["LfsUserName"] = username
         else:
-            pblog.warning("Credential retrieval failed. Please get help from #tech-support.")
-    with ue4_config("Saved/Config/Windows/EditorPerProjectUserSettings.ini") as editor_config:
+            pblog.warning(f"Credential retrieval failed. Please get help from {pbconfig.get('support_channel')}.")
+    with ue_config("Saved/Config/Windows/EditorPerProjectUserSettings.ini") as editor_config:
         p4merge = str(Path(p4merge_path).resolve())
         editor_config["/Script/UnrealEd.EditorLoadingSavingSettings"]["TextDiffToolPath"] = f"(FilePath=\"{p4merge}\")"
 
 
 # we will either error out, or succeed, so this won't matter
 @lru_cache()
-def is_ue4_closed():
-    # check if there is a UE4 running at all
-    p = pbtools.get_running_process("UE4Editor")
+def is_ue_closed():
+    # check if there is a UE running at all
+    p = pbtools.get_running_process("UnrealEditor" if is_ue5() else "UE4Editor")
     if p is None:
-        # ue4 is not running at all
+        # ue is not running at all
         return True
     # cheap check for our engine
     root = get_engine_install_root()
@@ -686,8 +715,8 @@ def is_ue4_closed():
     return True
 
 
-def ensure_ue4_closed():
-    if not is_ue4_closed():
+def ensure_ue_closed():
+    if not is_ue_closed():
         pbtools.error_state("Unreal Editor is currently running. Please close it before running PBSync. It may be listed only in Task Manager as a background process. As a last resort, you should log off and log in again.")
 
 
