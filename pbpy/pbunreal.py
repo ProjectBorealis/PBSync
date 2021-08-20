@@ -420,7 +420,7 @@ def get_engine_base_path():
         version = get_engine_version_with_prefix()
         return Path(root) / Path(version)
     else:
-        installed_path = Path("C:\ProgramData\Epic\UnrealEngineLauncher\LauncherInstalled.dat")
+        installed_path = Path("C:\\ProgramData\\Epic\\UnrealEngineLauncher\\LauncherInstalled.dat")
         with open(str(installed_path)) as f:
             installed = json.load(f)
             for install in installed["InstallationList"]:
