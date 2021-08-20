@@ -162,18 +162,27 @@ def get_engine_prefix() -> str:
 
 
 @lru_cache()
+def get_engine_association():
+    with open(pbconfig.get('uproject_name')) as uproject_file:
+        data = json.load(uproject_file)
+        engine_association = str(data[uproject_version_key])
+        return engine_association
+
+
+@lru_cache()
 def get_engine_version():
     try:
-        with open(pbconfig.get('uproject_name')) as uproject_file:
-            data = json.load(uproject_file)
-            engine_association = str(data[uproject_version_key])
-            build_version = engine_association.replace(f"{uev_prefix}{get_engine_prefix()}-", "")
+        engine_association = get_engine_association()
+        if not engine_association.startswith(uev_prefix):
+            # not managed by ueversionator
+            return None
+        build_version = engine_association.replace(f"{uev_prefix}{get_engine_prefix()}-", "")
 
-            if "}" in build_version:
-                # Means we're using local build version in .uproject file
-                return None
+        if "}" in build_version:
+            # Means we're using local build version in .uproject file
+            return None
 
-            return build_version
+        return build_version
     except Exception as e:
         pblog.exception(str(e))
         return None
@@ -305,8 +314,7 @@ def generate_ddc_data():
     pblog.info("Generating DDC data, please wait... (This may take up to one hour only for the initial run)")
     current_version = get_engine_version_with_prefix()
     if current_version is not None:
-        engine_install_root = get_engine_install_root()
-        installation_dir = os.path.join(engine_install_root, current_version)
+        installation_dir = str(get_engine_base_path())
         if os.path.isdir(installation_dir):
             ue_editor_executable = os.path.join(
                 installation_dir, get_editor_relative_path())
@@ -405,16 +413,33 @@ def get_bundle_verification_file(bundle_name):
         return f"Engine/Binaries/Win64/{unreal_editor}."
 
 
+@lru_cache()
 def get_engine_base_path():
     root = get_engine_install_root()
     if root is not None:
         version = get_engine_version_with_prefix()
         return Path(root) / Path(version)
+    else:
+        installed_path = Path("C:\ProgramData\Epic\UnrealEngineLauncher\LauncherInstalled.dat")
+        with open(str(installed_path)) as f:
+            installed = json.load(f)
+            for install in installed["InstallationList"]:
+                if install["NamespaceId"] == "ue" and not install["AppVersion"].endswith("UserContent-Windows") and install["AppVersion"].startsWith(get_engine_association()):
+                    return Path(install["InstallLocation"])
     return None
 
 
 def get_unreal_version_selector_path():
-    return get_engine_base_path() / Path("Engine/Binaries/Win64/UnrealVersionSelector-Win64-Shipping.exe")
+    if get_engine_install_root() is None:
+        ftype_info = pbtools.get_one_line_output(["ftype", "Unreal.ProjectFile"])
+        if ftype_info is not None:
+            ftype_split = ftype_info.split("\"")
+            if len(ftype_split) == 5:
+                return Path(ftype_split[1])
+        return None
+    else:
+        base_path = get_engine_base_path()
+        return base_path / Path("Engine/Binaries/Win64/UnrealVersionSelector-Win64-Shipping.exe")
 
 
 def get_uproject_path():
@@ -575,7 +600,7 @@ def download_engine(bundle_name=None, download_symbols=False):
         prereq_path = base_path / Path(f"Engine/Extras/Redist/en-us/{prereq_exe}.exe")
         pbtools.run([str(prereq_path), "/quiet"])
         pblog.info("Registering Unreal Engine file associations")
-        selector_path = str(base_path / Path("Engine/Binaries/Win64/UnrealVersionSelector-Win64-Shipping.exe"))
+        selector_path = get_unreal_version_selector_path()
         cmdline = [selector_path, "/fileassociations"]
         if not pbuac.isUserAdmin():
             pbuac.runAsAdmin(cmdline)
@@ -696,10 +721,7 @@ def is_ue_closed():
         return True
     # cheap check for our engine
     root = get_engine_install_root()
-    if root is None:
-        # we don't have an engine install, impossible to run
-        return True
-    else:
+    if root is not None:
         exe = Path(p.info["exe"])
         root = Path(root)
         if not exe.is_relative_to(root):

@@ -270,24 +270,24 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             error_state(f"Something went wrong while updating the .uproject file. Please request help in {pbconfig.get('support_channel')}.")
 
         engine_version = pbunreal.get_engine_version_with_prefix()
+        if engine_version is not None:
+            pblog.info("Registering current engine build if it exists. Otherwise, the build will be downloaded...")
 
-        pblog.info("Registering current engine build if it exists. Otherwise, the build will be downloaded...")
+            symbols_needed = pbunreal.is_versionator_symbols_enabled()
+            bundle_name = pbconfig.get("uev_ci_bundle") if pbconfig.get("is_ci") else pbconfig.get("uev_default_bundle")
+            bundle_name = pbconfig.get_user("project", "bundle", default=bundle_name)
 
-        symbols_needed = pbunreal.is_versionator_symbols_enabled()
-        bundle_name = pbconfig.get("uev_ci_bundle") if pbconfig.get("is_ci") else pbconfig.get("uev_default_bundle")
-        bundle_name = pbconfig.get_user("project", "bundle", default=bundle_name)
-
-        if pbunreal.download_engine(bundle_name, symbols_needed):
-            pblog.info(f"Engine build {bundle_name}-{engine_version} successfully registered")
-        else:
-            error_state(f"Something went wrong while registering engine build {bundle_name}-{engine_version}. Please request help in {pbconfig.get('support_channel')}.")
-
-        # Clean old engine installations, do that only in expected branch
-        if is_on_expected_branch:
-            if pbunreal.clean_old_engine_installations():
-                pblog.info("Old engine installations are successfully cleaned")
+            if pbunreal.download_engine(bundle_name, symbols_needed):
+                pblog.info(f"Engine build {bundle_name}-{engine_version} successfully registered")
             else:
-                pblog.warning("Something went wrong while cleaning old engine installations. You may want to clean them manually.")
+                error_state(f"Something went wrong while registering engine build {bundle_name}-{engine_version}. Please request help in {pbconfig.get('support_channel')}.")
+
+            # Clean old engine installations, do that only in expected branch
+            if is_on_expected_branch:
+                if pbunreal.clean_old_engine_installations():
+                    pblog.info("Old engine installations are successfully cleaned")
+                else:
+                    pblog.warning("Something went wrong while cleaning old engine installations. You may want to clean them manually.")
 
         pblog.info("------------------")
 
