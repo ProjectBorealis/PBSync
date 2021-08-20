@@ -56,7 +56,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             pblog.info(f"Current Git version: {detected_git_version}")
         else:
             needs_git_update = True
-            if sys.platform == "win32" or sys.platform == "darwin":
+            if ("vfs" not in pbconfig.get('supported_git_version') or "vfs" in detected_git_version) and sys.platform == "win32" or sys.platform == "darwin":
                 pblog.info("Attempting auto-update of Git...")
                 if sys.platform == "win32":
                     proc = pbtools.run([pbgit.get_git_executable(), "update-git-for-windows", "-y"])
@@ -68,8 +68,6 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                 else:
                     needs_git_update = False
                     input("Launching Git update, please press enter when done installing. ")
-            else:
-                needs_git_update = True
             if needs_git_update:
                 pblog.error("Git is not updated to the supported version in your system")
                 pblog.error(f"Supported Git Version: {pbconfig.get('supported_git_version')}")

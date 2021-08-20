@@ -9,6 +9,7 @@ colorama
 verboselogs
 gsutil
 crcmod
+pywin32
 
 # pyinstaller
 pefile
