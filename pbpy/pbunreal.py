@@ -196,9 +196,9 @@ def get_engine_version_with_prefix():
     return None
 
 
-def get_engine_install_root():
+def get_engine_install_root(prompt=True):
     root = pbconfig.get_user("ue4v-user", "download_dir")
-    if root is None:
+    if root is None and prompt:
         curdir = Path().resolve()
 
         if pbconfig.get("is_ci"):
@@ -415,10 +415,12 @@ def get_bundle_verification_file(bundle_name):
 
 @lru_cache()
 def get_engine_base_path():
-    root = get_engine_install_root()
-    if root is not None:
-        version = get_engine_version_with_prefix()
-        return Path(root) / Path(version)
+    version = get_engine_version()
+    if version is not None:
+        root = get_engine_install_root()
+        if root is not None:
+            version = get_engine_version_with_prefix()
+            return Path(root) / Path(version)
     else:
         installed_path = Path("C:\\ProgramData\\Epic\\UnrealEngineLauncher\\LauncherInstalled.dat")
         with open(str(installed_path)) as f:
@@ -430,7 +432,7 @@ def get_engine_base_path():
 
 
 def get_unreal_version_selector_path():
-    if get_engine_install_root() is None:
+    if get_engine_version() is None:
         ftype_info = pbtools.get_one_line_output(["ftype", "Unreal.ProjectFile"])
         if ftype_info is not None:
             ftype_split = ftype_info.split("\"")
@@ -720,13 +722,15 @@ def is_ue_closed():
         # ue is not running at all
         return True
     # cheap check for our engine
-    root = get_engine_install_root()
-    if root is not None:
-        exe = Path(p.info["exe"])
-        root = Path(root)
-        if not exe.is_relative_to(root):
-            # not our engine
-            return True
+    version = get_engine_version()
+    if version is not None:
+        root = get_engine_install_root(prompt=False)
+        if root is not None:
+            exe = Path(p.info["exe"])
+            root = Path(root)
+            if not exe.is_relative_to(root):
+                # not our engine
+                return True
     # finally, do an expensive open files check to ensure the project is open
     files = p.open_files()
     project_path = Path().resolve()
