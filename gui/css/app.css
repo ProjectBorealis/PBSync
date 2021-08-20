@@ -1,0 +1,12 @@
+#app {
+    height: 100vh;
+}
+
+.flx-LineEdit {
+    width: 100%;
+    border-radius: 0.25rem;
+}
+
+.nav-pills .flx-Button {
+    text-align: start;
+}

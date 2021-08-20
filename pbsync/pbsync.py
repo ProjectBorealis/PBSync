@@ -18,6 +18,8 @@ from pbpy import pbpy_version
 from pbpy import pbdispatch
 from pbpy import pbuac
 
+import pbgui.main
+
 import pbsync_version
 
 default_config_name = "PBSync.xml"
@@ -30,6 +32,7 @@ def config_handler(config_var, config_parser_func):
 
 
 def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None):
+    pbgui.main.run()
 
     sync_val = sync_val.lower()
 
