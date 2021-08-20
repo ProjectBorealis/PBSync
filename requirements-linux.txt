@@ -1,5 +1,3 @@
-pyinstaller/tests/requirements-developer.txt
-
 psutil
 coloredlogs
 colorama

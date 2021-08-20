@@ -1,8 +1,13 @@
--r pyinstaller/tests/requirements-developer.txt
-
 psutil
 coloredlogs
 colorama
 verboselogs
 gsutil
 crcmod
+
+# pyinstaller
+wheel>0.24.0
+setuptools<50.0.0
+pefile
+pywin32-ctypes
+importlib-metadata ; python_version < '3.8'
