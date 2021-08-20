@@ -1,3 +1,8 @@
+setuptools<50.0.0
+wheel>0.24.0
+importlib-metadata
+pytest
+
 psutil
 coloredlogs
 colorama
@@ -6,8 +11,5 @@ gsutil
 crcmod
 
 # pyinstaller
-wheel>0.24.0
-setuptools<50.0.0
 pefile
 pywin32-ctypes
-importlib-metadata ; python_version < '3.8'
