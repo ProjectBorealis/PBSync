@@ -194,9 +194,9 @@ def get_engine_install_root():
 
         if pbconfig.get("is_ci"):
             if os.name == "nt":
-                directory = (Path(curdir.anchor) / get_engine_type()).resolve()
+                directory = (Path(curdir.anchor) / get_engine_type_folder()).resolve()
             else:
-                directory = (curdir.parent / get_engine_type()).resolve()
+                directory = (curdir.parent / get_engine_type_folder()).resolve()
             directory.mkdir(exist_ok=True)
             return str(directory)
 
@@ -220,7 +220,7 @@ def get_engine_install_root():
             options.append(Path(curdir.anchor))
 
         # go into ue folder
-        options = [(path / get_engine_type()).resolve() for path in options]
+        options = [(path / get_engine_type_folder()).resolve() for path in options]
 
         # remove duplicates
         options = list(set(options))
@@ -387,8 +387,13 @@ def is_versionator_symbols_enabled():
 def get_engine_type():
     return pbconfig.get('engine_type')
 
+
 def is_ue5():
     return get_engine_type() == "ue5"
+
+
+def get_engine_type_folder():
+    return "ue" if is_ue5() else "ue4"
 
 
 def get_bundle_verification_file(bundle_name):
