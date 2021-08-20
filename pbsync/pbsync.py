@@ -486,6 +486,7 @@ def main(argv):
             'engine_base_version': ('project/enginebaseversion', None),
             'uproject_name': ('project/uprojectname', None),
             'defaultgame_path': ('project/defaultgameinipath', None),
+            'package_pdbs': ('project/packagepdbs', None),
             'dispatch_config': ('dispatch/config', None),
             'dispatch_drm': ('dispatch/drm', None),
             'dispatch_stagedir': ('dispatch/stagedir', None),

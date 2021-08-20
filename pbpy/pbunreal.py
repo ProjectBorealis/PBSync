@@ -796,6 +796,11 @@ def package_binaries():
     for binaries_path in binaries_paths:
         for ilk in base_path.glob(f"{binaries_path}/Win64/*.ilk"):
             ilk.unlink()
+
+    if pbconfig.get("package_pdbs") != "True":
+        for binaries_path in binaries_paths:
+            for pdb in base_path.glob(f"{binaries_path}/Win64/*.pdb"):
+                pdb.unlink()
     
     hashes = dict()
     with zipfile.ZipFile("Binaries.zip", "a") as zipf:
