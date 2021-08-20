@@ -73,7 +73,7 @@ class Gateway(flx.Label):
         }
         self.elements = {
             "Button": flx.Button,
-            "Filewidget": None,
+            "FileWidget": None,
         }
         self.set_html(pages[DEFAULT_PAGE])
 
@@ -113,7 +113,7 @@ class Gateway(flx.Label):
                 for data in element.dataset:
                     kwargs[data] = element.dataset[data]
                 flx_node = None
-                if el_name == "Filewidget":
+                if el_name == "FileWidget":
                     flx_node = self.jfs
                 else:
                     constructor = self.elements[el_name]
