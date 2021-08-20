@@ -589,7 +589,7 @@ def download_engine(bundle_name=None, download_symbols=False):
                         user_config[section][key] = val
                     else:
                         user_config.remove_option(section, key)
-            with open(pbconfig.get('uev_user_config'), 'w') as user_config_file:
+            with open(pbconfig.get('user_config'), 'w') as user_config_file:
                 pbconfig.get_user_config().write(user_config_file)
 
         if pbtools.run(command_set).returncode != 0:
