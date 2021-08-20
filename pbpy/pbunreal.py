@@ -46,8 +46,16 @@ def get_engine_version_prefix():
     return pbconfig.get('engine_prefix')
 
 
+def get_editor_program():
+    return "UnrealEditor" if is_ue5() else "UE4Editor"
+
+
 def get_editor_relative_path():
-    return "Engine/Binaries/Win64/UnrealEditor.exe" if is_ue5() else "Engine/Binaries/Win64/UE4Editor.exe"
+    return f"Engine/Binaries/Win64/{get_editor_program()}.exe"
+
+
+def get_editor_path():
+    return get_engine_base_path() / Path(get_editor_relative_path())
 
 
 def get_plugin_version(plugin_name):
@@ -409,8 +417,7 @@ def get_bundle_verification_file(bundle_name):
         unreal_game = "UnrealGame" if is_ue5() else "UE4Game"
         return f"Engine/Binaries/Win64/{unreal_game}."
     else:
-        unreal_editor = "UnrealEditor" if is_ue5() else "UE4Editor"
-        return f"Engine/Binaries/Win64/{unreal_editor}."
+        return f"Engine/Binaries/Win64/{get_editor_program()}."
 
 
 @lru_cache()
@@ -717,7 +724,7 @@ def update_source_control():
 @lru_cache()
 def is_ue_closed():
     # check if there is a UE running at all
-    p = pbtools.get_running_process("UnrealEditor" if is_ue5() else "UE4Editor")
+    p = pbtools.get_running_process(get_editor_program())
     if p is None:
         # ue is not running at all
         return True
@@ -758,6 +765,18 @@ def get_base_name():
 
 def get_sln_path():
     return Path(get_base_name() + ".sln")
+
+
+def get_vs_basepath():
+    return pbtools.get_one_line_output(["%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe", "-prerelease", "-latest", "-products", "*", "-property", "installationPath"])
+
+
+def get_devenv_path():
+    vs_basepath = get_vs_basepath()
+    if vs_basepath:
+        return Path(vs_basepath, "Common7", "IDE", "devenv.exe")
+    return None
+
 
 def build_source():
     base = get_engine_base_path()
