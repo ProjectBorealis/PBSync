@@ -299,18 +299,26 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         fix_attr_thread.join()
         pblog.info("Finished LFS read flag fix.")
 
-        if pbunreal.is_ue_closed():
-            if pbunreal.check_ue_file_association():
-                path = str(Path(uproject_file).resolve())
-                try:
-                    os.startfile(path)
-                except NotImplementedError:
-                    if sys.platform.startswith('linux'):
-                        pbtools.run_non_blocking([f"xdg-open {path}"])
-                    else:
-                        pblog.info(f"You may now launch {uproject_file} with Unreal Engine.")
-            else:
-                error_state(f".uproject extension is not correctly set into Unreal Engine. Make sure you have Epic Games Launcher installed. If problem still persists, please get help in {pbconfig.get('support_channel')}.")
+        launch_pref = pbconfig.get_user("project", "launch", "editor")
+        if launch_pref == "vs":
+            os.startfile(pbunreal.get_sln_path())
+        elif pbunreal.is_ue_closed():
+            if launch_pref == "editor":
+                if pbunreal.check_ue_file_association():
+                    path = str(Path(uproject_file).resolve())
+                    try:
+                        os.startfile(path)
+                    except NotImplementedError:
+                        if sys.platform.startswith('linux'):
+                            pbtools.run_non_blocking(f"xdg-open {path}")
+                        else:
+                            pblog.info(f"You may now launch {uproject_file} with Unreal Engine.")
+                else:
+                    error_state(f".uproject extension is not correctly set into Unreal Engine. Make sure you have Epic Games Launcher installed. If problem still persists, please get help in {pbconfig.get('support_channel')}.")
+            # TODO
+            #elif launch_pref == "debug":
+            #    pbtools.run(f"\"{str(pbunreal.get_devenv_path())}\" \"{str(pbunreal.get_sln_path())}\" /DebugExe \"{str(pbunreal.get_editor_path())}\" \"{str(pbunreal.get_uproject_path())}\" -skipcompile")
+
 
     elif sync_val == "engineversion":
         repository_val = pbunreal.get_versionator_gsuri(repository_val)
