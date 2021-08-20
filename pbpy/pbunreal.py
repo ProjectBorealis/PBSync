@@ -29,7 +29,7 @@ from pbpy import pbgit
 from pbpy import pbuac
 
 # Those variable values are not likely to be changed in the future, it's safe to keep them hardcoded
-uev_prefix = "uev:"
+uev_prefix = "ue4v:"
 uplugin_ext = ".uplugin"
 uproject_ext = ".uproject"
 uplugin_version_key = "VersionName"
@@ -426,7 +426,7 @@ def get_engine_base_path():
         with open(str(installed_path)) as f:
             installed = json.load(f)
             for install in installed["InstallationList"]:
-                if install["NamespaceId"] == "ue" and not install["AppVersion"].endswith("UserContent-Windows") and install["AppVersion"].startsWith(get_engine_association()):
+                if install["NamespaceId"] == "ue" and not install["AppVersion"].endswith("UserContent-Windows") and install["AppVersion"].startswith(get_engine_association()):
                     return Path(install["InstallLocation"])
     return None
 

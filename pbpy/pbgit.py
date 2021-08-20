@@ -116,7 +116,7 @@ def get_locked(key="ours"):
     # also check untracked and added files
     proc = pbtools.run_with_combined_output([get_git_executable(), "status", "--porcelain"])
     if not proc.returncode:
-        for line in proc.stdout:
+        for line in proc.stdout.splitlines():
             if line[0] == "?" or line[1] == "?" or line[0] == "A" or line[1] == "A":
                 locked.add(line[3:])
     return locked
