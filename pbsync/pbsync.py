@@ -315,7 +315,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                     error_state(f".uproject extension is not correctly set into Unreal Engine. Make sure you have Epic Games Launcher installed. If problem still persists, please get help in {pbconfig.get('support_channel')}.")
             # TODO
             #elif launch_pref == "debug":
-            #    pbtools.run(f"\"{str(pbunreal.get_devenv_path())}\" \"{str(pbunreal.get_sln_path())}\" /DebugExe \"{str(pbunreal.get_editor_path())}\" \"{str(pbunreal.get_uproject_path())}\" -skipcompile")
+            #    pbtools.run_non_blocking(f"\"{str(pbunreal.get_devenv_path())}\" \"{str(pbunreal.get_sln_path())}\" /DebugExe \"{str(pbunreal.get_editor_path())}\" \"{str(pbunreal.get_uproject_path())}\" -skipcompile")
 
 
     elif sync_val == "engineversion":
@@ -446,7 +446,7 @@ def main(argv):
     parser.add_argument(
         "--repository", help="gcloud repository url for --printversion latest-engine and --sync engine commands")
     parser.add_argument("--autoversion", help="Automatic version update for project version",
-                        choices=["hotfix", "stable", "public"])
+                        choices=["hotfix", "update", "release"])
     parser.add_argument("--build", help="Does build task according to the specified argument.", choices=["sln", "internal", "game", "source", "package", "release", "inspect", "inspectall"])
     parser.add_argument("--clean", help="""Do cleanup according to specified argument. If engine is provided, old engine installations will be cleared
     If workspace is provided, workspace will be reset with latest changes from current branch (not revertible)""", choices=["engine", "workspace"])

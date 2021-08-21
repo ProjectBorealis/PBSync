@@ -30,7 +30,7 @@
             "id": "autoversionSelection",
             "description": "Please choose version increase type",
             "default": "hotfix",
-            "options": ["hotfix", "stable", "public"],
+            "options": ["hotfix", "update", "release"],
             "type": "pickString"
         },
         {
