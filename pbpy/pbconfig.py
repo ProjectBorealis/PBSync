@@ -55,10 +55,18 @@ def get_user(section, key, default=None):
 
 def shutdown():
     if not get("is_ci"):
-        with open(get_user_config_filename(), 'w+') as user_config_file:
-            user_config_file.truncate(0)
-            user_config_file.seek(0)
+        user_filename = get_user_config_filename()
+        attributes = 0
+        restore_hidden = False
+        if os.name == "nt":
+            import win32api, win32con
+            attributes = win32api.GetFileAttributes(user_filename)
+            restore_hidden = attributes & win32con.FILE_ATTRIBUTE_HIDDEN
+            win32api.SetFileAttributes(user_filename, attributes & ~win32con.FILE_ATTRIBUTE_HIDDEN)
+        with open(user_filename, 'w') as user_config_file:
             get_user_config().write(user_config_file)
+        if restore_hidden:
+            win32api.SetFileAttributes(user_filename, attributes)
 
 
 def generate_config(config_path, parser_func):
