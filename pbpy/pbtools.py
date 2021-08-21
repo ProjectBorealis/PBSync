@@ -352,7 +352,7 @@ def maintain_repo():
             if not pbuac.isUserAdmin():
                 pbuac.runAsAdmin(cmdline)
             else:
-                run(cmdline)
+                proc = run_with_combined_output(cmdline)
 
     does_maintainence = get_one_line_output([pbgit.get_git_executable(), "config", "maintenance.prefetch.schedule"]) == "hourly"
     if not does_maintainence:
@@ -373,7 +373,7 @@ lfs_fetch_thread = None
 
 def do_lfs_fetch():
     branch_name = pbgit.get_current_branch_name()
-    run([pbgit.get_lfs_executable(), "fetch", "origin", f"origin/{branch_name}"])
+    run_with_combined_output([pbgit.get_lfs_executable(), "fetch", "origin", f"origin/{branch_name}"])
 
 
 def start_lfs_fetch():
@@ -411,9 +411,9 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         result = run_with_combined_output([pbgit.get_git_executable(), "-c", "filter.lfs.smudge=", "-c", "filter.lfs.process=", "-c", "filter.lfs.required=false", "rebase", "--autostash", f"origin/{branch_name}"])
         # Checkout LFS in one go since we skipped smudge and fetched in the background
         finish_lfs_fetch()
-        run([pbgit.get_lfs_executable(), "checkout"])
+        run_with_combined_output([pbgit.get_lfs_executable(), "checkout"])
         # update plugin submodules
-        run([pbgit.get_git_executable(), "submodule", "update", "--init", "--", "Plugins"])
+        run_with_combined_output([pbgit.get_git_executable(), "submodule", "update", "--init", "--", "Plugins"])
         code = result.returncode
         out = result.stdout
         pblog.info(out)

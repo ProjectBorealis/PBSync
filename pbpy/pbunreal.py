@@ -145,7 +145,7 @@ def project_version_increase(increase_type):
     if project_version is None:
         return False
 
-    # Split hotfix, stable and release versions into an array
+    # Split hotfix, update and release versions into an array
     version_split = project_version.split('.')
 
     if len(version_split) != 3:
@@ -153,9 +153,9 @@ def project_version_increase(increase_type):
         return False
     if increase_type == "hotfix":
         new_version = f"{version_split[0] }.{version_split[1]}.{str(int(version_split[2]) + 1)}"
-    elif increase_type == "stable":
+    elif increase_type == "update":
         new_version = f"{version_split[0] }.{str(int(version_split[1]) + 1)}.0"
-    elif increase_type == "public":
+    elif increase_type == "release":
         new_version = f"{str(int(version_split[2]) + 1)}.0.0"
     else:
         return False

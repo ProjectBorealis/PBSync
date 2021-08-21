@@ -115,6 +115,10 @@ def pull_binaries(version_number: str, pass_checksum=False):
 def generate_release():
     version = pbunreal.get_latest_project_version()
     target_branch = pbconfig.get("expected_branch_name")
+    proc = pbtools.run_with_combined_output([pbgit.get_git_executable(), "rev-parse", version, "--"])
+    if proc.returncode == 0:
+        pblog.error("Tag already exists. Not creating a release.")
+        pblog.info("Please use --autoversion {release,update,hotfix} if you'd like to make a new version.")
     proc =  pbtools.run_with_combined_output([pbgit.get_git_executable(), "tag", version])
     pblog.info(proc.stdout)
     proc =  pbtools.run_with_combined_output([pbgit.get_git_executable(), "push", "origin", version])
