@@ -1,5 +1,8 @@
 #app {
     height: 100vh;
+    overflow-y: auto;
+    background-color: var(--bs-dark);
+    color: var(--bs-light);
 }
 
 .flx-LineEdit {

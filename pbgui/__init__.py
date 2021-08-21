@@ -20,6 +20,7 @@ log = getLogger(__name__)
 asset_pkgs = [("webfonts/", gui.webfonts), ("img/", gui.img)]
 
 m = None
+sync_fn = None
 
 def load_flexx_static(data):
     for asset_dir, _ in asset_pkgs:

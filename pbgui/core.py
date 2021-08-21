@@ -4,6 +4,8 @@ from flexx import flx
 from flexx.ui import FileBrowserWidget
 from pathlib import Path
 
+from pbpy import pbgit
+
 import pbgui
 from pbgui.gateway import Gateway
 
@@ -29,3 +31,29 @@ class Core(flx.PyWidget):
     def fileselect(self, *events):
         sfile = events[-1]  # shows the path
         self.FilePath = sfile.filename
+
+    @flx.action
+    def get_commits(self):
+        commits = []
+        lines = pbgit.get_commits().splitlines()
+        commit = None
+        for line in lines:
+            line = line.strip()
+            need_message = True
+            # start new commit entry
+            if line.startswith("commit"):
+                if commit:
+                    commits.append(commit)
+                commit = {}
+                commit["sha"] = line.split(" ")[1][:8]
+                commit["pass"] = "success"
+            elif line.startswith("Author"):
+                commit["author"] = line.split(" ")[1]
+            elif line.startswith("Date"):
+                time = line.split(" ", 3)[3]
+                commit["time"] = time.rsplit(" ", 1)[0]
+            elif line and need_message:
+                commit["message"] = line
+                need_message = False
+
+        self.g.update_commits(commits)

@@ -10,18 +10,20 @@ flexx.config.log_level = logging.INFO
 
 def run_flexx():
     a = flx.App(Core, title='PBSync')
-    pbgui.m = a.launch(runtime='chrome-app')
+    pbgui.m = a.launch(runtime='chrome-browser')
 
 
 def startup():
     pass
 
 
-def run():
+def run(sync):
+    pbgui.sync_fn = sync
     run_flexx()
 
     startup_thread = threading.Thread(target=startup)
     startup_thread.start()
 
     flx.start()
+    # in case we exit before startup is finished
     startup_thread.join()

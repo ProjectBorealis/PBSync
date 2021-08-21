@@ -251,3 +251,8 @@ def get_credentials():
 def get_modified_files():
     proc = pbtools.run_with_output([get_git_executable(), "status", "--porcelain"])
     return [pathlib.Path(line[3:]) for line in proc.stdout.splitlines()]
+
+
+def get_commits():
+    proc = pbtools.run_with_combined_output([get_git_executable(), "log", "-25"])
+    return proc.stdout

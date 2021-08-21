@@ -32,8 +32,6 @@ def config_handler(config_var, config_parser_func):
 
 
 def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None):
-    pbgui.main.run()
-
     sync_val = sync_val.lower()
 
     if sync_val == "all" or sync_val == "force" or sync_val == "partial":
@@ -442,6 +440,7 @@ def main(argv):
 
     parser.add_argument("--sync", help="Main command for the PBSync, synchronizes the project with latest changes from the repo, and does some housekeeping",
                         choices=["all", "partial", "binaries", "engineversion", "engine", "force", "ddc"])
+    parser.add_argument("--nogui", help="Command line switch to skip GUI for sync handler", default=False)
     parser.add_argument("--printversion", help="Prints requested version information into console.",
                         choices=["current-engine", "latest-engine", "project"])
     parser.add_argument(
@@ -542,7 +541,12 @@ def main(argv):
 
     # Parse args
     if not (args.sync is None):
-        sync_handler(args.sync, args.repository, args.bundle)
+        def sync():
+            sync_handler(args.sync, args.repository, args.bundle)
+        if args.nogui:
+            sync()
+        else:
+            pbgui.main.run(sync)
     elif not (args.printversion is None):
         printversion_handler(args.printversion, args.repository)
     elif not (args.autoversion is None):

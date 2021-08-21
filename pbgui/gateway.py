@@ -74,6 +74,7 @@ class Gateway(flx.Label):
         self.elements = {
             "Button": flx.Button,
             "FileWidget": None,
+            "CommitLogTable": widgets.CommitLogTable,
         }
         self.set_html(pages[DEFAULT_PAGE])
 
@@ -130,3 +131,7 @@ class Gateway(flx.Label):
     @flx.action
     def set_jfs(self, filebrowser):
         self.jfs = filebrowser
+
+    @flx.action
+    def update_commits(self, commits):
+        self.get_widget("commit-log").update_commits(commits)
