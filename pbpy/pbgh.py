@@ -130,6 +130,9 @@ def generate_release():
         pbtools.error_state(proc.stdout)
     else:
         pblog.info(proc.stdout)
+    
+    creds = get_token_env()
+    
     proc = pbtools.run_with_combined_output([
         gh_executable_path,
         "release",
@@ -137,7 +140,7 @@ def generate_release():
         "-F", release_file,
         "--target", target_branch,
         "-t", version
-    ])
+    ], env=creds)
     if proc.returncode != 0:
         os.remove(release_file)
         pbtools.error_state(proc.stdout)
