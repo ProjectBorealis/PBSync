@@ -5,6 +5,7 @@ import sys
 import argparse
 import webbrowser
 import threading
+import multiprocessing
 
 from pathlib import Path
 
@@ -303,6 +304,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         elif pbunreal.is_ue_closed():
             if launch_pref == "editor":
                 if pbunreal.check_ue_file_association():
+                    uproject_file = pbconfig.get('uproject_name')
                     path = str(Path(uproject_file).resolve())
                     try:
                         os.startfile(path)
@@ -560,6 +562,7 @@ def main(argv):
     pbconfig.shutdown()
 
 if __name__ == '__main__':
+    multiprocessing.freeze_support()
     if "Scripts" in os.getcwd():
         # Working directory fix for scripts calling PBSync from Scripts folder
         os.chdir("..")
