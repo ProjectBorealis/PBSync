@@ -6,10 +6,10 @@ VSVersionInfo(
   ffi=FixedFileInfo(
 # filevers and prodvers should be always a tuple with four items: (1, 2, 3, 4)
 # Set not needed items to zero 0.
-filevers=(0, 2, 22, 0),
-prodvers=(0, 2, 22, 0),
+filevers=(0, 3, 0, 0),
+prodvers=(0, 3, 0, 0),
 # Contains a bitmask that specifies the valid bits 'flags'r
-mask=0x3f,
+mask=0x0,
 # Contains a bitmask that specifies the Boolean attributes of the file.
 flags=0x0,
 # The operating system for which this file was designed.
@@ -33,7 +33,7 @@ StringFileInfo(
     StringStruct(u'FileDescription', u'Project Borealis Workspace Synchronization Tool'),
     StringStruct(u'FileVersion', u'0.3.0'),
     StringStruct(u'InternalName', u'pbsync'),
-    StringStruct(u'LegalCopyright', u'Copyright (c) Project Borealis'),
+    StringStruct(u'LegalCopyright', u'Copyright © Project Borealis'),
     StringStruct(u'OriginalFilename', u'PBSync.exe'),
     StringStruct(u'ProductName', u'PBSync'),
     StringStruct(u'ProductVersion', u'0.3.0')])
