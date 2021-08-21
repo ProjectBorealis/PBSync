@@ -34,6 +34,16 @@
             "type": "pickString"
         },
         {
+            "id": "guiSelection",
+            "description": "Please choose GUI page",
+            "default": "sync",
+            "options": [
+                "sync",
+                "settings"
+            ],
+            "type": "pickString"
+        },
+        {
             "id": "publishSelection",
             "description": "Please choose build type to publish",
             "default": "internal",
@@ -73,6 +83,19 @@
             "args": ["--sync", "all", "--debugpath", "${input:debugPath}", "--debugbranch", "${input:debugBranch}"],
             "type": "python",
             "justMyCode": false,
+            "request": "launch",
+            "program": "pbsync/pbsync.py",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "GUI",
+            "args": [
+                "--gui",
+                "${input:guiSelection}",
+                "--debugpath",
+                "${input:debugPath}"
+            ],
+            "type": "python",
             "request": "launch",
             "program": "pbsync/pbsync.py",
             "console": "integratedTerminal"

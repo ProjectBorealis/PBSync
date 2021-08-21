@@ -9,7 +9,6 @@ import gui.templates
 
 from pbgui import load_static, load_template, widgets
 
-DEFAULT_PAGE = "index"
 pages = {}
 
 
@@ -24,10 +23,12 @@ virtual_pages = {
 # Jinja2 static properties to define per page
 page_props = {
     "d": {},
-    "index": {
-        "name": "Home",
-        "type": "home"
+    "sync": {
+        "name": "Sync"
     },
+    "settings": {
+        "name": "Settings"
+    }
 }
 
 for resource in pkg_resources.contents(gui.templates):
@@ -74,9 +75,9 @@ class Gateway(flx.Label):
         self.elements = {
             "Button": flx.Button,
             "FileWidget": None,
-            "CommitLogTable": widgets.CommitLogTable,
+            "CommitLogTable": widgets.CommitLogTableWidget,
+            "Settings": widgets.SettingsWidget,
         }
-        self.set_html(pages[DEFAULT_PAGE])
 
     def _create_dom(self):
         return flx.create_element("div", {"id": "app", "onreact": self.react})
@@ -135,3 +136,7 @@ class Gateway(flx.Label):
     @flx.action
     def update_commits(self, commits):
         self.get_widget("commit-log").update_commits(commits)
+
+    @flx.action
+    def init_page(self, page):
+        self.set_html(pages[page])

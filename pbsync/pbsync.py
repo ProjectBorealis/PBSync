@@ -19,6 +19,7 @@ from pbpy import pbdispatch
 from pbpy import pbuac
 
 import pbgui.main
+import pbgui.gateway
 
 import pbsync_version
 
@@ -440,7 +441,7 @@ def main(argv):
 
     parser.add_argument("--sync", help="Main command for the PBSync, synchronizes the project with latest changes from the repo, and does some housekeeping",
                         choices=["all", "partial", "binaries", "engineversion", "engine", "force", "ddc"])
-    parser.add_argument("--nogui", help="Command line switch to skip GUI for sync handler", default=False)
+    parser.add_argument("--gui", help="Open a GUI page", choices=["sync", "settings"])
     parser.add_argument("--printversion", help="Prints requested version information into console.",
                         choices=["current-engine", "latest-engine", "project"])
     parser.add_argument(
@@ -540,13 +541,13 @@ def main(argv):
         run UpdateProject again.""", True)
 
     # Parse args
-    if not (args.sync is None):
+    if not (args.gui is None):
         def sync():
-            sync_handler(args.sync, args.repository, args.bundle)
-        if args.nogui:
-            sync()
-        else:
-            pbgui.main.run(sync)
+            return sync_handler(args.sync, args.repository, args.bundle)
+        pbgui.set_default_page(args.gui)
+        pbgui.main.run(sync)
+    if not (args.sync is None):
+        sync_handler(args.sync, args.repository, args.bundle)
     elif not (args.printversion is None):
         printversion_handler(args.printversion, args.repository)
     elif not (args.autoversion is None):

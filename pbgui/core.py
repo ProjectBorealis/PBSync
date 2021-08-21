@@ -16,6 +16,7 @@ class Core(flx.PyWidget):
         self.g = Gateway()
         self.fs = FileBrowserWidget()
         self.g.set_jfs(self.fs._jswidget)
+        self.g.init_page(pbgui.default_page)
 
     @flx.action
     def open_file(self, filename):

@@ -20,6 +20,7 @@ log = getLogger(__name__)
 asset_pkgs = [("webfonts/", gui.webfonts), ("img/", gui.img)]
 
 m = None
+default_page = "sync"
 sync_fn = None
 
 def load_flexx_static(data):
@@ -38,6 +39,10 @@ def load_static(pkg, filename):
     data = pkg_resources.read_text(pkg, filename)
     return load_flexx_static(data)
 
+
+def set_default_page(page):
+    global default_page
+    default_page = page
 
 
 for asset_dir, asset_pkg in asset_pkgs:

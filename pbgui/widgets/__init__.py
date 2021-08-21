@@ -1,1 +1,2 @@
-from .commitlog import CommitLogTable
+from .commitlog import CommitLogTableWidget
+from .settings import SettingsWidget

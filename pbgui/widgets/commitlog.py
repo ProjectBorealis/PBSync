@@ -1,7 +1,6 @@
 from flexx import flx
 
-
-class CommitLogTable(flx.Widget):
+class CommitLogTableWidget(flx.Widget):
 
     commits = flx.ListProp()
     commit_nodes = flx.ListProp()

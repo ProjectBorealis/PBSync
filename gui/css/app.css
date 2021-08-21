@@ -5,6 +5,10 @@
     color: var(--bs-light);
 }
 
+#app-inner {
+    margin-top: 1rem;
+}
+
 .flx-LineEdit {
     width: 100%;
     border-radius: 0.25rem;
@@ -12,4 +16,20 @@
 
 .nav-pills .flx-Button {
     text-align: start;
+}
+
+.flx-BaseButton {
+    color: inherit;
+}
+
+.flx-Widget:not(.flx-Layout) > .flx-Layout {
+    position: initial;
+}
+
+.flx-box {
+    justify-content: initial;
+}
+
+.flx-Label {
+    align-self: center;
 }
