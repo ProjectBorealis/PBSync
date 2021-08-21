@@ -57,6 +57,7 @@ def shutdown():
     if not get("is_ci"):
         with open(get_user_config_filename(), 'w+') as user_config_file:
             user_config_file.truncate(0)
+            user_config_file.seek(0)
             get_user_config().write(user_config_file)
 
 
