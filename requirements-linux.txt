@@ -5,3 +5,4 @@ verboselogs
 gsutil
 crcmod
 pyinstaller
+tinyaes

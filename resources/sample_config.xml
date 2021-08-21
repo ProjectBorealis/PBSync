@@ -20,7 +20,7 @@
             <branch>main</branch>
             <branch>trunk</branch>
         </branches>
-        <checksumfile>.md5</checksumfile>
+        <checksumfile>.checksum</checksumfile>
     </git>
     <versionator>
         <defaultbundle>editor</defaultbundle>

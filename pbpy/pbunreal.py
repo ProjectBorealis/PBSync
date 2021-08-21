@@ -42,18 +42,22 @@ engine_installation_folder_regex = [r"[0-9].[0-9]{2}.*-", r"-[0-9]{8}"]
 p4merge_path = ".github/p4merge/p4merge.exe"
 
 
+@lru_cache()
 def get_engine_version_prefix():
     return pbconfig.get('engine_prefix')
 
 
+@lru_cache()
 def get_editor_program():
     return "UnrealEditor" if is_ue5() else "UE4Editor"
 
 
+@lru_cache()
 def get_editor_relative_path():
     return f"Engine/Binaries/Win64/{get_editor_program()}.exe"
 
 
+@lru_cache()
 def get_editor_path():
     return get_engine_base_path() / Path(get_editor_relative_path())
 
@@ -72,6 +76,7 @@ def get_plugin_version(plugin_name):
     return None
 
 
+@lru_cache()
 def get_user_version():
     return pbconfig.get_user("project", "version", "latest")
 
@@ -80,6 +85,7 @@ def is_using_custom_version():
     return get_user_version() != "latest"
 
 
+@lru_cache()
 def get_latest_project_version():
     try:
         with open(pbconfig.get('defaultgame_path')) as ini_file:
@@ -92,6 +98,7 @@ def get_latest_project_version():
     return None
 
 
+@lru_cache()
 def get_project_version():
     # first check if the user selected their own version
     user_version = get_user_version()
@@ -204,6 +211,7 @@ def get_engine_version_with_prefix():
     return None
 
 
+@lru_cache()
 def get_engine_install_root(prompt=True):
     root = pbconfig.get_user("ue4v-user", "download_dir")
     if root is None and prompt:
@@ -400,18 +408,22 @@ def is_versionator_symbols_enabled():
         return False
 
 
+@lru_cache()
 def get_engine_type():
     return pbconfig.get('engine_type')
 
 
+@lru_cache()
 def is_ue5():
     return get_engine_type() == "ue5"
 
 
+@lru_cache()
 def get_engine_type_folder():
     return "ue" if is_ue5() else "ue4"
 
 
+@lru_cache()
 def get_bundle_verification_file(bundle_name):
     if bundle_name and "engine" in bundle_name:
         unreal_game = "UnrealGame" if is_ue5() else "UE4Game"
@@ -438,6 +450,7 @@ def get_engine_base_path():
     return None
 
 
+@lru_cache()
 def get_unreal_version_selector_path():
     if get_engine_version() is None:
         ftype_info = pbtools.get_one_line_output(["ftype", "Unreal.ProjectFile"])
@@ -451,6 +464,7 @@ def get_unreal_version_selector_path():
         return base_path / Path("Engine/Binaries/Win64/UnrealVersionSelector-Win64-Shipping.exe")
 
 
+@lru_cache()
 def get_uproject_path():
     return Path(pbconfig.get("uproject_name")).resolve()
 
@@ -558,49 +572,50 @@ def download_engine(bundle_name=None, download_symbols=False):
 
     # Extract and register with ueversionator
     # TODO: handle registration
-    if False and root is not None:
-        if os.name == "nt":
-            try:
-                import winreg
-                engine_ver = f"{bundle_name}-{version}"
-                engine_id = f"{uev_prefix}{engine_ver}"
-                with winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, r"SOFTWARE\Epic Games\Unreal Engine\Builds", access=winreg.KEY_SET_VALUE) as key:
-                    # TODO: This does not work for some reason.
-                    winreg.SetValueEx(key, engine_id, 0, winreg.REG_SZ, str(os.path.join(root, engine_ver)))
-            except Exception as e:
-                pblog.exception(str(e))
+    if needs_exe:
+        if False and root is not None:
+            if os.name == "nt":
+                try:
+                    import winreg
+                    engine_ver = f"{bundle_name}-{version}"
+                    engine_id = f"{uev_prefix}{engine_ver}"
+                    with winreg.CreateKeyEx(winreg.HKEY_CURRENT_USER, r"SOFTWARE\Epic Games\Unreal Engine\Builds", access=winreg.KEY_SET_VALUE) as key:
+                        # TODO: This does not work for some reason.
+                        winreg.SetValueEx(key, engine_id, 0, winreg.REG_SZ, str(os.path.join(root, engine_ver)))
+                except Exception as e:
+                    pblog.exception(str(e))
+                    return False
+        else:
+            command_set = ["ueversionator.exe"]
+
+            command_set.append("-assume-valid")
+            command_set.append("-user-config")
+            command_set.append(pbconfig.get('user_config'))
+
+            if bundle_name is not None:
+                command_set.append("-bundle")
+                command_set.append(str(bundle_name))
+
+            if is_ue5():
+                command_set.append("-ue5")
+                command_set.append("-basedir")
+                command_set.append("ue5")
+
+            if is_ci:
+                # If we're CI, write our environment variable to user config
+                user_config = pbconfig.get_user_config()
+                for section in user_config.sections():
+                    for key in list(user_config[section].keys()):
+                        val = pbconfig.get_user(section, key)
+                        if val:
+                            user_config[section][key] = val
+                        else:
+                            user_config.remove_option(section, key)
+                with open(pbconfig.get('user_config'), 'w') as user_config_file:
+                    pbconfig.get_user_config().write(user_config_file)
+
+            if pbtools.run(command_set).returncode != 0:
                 return False
-    else:
-        command_set = ["ueversionator.exe"]
-
-        command_set.append("-assume-valid")
-        command_set.append("-user-config")
-        command_set.append(pbconfig.get('user_config'))
-
-        if bundle_name is not None:
-            command_set.append("-bundle")
-            command_set.append(str(bundle_name))
-
-        if is_ue5():
-            command_set.append("-ue5")
-            command_set.append("-basedir")
-            command_set.append("ue5")
-
-        if is_ci:
-            # If we're CI, write our environment variable to user config
-            user_config = pbconfig.get_user_config()
-            for section in user_config.sections():
-                for key in list(user_config[section].keys()):
-                    val = pbconfig.get_user(section, key)
-                    if val:
-                        user_config[section][key] = val
-                    else:
-                        user_config.remove_option(section, key)
-            with open(pbconfig.get('user_config'), 'w') as user_config_file:
-                pbconfig.get_user_config().write(user_config_file)
-
-        if pbtools.run(command_set).returncode != 0:
-            return False
 
     # if not CI, run the setup tasks
     if root is not None and not is_ci and needs_exe:
@@ -758,19 +773,23 @@ def ensure_ue_closed():
         pbtools.error_state("Unreal Editor is currently running. Please close it before running PBSync. It may be listed only in Task Manager as a background process. As a last resort, you should log off and log in again.")
 
 
+@lru_cache()
 def get_base_name():
     project_path = get_uproject_path()
     return project_path.stem
 
 
+@lru_cache()
 def get_sln_path():
     return Path(get_base_name() + ".sln")
 
 
+@lru_cache()
 def get_vs_basepath():
     return pbtools.get_one_line_output(["%ProgramFiles(x86)%\\Microsoft Visual Studio\\Installer\\vswhere.exe", "-prerelease", "-latest", "-products", "*", "-property", "installationPath"])
 
 
+@lru_cache()
 def get_devenv_path():
     vs_basepath = get_vs_basepath()
     if vs_basepath:
@@ -801,6 +820,7 @@ def build_game(configuration="Shipping"):
 platform_names = {"Windows": "Win64", "Darwin": "Mac", "Linux": "Linux"}
 
 
+@lru_cache()
 def get_platform_name():
     return platform_names[platform.system()]
 
@@ -829,9 +849,9 @@ def package_binaries():
                     continue
                 filename = str(file)
                 zipf.write(filename, filename)
-                hashes[filename] = pbtools.get_md5_hash(filename)
+                hashes[filename] = pbtools.get_hash(filename)
 
-    hashes["Binaries.zip"] = pbtools.get_md5_hash("Binaries.zip")
+    hashes["Binaries.zip"] = pbtools.get_hash("Binaries.zip")
 
     pbtools.make_json_from_dict(hashes, pbconfig.get("checksum_file"))
 

@@ -18,7 +18,10 @@ from pbpy import pbpy_version
 from pbpy import pbdispatch
 from pbpy import pbuac
 
-import pbsync_version
+try:
+    import pbsync_version
+except ImportError:
+    from pbsync import pbsync_version
 
 default_config_name = "PBSync.xml"
 
@@ -230,25 +233,22 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
             checksum_json_path = pbconfig.get("checksum_file")
             if is_custom_version:
-                # checkout old md5 from tag
+                # checkout old checksum file from tag
                 pbgit.sync_file(checksum_json_path, project_version)
-            else:
-                # force restore .md5 file
-                pbgit.sync_file(checksum_json_path, "HEAD")
 
             if pbgh.is_pull_binaries_required():
                 pblog.info("Binaries are not up to date, pulling new binaries...")
                 ret = pbgh.pull_binaries(project_version)
                 if ret == 0:
-                    pblog.info("Binaries were pulled successfully")
+                    pblog.success("Binaries were pulled successfully!")
                 elif ret < 0:
                     error_state("Binaries pull failed, please view log for instructions.")
                 elif ret > 0:
                     error_state(f"An error occurred while pulling binaries. Please request help in {pbconfig.get('support_channel')} to resolve it, and please do not run UpdateProject until the issue is resolved.", True)
             else:
-                pblog.info("Binaries are up-to-date")
+                pblog.success("Binaries are up to date!")
 
-            # restore md5
+            # restore checksum file
             if is_custom_version:
                 pbgit.sync_file(checksum_json_path, "HEAD")
         elif pbconfig.get_user("project", "autosync", default=False):
@@ -263,10 +263,6 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         pblog.info("------------------")
 
         pblog.info("Checking for engine updates...")
-        uproject_file = pbconfig.get('uproject_name')
-        if pbgit.sync_file(uproject_file) != 0:
-            error_state(f"Something went wrong while updating the .uproject file. Please request help in {pbconfig.get('support_channel')}.")
-
         engine_version = pbunreal.get_engine_version_with_prefix()
         if engine_version is not None:
             pblog.info("Registering current engine build if it exists. Otherwise, the build will be downloaded...")
@@ -299,6 +295,11 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         launch_pref = pbconfig.get_user("project", "launch", "editor")
         if launch_pref == "vs":
             os.startfile(pbunreal.get_sln_path())
+        elif launch_pref == "rider":
+            rider_bin = pbtools.get_one_line_output(["echo", "%Rider for Unreal Engine%"])
+            rider_bin = rider_bin.replace(";", "")
+            rider_bin = rider_bin.replace("\"", "")
+            pbtools.run_non_blocking(f'"{rider_bin}\\rider64.exe" "{str(pbunreal.get_sln_path().resolve())}"')
         elif pbunreal.is_ue_closed():
             if launch_pref == "editor":
                 if pbunreal.check_ue_file_association():

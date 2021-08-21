@@ -7,8 +7,8 @@ import shutil
 import stat
 import json
 import threading
+import hashlib
 
-from hashlib import md5
 from subprocess import CalledProcessError
 from pathlib import Path
 
@@ -116,11 +116,11 @@ def run_with_combined_output(cmd, env=None, env_out=None):
 def run_non_blocking(*commands):
     if os.name == "nt":
         cmdline = " & ".join(commands)
-        subprocess.Popen(cmdline, shell=True, creationflags=subprocess.DETACHED_PROCESS)
+        subprocess.Popen(cmdline, shell=True, creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     elif os.name == "posix":
         forked_commands = [f"nohup {command}" for command in commands]
         cmdline = " || ".join(forked_commands)
-        subprocess.Popen(cmdline, shell=True)
+        subprocess.Popen(cmdline, shell=True, start_new_session=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
 def get_combined_output(cmd, env=None, env_out=None):
@@ -158,67 +158,64 @@ def whereis(app):
     return [Path(line) for line in result if len(line)]
 
 
-def get_md5_hash(file_path):
-    md5_reader = md5()
+def get_hash(file_path):
+    hash_reader = hashlib.blake2b()
     try:
         with open(file_path, "rb") as f:
-            data = f.read()
-            md5_reader.update(data)
-            return str(md5_reader.hexdigest()).upper()
+            hash_reader.update(f.read())
+            return str(hash_reader.hexdigest())
+    except FileNotFoundError:
+        return None
     except Exception as e:
         pblog.exception(str(e))
         return None
 
 
-def compare_md5_single(compared_file_path, md5_json_file_path):
-    current_hash = get_md5_hash(compared_file_path)
+def compare_hash_single(compared_file_path, hash_json_file_path):
+    current_hash = get_hash(compared_file_path)
     if current_hash is None:
         return False
 
     dict_search_string = f"{compared_file_path}"
-    hash_dict = get_dict_from_json(md5_json_file_path)
+    hash_dict = get_dict_from_json(hash_json_file_path)
 
     if hash_dict is None or not (dict_search_string in hash_dict):
-        pblog.error(f"Key {dict_search_string} not found in {md5_json_file_path}")
+        pblog.error(f"Key {dict_search_string} not found in {hash_json_file_path}")
         return False
 
     if hash_dict[dict_search_string] == current_hash:
-        pblog.info(f"MD5 checksum successful for {compared_file_path}")
+        pblog.info(f"Checksum successful for {compared_file_path}")
         return True
     else:
-        pblog.error(f"MD5 checksum failed for {compared_file_path}")
-        pblog.error(f"Expected MD5: {hash_dict[dict_search_string]}")
-        pblog.error(f"Current MD5: {str(current_hash)}")
+        pblog.error(f"Checksum failed for {compared_file_path}")
+        pblog.error(f"Expected hash: {hash_dict[dict_search_string]}")
+        pblog.error(f"Current hash: {str(current_hash)}")
         return False
 
 
-def compare_md5_all(md5_json_file_path, print_log=False, ignored_extension=".zip"):
-    hash_dict = get_dict_from_json(md5_json_file_path)
+def compare_hash_all(hash_json_file_path, print_log=False, ignored_extension=".zip"):
+    hash_dict = get_dict_from_json(hash_json_file_path)
     if hash_dict is None or len(hash_dict) == 0:
         return False
 
-    is_success = True
     for file_path in hash_dict:
-        if not os.path.isfile(file_path):
-            # If file doesn't exist, that means we fail the checksum
-            if print_log:
-                pblog.error(f"MD5 checksum failed for {file_path}")
-                pblog.error("File does not exist")
-            return False
-
-        if ignored_extension in file_path:
+        if file_path.endswith(ignored_extension):
             continue
-        current_md5 = get_md5_hash(file_path)
-        if hash_dict[file_path] == current_md5:
+        
+        current_hash = get_hash(file_path)
+        if hash_dict[file_path] == current_hash:
             if print_log:
-                pblog.info(f"MD5 checksum successful for {file_path}")
+                pblog.info(f"Checksum successful for {file_path}")
         else:
             if print_log:
-                pblog.error(f"MD5 checksum failed for {file_path}")
-                pblog.error(f"Expected MD5: {hash_dict[file_path]}")
-                pblog.error(f"Current MD5: {str(current_md5)}")
-            is_success = False
-    return is_success
+                pblog.error(f"Checksum failed for {file_path}")
+                if current_hash is not None:
+                    pblog.error(f"Expected hash: {hash_dict[file_path]}")
+                    pblog.error(f"Current hash: {str(current_hash)}")
+                else:
+                    pblog.error("File does not exist")
+            return False
+    return True
 
 
 def make_json_from_dict(dictionary, json_file_path):
