@@ -5,6 +5,7 @@ import stat
 import pathlib
 import multiprocessing
 import itertools
+import pathlib
 
 from urllib.parse import urlparse
 from functools import lru_cache
@@ -96,14 +97,11 @@ def get_gcm_version():
 
 
 def get_lockables():
-    proc = pbtools.run_with_combined_output([get_git_executable(), "ls-files", "--", "Content"])
-    if proc.returncode:
-        return None
-    files = proc.stdout.splitlines()
     lockables = set()
-    for file in files:
-        if file.endswith(".uasset") or file.endswith(".umap"):
-            lockables.add(file)
+    lockables.update(pathlib.Path("Content").glob("**/*.uasset"))
+    lockables.update(pathlib.Path("Content").glob("**/*.umap"))
+    lockables.update(pathlib.Path("Plugins").glob("*/Content/**/*.uasset"))
+    lockables.update(pathlib.Path("Plugins").glob("*/Content/**/*.umap"))
     return lockables
 
 
