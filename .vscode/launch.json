@@ -97,7 +97,7 @@
             ],
             "type": "python",
             "request": "launch",
-            "program": "pbsync/pbsync.py",
+            "module": "pbsync",
             "console": "integratedTerminal"
         },
         {
