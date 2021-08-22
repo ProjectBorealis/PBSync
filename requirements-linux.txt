@@ -6,3 +6,4 @@ gsutil
 crcmod
 pyinstaller
 https://github.com/flexxui/flexx/archive/master.zip
+tinyaes

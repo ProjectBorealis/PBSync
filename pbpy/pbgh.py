@@ -4,6 +4,7 @@ import shutil
 import subprocess
 
 from zipfile import ZipFile
+from functools import lru_cache
 
 from pbpy import pblog
 from pbpy import pbtools
@@ -18,6 +19,7 @@ release_file = "RELEASE_MSG"
 binary_package_name = "Binaries.zip"
 
 
+@lru_cache()
 def get_token_env():
     _, token = pbgit.get_credentials()
 
@@ -31,11 +33,11 @@ def get_token_env():
 
 def is_pull_binaries_required():
     if not os.path.isfile(gh_executable_path):
-        return True
+        return False
     checksum_json_path = pbconfig.get("checksum_file")
     if not os.path.exists(checksum_json_path):
-        return True
-    return not pbtools.compare_md5_all(checksum_json_path)
+        return False
+    return not pbtools.compare_hash_all(checksum_json_path)
 
 
 def pull_binaries(version_number: str, pass_checksum=False):
@@ -94,14 +96,14 @@ def pull_binaries(version_number: str, pass_checksum=False):
                 pblog.error(f"Checksum json file is not found at {checksum_json_path}")
                 return 1
 
-            if not pbtools.compare_md5_single(binary_package_name, checksum_json_path):
+            if not pbtools.compare_hash_single(binary_package_name, checksum_json_path):
                 return 1
 
         with ZipFile(binary_package_name) as zip_file:
             zip_file.extractall()
             if pass_checksum:
                 return 0
-            elif not pbtools.compare_md5_all(checksum_json_path, True):
+            elif not pbtools.compare_hash_all(checksum_json_path, True):
                 return 1
 
     except Exception as e:
@@ -119,6 +121,7 @@ def generate_release():
     if proc.returncode == 0:
         pblog.error("Tag already exists. Not creating a release.")
         pblog.info("Please use --autoversion {release,update,hotfix} if you'd like to make a new version.")
+        return
     proc =  pbtools.run_with_combined_output([pbgit.get_git_executable(), "tag", version])
     pblog.info(proc.stdout)
     proc =  pbtools.run_with_combined_output([pbgit.get_git_executable(), "push", "origin", version])
@@ -135,7 +138,10 @@ def generate_release():
     else:
         pblog.info(proc.stdout)
     
-    creds = get_token_env()
+    if pbconfig.get("is_ci"):
+        creds = None
+    else:
+        creds = get_token_env()
     
     proc = pbtools.run_with_combined_output([
         gh_executable_path,

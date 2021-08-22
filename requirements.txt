@@ -16,3 +16,4 @@ https://github.com/flexxui/flexx/archive/master.zip
 # pyinstaller
 pefile
 pywin32-ctypes
+tinyaes

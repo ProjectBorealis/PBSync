@@ -3,6 +3,9 @@ import shutil
 import json
 import stat
 import pathlib
+import multiprocessing
+import itertools
+import pathlib
 
 from urllib.parse import urlparse
 from functools import lru_cache
@@ -19,6 +22,32 @@ def get_current_branch_name():
     return pbtools.get_one_line_output([get_git_executable(), "branch", "--show-current"])
 
 
+def compare_with_current_branch_name(compared_branch):
+    return get_current_branch_name() == compared_branch
+
+
+@lru_cache()
+def get_git_executable():
+    return pbconfig.get_user("paths", "git", "git")
+
+
+@lru_cache()
+def get_lfs_executable():
+    return pbconfig.get_user("paths", "git-lfs", "git-lfs")
+
+
+@lru_cache()
+def get_gcm_executable():
+    gcm_exec = pbtools.get_one_line_output([get_git_executable(), "config", "--get", "credential.helper"]).replace("\\", "")
+    # no helper installed
+    if not gcm_exec:
+        return None
+    # helper installed, but not GCM Core
+    if "git-credential-manager-core" not in gcm_exec:
+        return f"diff.{gcm_exec}"
+    return gcm_exec
+
+
 def get_git_version():
     installed_version_split = pbtools.get_one_line_output([get_git_executable(), "--version"]).split(" ")
 
@@ -33,29 +62,6 @@ def get_git_version():
         return missing_version
 
     return installed_version
-
-
-def compare_with_current_branch_name(compared_branch):
-    return get_current_branch_name() == compared_branch
-
-
-def get_git_executable():
-    return pbconfig.get_user("paths", "git", "git")
-
-
-def get_lfs_executable():
-    return pbconfig.get_user("paths", "git-lfs", "git-lfs")
-
-
-def get_gcm_executable():
-    gcm_exec = pbtools.get_one_line_output([get_git_executable(), "config", "--get", "credential.helper"]).replace("\\", "")
-    # no helper installed
-    if not gcm_exec:
-        return None
-    # helper installed, but not GCM Core
-    if "git-credential-manager-core" not in gcm_exec:
-        return f"diff.{gcm_exec}"
-    return gcm_exec
 
 
 def get_lfs_version():
@@ -91,19 +97,11 @@ def get_gcm_version():
 
 
 def get_lockables():
-    proc = pbtools.run_with_combined_output([get_lfs_executable(), "ls-files", "-n"])
-    if proc.returncode:
-        return None
-    lfs_files = proc.stdout
-    proc = pbtools.run_with_stdin([get_git_executable(), "check-attr", "lockable", "--stdin"], input=lfs_files)
-    attrs = proc.stdout.splitlines()
     lockables = set()
-    for attr in attrs:
-        at = attr.split(": ", 2)
-        file = at[0]
-        is_set = at[2] == "set"
-        if is_set:
-            lockables.add(file)
+    lockables.update(pathlib.Path("Content").glob("**/*.uasset"))
+    lockables.update(pathlib.Path("Content").glob("**/*.umap"))
+    lockables.update(pathlib.Path("Plugins").glob("*/Content/**/*.uasset"))
+    lockables.update(pathlib.Path("Plugins").glob("*/Content/**/*.umap"))
     return lockables
 
 
@@ -122,24 +120,34 @@ def get_locked(key="ours"):
     return locked
 
 
+def read_only(file):
+        try:
+            os.chmod(file, stat.S_IREAD)
+            return None
+        except OSError as e:
+            return str(e)
+
+
+def read_write(file):
+        try:
+            os.chmod(file, stat.S_IWRITE)
+            return None
+        except OSError as e:
+            err_str = str(e)
+            if "The system cannot find the file specified" in err_str:
+                return f"You have a locked file which does not exist: {str(e.filename)}"
+            else:
+                return err_str
+
+
 def fix_lfs_ro_attr():
     lockables = get_lockables()
     locked = get_locked()
     not_locked = lockables - locked
-    for file in not_locked:
-        try:
-            os.chmod(file, stat.S_IREAD)
-        except OSError as e:
-            pblog.warning(str(e))
-    for file in locked:
-        try:
-            os.chmod(file, stat.S_IWRITE)
-        except OSError as e:
-            err_str = str(e)
-            if "The system cannot find the file specified" in err_str:
-                pblog.warning(f"You have a locked file which does not exist: {str(e.filename)}")
-            else:
-                pblog.warning(err_str)
+    with multiprocessing.Pool() as pool:
+        for message in itertools.chain(pool.imap_unordered(read_only, not_locked, 100), pool.imap_unordered(read_write, locked)):
+            if message:
+                pblog.warning(message)
 
 
 def set_tracking_information(upstream_branch_name: str):
@@ -216,6 +224,7 @@ def setup_config():
     pbtools.run_with_output([get_git_executable(), "config", "include.path", "../.gitconfig"])
 
 
+@lru_cache()
 def get_credentials():
     repo_str = pbtools.get_one_line_output([get_git_executable(), "remote", "get-url", "origin"])
     repo_url = urlparse(repo_str)
