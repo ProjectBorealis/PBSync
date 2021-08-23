@@ -434,7 +434,7 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
 
     if not error:
         handle_success()
-    elif "fast-forwarded" in out:
+    elif "fast-forward" in out:
         handle_success()
     elif "up to date" in out:
         handle_success()
