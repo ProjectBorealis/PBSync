@@ -209,15 +209,17 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             pblog.info("Fetching recent changes on the repository...")
             fetch_base = [pbgit.get_git_executable(), "fetch", "origin"]
             # sync other branches, but we already synced our own in UpdateProject.bat
+            configured_branches = pbconfig.get("branches")
             branches = []
-            for branch in branches:
-                if branch == current_branch:
-                    continue
-                branches.append(branch)
-            fetch_base.extend(branches)
-            pbtools.run_non_blocking(" ".join(fetch_base))
+            if configured_branches:
+                for branch in configured_branches:
+                    if branch == current_branch:
+                        continue
+                    branches.append(branch)
+                fetch_base.extend(branches)
+                pbtools.run_non_blocking(" ".join(fetch_base))
 
-            pblog.info("------------------")
+                pblog.info("------------------")
 
         # Execute synchronization part of script if we're on the expected branch, or force sync is enabled
         if sync_val == "force" or is_on_expected_branch:
