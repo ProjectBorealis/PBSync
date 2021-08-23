@@ -361,6 +361,20 @@ def maintain_repo():
     if is_shallow == "true":
         pblog.info("Shallow clone detected. PBSync will fill in history in the background.")
         commands.insert(0, f"{pbgit.get_git_executable()} fetch --unshallow")
+    else:
+        # repo was already fetched in UpdateProject for the current branch
+        current_branch = pbgit.get_current_branch_name()
+        fetch_base = [pbgit.get_git_executable(), "fetch", "--no-tags", "origin"]
+        # sync other branches, but we already synced our own in UpdateProject.bat
+        configured_branches = pbconfig.get("branches")
+        branches = []
+        if configured_branches:
+            for branch in configured_branches:
+                if branch == current_branch:
+                    continue
+                branches.append(branch)
+            fetch_base.extend(branches)
+        commands.insert(0, " ".join(fetch_base))
 
     run_non_blocking(*commands)
 
@@ -389,6 +403,7 @@ def finish_lfs_fetch():
 def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
     branch_name = pbgit.get_current_branch_name()
     if branch_name not in pbconfig.get("branches"):
+        pblog.info(f"Branch {branch_name} is not an auto-synced branch. Skipping pull.")
         return
 
     def should_attempt_auto_resolve():
