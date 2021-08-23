@@ -205,13 +205,17 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             pbtools.run([pbgit.get_git_executable(), "config", "remote.origin.fetch", "+refs/heads/*:refs/remotes/origin/*"])
 
         # repo was already fetched in UpdateProject for the expected branch, so do it here only for dev
-        if not partial_sync and not is_on_expected_branch:
+        if not partial_sync:
             pblog.info("Fetching recent changes on the repository...")
             fetch_base = [pbgit.get_git_executable(), "fetch", "origin"]
-            branches = {expected_branch, current_branch}
-            branches.update(pbconfig.get('branches'))
+            # sync other branches, but we already synced our own in UpdateProject.bat
+            branches = []
+            for branch in branches:
+                if branch == current_branch:
+                    continue
+                branches.append(branch)
             fetch_base.extend(branches)
-            pbtools.get_combined_output(fetch_base)
+            pbtools.run_non_blocking(fetch_base)
 
             pblog.info("------------------")
 
