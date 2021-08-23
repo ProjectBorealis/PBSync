@@ -410,7 +410,7 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         # if we can fast forward merge, do that instead of a rebase (faster, safer)
         if it_has_any(out, "+0"):
             pblog.info("Fast forwarding workspace to the latest changes from the repository...")
-            cmdline.append("merge")
+            cmdline.extend(["merge", "--ff-only"])
         else:
             pblog.info("Rebasing workspace with the latest changes from the repository...")
             cmdline.extend(["rebase", "--autostash"])
