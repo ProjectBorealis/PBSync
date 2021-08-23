@@ -96,6 +96,7 @@
                 "${input:debugPath}"
             ],
             "type": "python",
+            "justMyCode": false,
             "request": "launch",
             "module": "pbsync",
             "console": "integratedTerminal"
