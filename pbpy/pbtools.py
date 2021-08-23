@@ -405,7 +405,14 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         pbgit.set_tracking_information(branch_name)
         pblog.info("Rebasing workspace with the latest changes from the repository...")
         # Get the latest files, but skip smudge so we can super charge a LFS pull as one batch
-        result = run_with_combined_output([pbgit.get_git_executable(), "-c", "filter.lfs.smudge=", "-c", "filter.lfs.process=", "-c", "filter.lfs.required=false", "rebase", "--autostash", f"origin/{branch_name}"])
+        cmdline = [pbgit.get_git_executable(), "-c", "filter.lfs.smudge=", "-c", "filter.lfs.process=", "-c", "filter.lfs.required=false"]
+        # if we can fast forward merge, do that instead of a rebase (faster, safer)
+        if it_has_any(out, "+0"):
+            cmdline.append("merge")
+        else:
+            cmdline.extend(["rebase", "--autostash"])
+        cmdline.append(f"origin/{branch_name}")
+        result = run_with_combined_output(cmdline)
         # Checkout LFS in one go since we skipped smudge and fetched in the background
         finish_lfs_fetch()
         run_with_combined_output([pbgit.get_lfs_executable(), "checkout"])
