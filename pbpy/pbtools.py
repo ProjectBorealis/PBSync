@@ -387,6 +387,10 @@ def finish_lfs_fetch():
 
 
 def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
+    branch_name = pbgit.get_current_branch_name()
+    if branch_name not in pbconfig.get("branches"):
+        return
+
     def should_attempt_auto_resolve():
         return retry_count <= max_retries
 
@@ -399,17 +403,16 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
     if not it_has_any(out, "-0"):
         start_lfs_fetch()
         pbunreal.ensure_ue_closed()
-        pblog.info("Please wait while getting the latest changes from the repository. It may take a while...")
-        # Make sure upstream is tracked correctly
-        branch_name = pbgit.get_current_branch_name()
-        pbgit.set_tracking_information(branch_name)
-        pblog.info("Rebasing workspace with the latest changes from the repository...")
+        pblog.info("Please wait while getting the latest changes from the repository. It may take a while...")        
+        
         # Get the latest files, but skip smudge so we can super charge a LFS pull as one batch
         cmdline = [pbgit.get_git_executable(), "-c", "filter.lfs.smudge=", "-c", "filter.lfs.process=", "-c", "filter.lfs.required=false"]
         # if we can fast forward merge, do that instead of a rebase (faster, safer)
         if it_has_any(out, "+0"):
+            pblog.info("Fast forwarding workspace to the latest changes from the repository...")
             cmdline.append("merge")
         else:
+            pblog.info("Rebasing workspace with the latest changes from the repository...")
             cmdline.extend(["rebase", "--autostash"])
         cmdline.append(f"origin/{branch_name}")
         result = run_with_combined_output(cmdline)
