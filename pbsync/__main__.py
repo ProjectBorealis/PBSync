@@ -215,7 +215,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                     continue
                 branches.append(branch)
             fetch_base.extend(branches)
-            pbtools.run_non_blocking(fetch_base)
+            pbtools.run_non_blocking(" ".join(fetch_base))
 
             pblog.info("------------------")
 
