@@ -204,12 +204,12 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
         # repo was already fetched in UpdateProject for the expected branch, so do it here only for dev
         if not partial_sync:
-            pblog.info("Fetching recent changes on the repository...")
             fetch_base = [pbgit.get_git_executable(), "fetch", "origin"]
             # sync other branches, but we already synced our own in UpdateProject.bat
             configured_branches = pbconfig.get("branches")
             branches = []
             if configured_branches:
+                pblog.info("Fetching recent changes on the repository...")
                 for branch in configured_branches:
                     if branch == current_branch:
                         continue
