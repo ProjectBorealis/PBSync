@@ -202,23 +202,6 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         if not is_ci:
             pbtools.run([pbgit.get_git_executable(), "config", "remote.origin.fetch", "+refs/heads/*:refs/remotes/origin/*"])
 
-        # repo was already fetched in UpdateProject for the expected branch, so do it here only for dev
-        if not partial_sync:
-            fetch_base = [pbgit.get_git_executable(), "fetch", "origin"]
-            # sync other branches, but we already synced our own in UpdateProject.bat
-            configured_branches = pbconfig.get("branches")
-            branches = []
-            if configured_branches:
-                pblog.info("Fetching recent changes on the repository...")
-                for branch in configured_branches:
-                    if branch == current_branch:
-                        continue
-                    branches.append(branch)
-                fetch_base.extend(branches)
-                pbtools.run_non_blocking(" ".join(fetch_base))
-
-                pblog.info("------------------")
-
         # Execute synchronization part of script if we're on the expected branch, or force sync is enabled
         if sync_val == "force" or is_on_expected_branch:
             if partial_sync:
@@ -491,7 +474,7 @@ def main(argv):
             'gcm_download_suffix': ('git/gcmsuffix', None),
             'expected_branch_name': ('git/expectedbranch', None if args.debugbranch is None else str(args.debugbranch)),
             'git_url': ('git/url', None),
-            'branches': ('git/branches', None),
+            'branches': ('git/branches/branch', None),
             'checksum_file': ('git/checksumfile', None),
             'log_file_path': ('log/file', None),
             'user_config': ('project/userconfig', None),
