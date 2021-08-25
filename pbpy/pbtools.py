@@ -481,7 +481,7 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         else:
             run_with_combined_output(lfs_checkout)
         # update plugin submodules
-        run_with_combined_output([pbgit.get_git_executable(), "submodule", "update", "--init", "--", "Plugins"])
+        run([pbgit.get_git_executable(), "submodule", "update", "--init", "--", "Plugins"])
         code = result.returncode
         out = result.stdout
         pblog.info(out)
@@ -497,8 +497,6 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         error_state(msg, fatal_error=True)
 
     if not error:
-        handle_success()
-    elif "fast-forward" in out:
         handle_success()
     elif "up to date" in out:
         handle_success()
