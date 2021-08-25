@@ -72,7 +72,32 @@ def run_with_output(cmd, env=None, env_out=None):
     return proc
 
 
-def run_stream(cmd, env=None):
+def default_stream_log(msg):
+    pblog.info(str)
+
+
+def checked_stream_log(msg, error="error", warning="warning"):
+    if error in msg:
+        pblog.error(msg)
+    elif warning in msg:
+        pblog.warning(msg)
+    else:
+        pblog.info(msg)
+
+
+def raised_stream_log(msg, error="error", warning="warning"):
+    if error in msg:
+        pblog.error(msg)
+    elif warning in msg:
+        pblog.warning(msg)
+    else:
+        print(msg)
+
+
+def run_stream(cmd, env=None, logfunc=None):
+    if logfunc is None:
+        logfunc = default_stream_log
+
     if os.name == "posix":
         cmd = " ".join(cmd) if isinstance(cmd, list) else cmd
 
@@ -82,7 +107,7 @@ def run_stream(cmd, env=None):
         # TODO: handle encoding
         try:
             for line in iter(lambda: proc.stdout.readline(), ''):
-                pblog.info(line)
+                logfunc(line)
         except:
             continue
         returncode = proc.poll()
@@ -290,6 +315,7 @@ def error_state(msg=None, fatal_error=False, hush=False, term=False):
     if fatal_error:
         # Log status for more information during tech support
         pblog.info(run_with_combined_output([pbgit.get_git_executable(), "status"]).stdout)
+        pblog.info(run_with_combined_output([pbgit.get_git_executable(), "reflog", "-10"]).stdout)
         # This is a fatal error, so do not let user run PBSync until issue is fixed
         with open(error_file, 'w') as error_state_file:
             error_state_file.write("1")
@@ -341,11 +367,12 @@ def maintain_repo():
         f"{pbgit.get_lfs_executable()} dedup"
     ]
 
-    if os.name == "nt":
+    if os.name == "nt" and pbgit.get_git_executable() == "git":
         proc = run_with_combined_output(["schtasks" "/query", "/TN", "Git for Windows Updater"])
         # if exists
         if proc.returncode == 0:
             cmdline = ["schtasks", "/delete", "/F", "/TN", "\"Git for Windows Updater\""]
+            pblog.info("Requesting admin permission to delete the Git for Windows Updater...")
             if not pbuac.isUserAdmin():
                 pbuac.runAsAdmin(cmdline)
             else:
@@ -380,11 +407,17 @@ def maintain_repo():
 
 
 lfs_fetch_thread = None
+lfs_fetch_should_print = False
+
+
+def lfs_fetch_log_func(msg):
+    if lfs_fetch_should_print:
+        print(msg)
 
 
 def do_lfs_fetch():
     branch_name = pbgit.get_current_branch_name()
-    run_with_combined_output([pbgit.get_lfs_executable(), "fetch", "origin", f"origin/{branch_name}"])
+    run_stream([pbgit.get_lfs_executable(), "fetch", "origin", f"origin/{branch_name}"], logfunc=lfs_fetch_log_func)
 
 
 def start_lfs_fetch():
@@ -396,6 +429,8 @@ def start_lfs_fetch():
 
 def finish_lfs_fetch():
     pblog.info("Finishing LFS fetch...")
+    global lfs_fetch_should_print
+    lfs_fetch_should_print = True
     lfs_fetch_thread.join()
     pblog.info("Finished LFS fetch.")
 
@@ -433,7 +468,18 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         result = run_with_combined_output(cmdline)
         # Checkout LFS in one go since we skipped smudge and fetched in the background
         finish_lfs_fetch()
-        run_with_combined_output([pbgit.get_lfs_executable(), "checkout"])
+        diff_proc = run_with_combined_output([pbgit.get_git_executable(), "diff", "--name-only", f"HEAD...origin/{branch_name}"])
+        if diff_proc.returncode == 0:
+            changed_files = diff_proc.stdout.splitlines()
+        else:
+            changed_files = []
+        # if there's a lot of files, or we didn't find any, just let LFS do the work
+        lfs_checkout = [pbgit.get_lfs_executable(), "checkout"]
+        if len(changed_files) <= 50 and changed_files:
+            lfs_checkout.extend(" ".join(changed_files))
+            run(lfs_checkout)
+        else:
+            run_with_combined_output(lfs_checkout)
         # update plugin submodules
         run_with_combined_output([pbgit.get_git_executable(), "submodule", "update", "--init", "--", "Plugins"])
         code = result.returncode
