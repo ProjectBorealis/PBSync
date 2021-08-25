@@ -626,13 +626,13 @@ def download_engine(bundle_name=None, download_symbols=False):
         pblog.info("Registering Unreal Engine file associations")
         selector_path = get_unreal_version_selector_path()
         cmdline = [selector_path, "/fileassociations"]
+        pblog.info("Requesting admin permission to isntall Unreal Engine Prerequisites...")
         if not pbuac.isUserAdmin():
             pbuac.runAsAdmin(cmdline)
         else:
             pbtools.run(cmdline)
-        # generate project files for developers
-        is_on_expected_branch = pbgit.compare_with_current_branch_name(pbconfig.get('expected_branch_name'))
-        if not is_on_expected_branch:
+        # generate project files for developers)
+        if not pbgit.is_on_expected_branch():
             uproject = str(get_uproject_path())
             pbtools.run([selector_path, "/projectfiles", uproject])
 
@@ -797,7 +797,7 @@ def build_source():
     if ms_build is None:
         pbtools.error_state("Could not find MSBuild.")
     sln_path = get_sln_path().resolve()
-    proc = pbtools.run_stream([ms_build, str(sln_path), "/nologo", "/t:build", '/property:configuration=Development Editor', "/property:Platform=Win64"])
+    proc = pbtools.run_stream([ms_build, str(sln_path), "-m", "/nologo", "/t:build", '/property:configuration=Development Editor', "/property:Platform=Win64"], logfunc=lambda x: pbtools.checked_stream_log(x, error="error ", warning="warning "))
     if proc.returncode:
         pbtools.error_state("Build failed.")
 
@@ -805,7 +805,7 @@ def build_source():
 def build_game(configuration="Shipping"):
     base = get_engine_base_path()
     uat_path = base / "Engine" / "Build" / "BatchFiles" / "RunUAT.bat"
-    proc = pbtools.run_stream([uat_path, "BuildCookRun", f"-project={str(get_uproject_path())}", f"-clientconfig={configuration}", "-NoP4", "-NoCodeSign", "-cook", "-build", "-stage", "-prereqs", "-pak", "-CrashReporter"])
+    proc = pbtools.run_stream([uat_path, "BuildCookRun", f"-project={str(get_uproject_path())}", f"-clientconfig={configuration}", "-NoP4", "-NoCodeSign", "-cook", "-build", "-stage", "-prereqs", "-pak", "-CrashReporter"], logfunc=lambda x: pbtools.checked_stream_log(x, error="Error: ", warning="Warning: "))
     if proc.returncode:
         pbtools.error_state("Build failed.")
 

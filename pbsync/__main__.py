@@ -112,7 +112,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                                 bundled_git_lfs = True
 
                 if not is_admin and len(delete_paths) > 0:
-                    pblog.info("Requesting permission to delete bundled Git LFS which is overriding your installed version...")
+                    pblog.info("Requesting admin permission to delete bundled Git LFS which is overriding your installed version...")
                     quoted_paths = [f'"{path}"' for path in delete_paths]
                     delete_cmdline = ["cmd.exe", "/c", "DEL", "/q", "/f"] + quoted_paths
                     try:
@@ -195,15 +195,13 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                                     fatal_error=True)
 
         current_branch = pbgit.get_current_branch_name()
-        expected_branch = pbconfig.get('expected_branch_name')
-        is_on_expected_branch = current_branch == expected_branch
 
         # undo single branch clone
         if not is_ci:
             pbtools.run([pbgit.get_git_executable(), "config", "remote.origin.fetch", "+refs/heads/*:refs/remotes/origin/*"])
 
         # Execute synchronization part of script if we're on the expected branch, or force sync is enabled
-        if sync_val == "force" or is_on_expected_branch:
+        if sync_val == "force" or pbgit.is_on_expected_branch():
             if partial_sync:
                 pbtools.maintain_repo()
             else:
@@ -266,10 +264,10 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             else:
                 error_state(f"Something went wrong while registering engine build {bundle_name}-{engine_version}. Please request help in {pbconfig.get('support_channel')}.")
 
-            # Clean old engine installations, do that only in expected branch
-            if is_on_expected_branch:
+            # Clean old engine installations
+            if pbconfig.get_user("ue4v-user", "clean", True):
                 if pbunreal.clean_old_engine_installations():
-                    pblog.info("Old engine installations are successfully cleaned")
+                    pblog.info("Successfully cleaned old engine installations.")
                 else:
                     pblog.warning("Something went wrong while cleaning old engine installations. You may want to clean them manually.")
 
