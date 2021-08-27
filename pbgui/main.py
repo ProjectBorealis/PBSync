@@ -3,7 +3,7 @@ from flexx import flx
 import pbgui
 import logging
 import flexx
-import threading
+import asyncio
 
 flexx.config.log_level = logging.INFO
 
@@ -21,9 +21,6 @@ def run(sync):
     pbgui.sync_fn = sync
     run_flexx()
 
-    startup_thread = threading.Thread(target=startup)
-    startup_thread.start()
+    asyncio.get_event_loop().call_soon(startup)
 
-    flx.start()
-    # in case we exit before startup is finished
-    startup_thread.join()
+    flx.run()

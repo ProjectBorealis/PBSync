@@ -15,10 +15,74 @@
     <div class="collapse navbar-collapse" id="navbarSupportedContent">
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
         <li class="nav-item">
-          <a class="nav-link" aria-current="page" href="#">Home</a>
+          <a
+            {% if PAGE == "sync" %}
+            class="nav-link active fw-bold"
+            {% else %}
+            class="nav-link"
+            {% endif %}
+            {% if PAGE != "sync" %}
+            onclick="changePage('sync')"
+            {% endif %}
+            aria-current="page" href="#">
+              Sync
+          </a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="#">Settings</a>
+          <a
+            {% if PAGE == "submit" %}
+            class="nav-link active fw-bold"
+            {% else %}
+            class="nav-link"
+            {% endif %}
+            {% if PAGE != "submit" %}
+            onclick="changePage('submit')"
+            {% endif %}
+            aria-current="page" href="#">
+              Submit
+          </a>
+        </li>
+        <li class="nav-item">
+          <a
+            {% if PAGE == "filter" %}
+            class="nav-link active fw-bold"
+            {% else %}
+            class="nav-link"
+            {% endif %}
+            {% if PAGE != "filter" %}
+            onclick="changePage('filter')"
+            {% endif %}
+            aria-current="page" href="#">
+              Filter
+          </a>
+        </li>
+        <li class="nav-item">
+          <a
+            {% if PAGE == "Build" %}
+            class="nav-link active fw-bold"
+            {% else %}
+            class="nav-link"
+            {% endif %}
+            {% if PAGE != "Build" %}
+            onclick="changePage('Build')"
+            {% endif %}
+            aria-current="page" href="#">
+              Build
+          </a>
+        </li>
+        <li class="nav-item">
+          <a
+            {% if PAGE == "settings" %}
+            class="nav-link active fw-bold"
+            {% else %}
+            class="nav-link"
+            {% endif %}
+            {% if PAGE != "settings" %}
+            onclick="changePage('settings')"
+            {% endif %}
+            aria-current="page" href="#">
+              Settings
+          </a>
         </li>
       </ul>
     </div>

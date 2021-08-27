@@ -1,5 +1,7 @@
 import subprocess, os, platform
 
+import humanhash
+
 from flexx import flx
 from flexx.ui import FileBrowserWidget
 from pathlib import Path
@@ -13,7 +15,9 @@ class Core(flx.PyWidget):
     FilePath = ""
 
     def init(self):
-        self.g = Gateway()
+        user, token = pbgit.get_credentials()
+        repo = pbgit.get_remote_url().replace(".git", "").replace("https://github.com/", "")
+        self.g = Gateway(gh_user=user, gh_token=token, gh_repo=repo)
         self.fs = FileBrowserWidget()
         self.g.set_jfs(self.fs._jswidget)
         self.g.init_page(pbgui.default_page)
@@ -38,21 +42,21 @@ class Core(flx.PyWidget):
         commits = []
         lines = pbgit.get_commits().splitlines()
         commit = None
+        need_message = False
         for line in lines:
             line = line.strip()
-            need_message = True
             # start new commit entry
             if line.startswith("commit"):
                 if commit:
                     commits.append(commit)
-                commit = {}
-                commit["sha"] = line.split(" ")[1][:8]
-                commit["pass"] = "success"
+                sha = line.split(" ")[1]
+                commit = {"sha": sha, "human": humanhash.humanize(sha, words=2)}
             elif line.startswith("Author"):
-                commit["author"] = line.split(" ")[1]
+                commit["author"] = line.split(" ", 1)[1].rsplit("<", 1)[0][:-1]
             elif line.startswith("Date"):
                 time = line.split(" ", 3)[3]
                 commit["time"] = time.rsplit(" ", 1)[0]
+                need_message = True
             elif line and need_message:
                 commit["message"] = line
                 need_message = False

@@ -33,3 +33,20 @@
 .flx-Label {
     align-self: center;
 }
+
+.table-success {
+    /*--bs-table-bg: #58c795;*/
+    --bs-table-bg: #3dc588;
+    --bs-table-hover-bg: #7dc5a2;
+}
+
+.commit-dropdown > .btn {
+    line-height: 1;
+    padding: .15rem .75rem;
+    visibility: hidden;
+}
+
+tr:hover .commit-dropdown > .btn,
+tr.active .commit-dropdown > .btn {
+    visibility: visible;
+}

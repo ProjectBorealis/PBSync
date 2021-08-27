@@ -22,13 +22,7 @@ virtual_pages = {
 
 # Jinja2 static properties to define per page
 page_props = {
-    "d": {},
-    "sync": {
-        "name": "Sync"
-    },
-    "settings": {
-        "name": "Settings"
-    }
+    "d": {}
 }
 
 for resource in pkg_resources.contents(gui.templates):
@@ -67,6 +61,10 @@ class Gateway(flx.Label):
 
     jfs = None
 
+    gh_user = flx.StringProp()
+    gh_token = flx.StringProp()
+    gh_repo = flx.StringProp()
+
     def init(self):
         self.actions = {
             "change_page": self.change_page,
@@ -80,6 +78,10 @@ class Gateway(flx.Label):
         }
 
     def _create_dom(self):
+        global window
+        window.GH_USER = self.gh_user
+        window.GH_AUTH = "token " + self.gh_token
+        window.GH_REPO = self.gh_repo
         return flx.create_element("div", {"id": "app", "onreact": self.react})
 
     def _render_dom(self):
@@ -126,6 +128,8 @@ class Gateway(flx.Label):
                     self.widgets[element_id] = flx_node
                     flx_node.outernode.id = element_id
                 element.after(flx_node.outernode)
+                if window.elementHandlers.hasOwnProperty(el_name):
+                    window.elementHandlers[el_name](flx_node.outernode)
                 element.remove()
         self.__exit__()
 

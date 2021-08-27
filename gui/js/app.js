@@ -13,12 +13,83 @@ if (!customElements.get("x-flx")) {
 let app = null;
 let react = null;
 
+const reqHeaders = {
+  headers: {
+    'User-Agent': 'ProjectBorealis-PBSync',
+  },
+}
+
+let reqGHAPIHeaders = {
+  headers: {
+    'Accept': 'application/vnd.github.v3+json',
+    'Content-Type': 'application/json;charset=UTF-8',
+    ...reqHeaders.headers
+  }
+}
+
+// React function helpers
+function changePage(page) {
+    react("change_page", page)
+}
+
+// Element handlers
+function handleSettings(el) {
+}
+
+window.post_commit_update = function(el) {
+    let table = el.children[0];
+    let tbody = table.children[1];
+    for (const row of tbody.children) {
+        if (row.nodeName != "TR") {
+            continue;
+        }
+        let commitNode = row.children[0];
+        let commit = commitNode.id;
+        fetch("https://api.github.com/repos/" + window.GH_REPO + "/commits/" + commit + "/check-suites?app_id=15368", reqGHAPIHeaders)
+            .then((response) => response.json())
+            .then((data) => {
+                let status = "success";
+                let checks = 0;
+                for (const check of data.check_suites) {
+                    if (check.status == "completed") {
+                        checks++;
+                        if (check.conclusion != "success") {
+                            status = ""
+                        } else if (data.conclusion == "failure") {
+                            status = "failure"
+                            break;
+                        }
+                    }
+                }
+                if (checks > 1) {
+                    if (status == "success") {
+                        row.classList.add("table-success");
+                        commitNode.children[0].classList.add("fa-check-circle");
+                    } else if (status == "failure") {
+                        row.classList.add("table-danger");
+                        commitNode.children[0].classList.add("fa-times-circle");
+                    }
+                }
+            });
+        let dropdown = row.children[row.children.length - 1].children[0].children[1].children[0].children[0]; // td -> row -> col-1 -> dropdown -> btn
+        dropdown.onclick = () => {
+            bootstrap.Dropdown.getOrCreateInstance(dropdown).toggle();
+            row.classList.toggle("active");
+        }
+    }
+}
+
+window.elementHandlers = {
+    "Settings": handleSettings,
+};
+
 // Hook up JavaScript communication
 // and callback to notify Python
 function callback() {
     console.log("App loaded")
     app = document.getElementById("app")
     react = app.onreact
+    reqGHAPIHeaders.headers.Authorization = window.GH_AUTH
 
     react("app_update")
 
@@ -54,8 +125,3 @@ observer.observe(document.body, {
     childList: true,
     subtree: true
 })
-
-// React function helpers
-function changePage(page) {
-    react("change_page", page)
-}

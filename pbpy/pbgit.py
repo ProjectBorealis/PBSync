@@ -183,6 +183,10 @@ def stash_pop():
         pbtools.error_state(f"git stash pop failed due to an unknown error. Request help in {pbconfig.get('support_channel')} to resolve possible conflicts, and please do not run UpdateProject until the issue is resolved.", True)
 
 
+def get_remote_url():
+    return pbconfig.get("git_url")
+
+
 def check_remote_connection():
     current_url = pbtools.get_one_line_output([get_git_executable(), "remote", "get-url", "origin"])
     recent_url = pbconfig.get("git_url")
