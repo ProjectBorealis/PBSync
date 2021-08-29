@@ -277,5 +277,5 @@ def get_modified_files():
 
 
 def get_commits():
-    proc = pbtools.run_with_combined_output([get_git_executable(), "log", "-25"])
+    proc = pbtools.run_with_combined_output([get_git_executable(), "log", "-100", "--no-merges", f"origin/{get_current_branch_name()}"])
     return proc.stdout

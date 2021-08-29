@@ -34,10 +34,16 @@
     align-self: center;
 }
 
-.table-success {
-    /*--bs-table-bg: #58c795;*/
-    --bs-table-bg: #3dc588;
-    --bs-table-hover-bg: #7dc5a2;
+.fa-check-circle {
+    color: var(--bs-success);
+}
+
+.table-danger .fa-times-circle {
+    color: inherit;
+}
+
+.fa-times-circle {
+    color: var(--bs-danger);
 }
 
 .commit-dropdown > .btn {

@@ -71,9 +71,12 @@ class CommitLogTableWidget(flx.Widget):
             elif author == window.GH_USER:
                 author_props = {"class": "text-info"}
                 author += " (you)"
-                
+            
+            row_props = None
+            if commit.get("local"):
+                row_props = {"class": "table-primary"}
 
-            commit_node = flx.create_element('tr', None,
+            commit_node = flx.create_element('tr', row_props,
                                                 flx.create_element('td', {"scope": "row", "id": commit.get("sha")}, flx.create_element("span", {"class": "far fa-fw"}), " " + short_sha + " (" + commit.get("human") + ")"),
                                                 flx.create_element('td', None, time),
                                                 flx.create_element('td', author_props, author),
@@ -90,10 +93,10 @@ class CommitLogTableWidget(flx.Widget):
                                                                         flx.create_element("h6", {"class": "dropdown-header"}, "STATUS")
                                                                     ),
                                                                     flx.create_element("li", None,
-                                                                        flx.create_element("a", {"class": "dropdown-item"}, "Mark as Good")
+                                                                        flx.create_element("a", {"class": "dropdown-item", "href": "#", "data-func": "mark_commit", "data-status": "success"}, "Mark as Good")
                                                                     ),
                                                                     flx.create_element("li", None,
-                                                                        flx.create_element("a", {"class": "dropdown-item"}, "Mark as Bad")
+                                                                        flx.create_element("a", {"class": "dropdown-item", "href": "#", "data-func": "mark_commit", "data-status": "failure"}, "Mark as Bad")
                                                                     ),
                                                                     flx.create_element("li", None,
                                                                         flx.create_element("hr", {"class": "dropdown-divider"})
@@ -102,10 +105,10 @@ class CommitLogTableWidget(flx.Widget):
                                                                         flx.create_element("h6", {"class": "dropdown-header"}, "VERSIONING")
                                                                     ),
                                                                     flx.create_element("li", None,
-                                                                        flx.create_element("a", {"class": "dropdown-item"}, "Switch to Version")
+                                                                        flx.create_element("a", {"class": "dropdown-item", "href": "#"}, "Switch to Version")
                                                                     ),
                                                                     flx.create_element("li", None,
-                                                                        flx.create_element("a", {"class": "dropdown-item"}, "Request Binaries Build")
+                                                                        flx.create_element("a", {"class": "dropdown-item", "href": "#"}, "Request Binaries Build")
                                                                     ),
                                                                     flx.create_element("li", None,
                                                                         flx.create_element("hr", {"class": "dropdown-divider"})
@@ -114,16 +117,16 @@ class CommitLogTableWidget(flx.Widget):
                                                                         flx.create_element("h6", {"class": "dropdown-header"}, "SOURCE CONTROL")
                                                                     ),
                                                                     flx.create_element("li", None,
-                                                                        flx.create_element("a", {"class": "dropdown-item"}, "Revert")
+                                                                        flx.create_element("a", {"class": "dropdown-item", "href": "#"}, "Revert")
                                                                     ),
                                                                     flx.create_element("li", None,
-                                                                        flx.create_element("a", {"class": "dropdown-item"}, "Copy to Branch")
+                                                                        flx.create_element("a", {"class": "dropdown-item", "href": "#"}, "Copy to Branch")
                                                                     ),
                                                                     flx.create_element("li", None,
                                                                         flx.create_element("hr", {"class": "dropdown-divider"})
                                                                     ),
                                                                     flx.create_element("li", None,
-                                                                        flx.create_element("a", {"class": "dropdown-item"}, "View on GitHub")
+                                                                        flx.create_element("a", {"class": "dropdown-item", "href": "#"}, "View on GitHub")
                                                                     )
                                                                 )
                                                             )

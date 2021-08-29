@@ -32,9 +32,24 @@ function changePage(page) {
     react("change_page", page)
 }
 
-// Element handlers
-function handleSettings(el) {
+function markCommit(sha, status) {
+    console.log("sha")
+    let commitNode = document.getElementById(sha)
+    if (status == "success") {
+        commitNode.parentElement.classList.remove("table-danger")
+        commitNode.children[0].classList.add("fa-check-circle")
+        commitNode.children[0].classList.remove("fa-times-circle")
+    } else if (status == "failure") {
+        commitNode.parentElement.classList.add("table-danger")
+        commitNode.children[0].classList.add("fa-times-circle")
+        commitNode.children[0].classList.remove("fa-check-circle")
+    }
+    react("mark_commit", sha, status)
 }
+
+// Element handlers
+window.elementHandlers = {
+};
 
 window.post_commit_update = function(el) {
     let table = el.children[0];
@@ -44,8 +59,19 @@ window.post_commit_update = function(el) {
             continue;
         }
         let commitNode = row.children[0];
+        let status = row.dataset.status;
         let commit = commitNode.id;
-        fetch("https://api.github.com/repos/" + window.GH_REPO + "/commits/" + commit + "/check-suites?app_id=15368", reqGHAPIHeaders)
+        // try getting our metadata status, if we have it
+        if (status) {
+            if (status == "success") {
+                commitNode.children[0].classList.add("fa-check-circle");
+            } else if (status == "failure") {
+                row.classList.add("table-danger");
+                commitNode.children[0].classList.add("fa-times-circle");
+            }
+        } else {
+            // fetch build status from github
+            fetch("https://api.github.com/repos/" + window.GH_REPO + "/commits/" + commit + "/check-suites?app_id=15368", reqGHAPIHeaders)
             .then((response) => response.json())
             .then((data) => {
                 let status = "success";
@@ -63,7 +89,6 @@ window.post_commit_update = function(el) {
                 }
                 if (checks > 1) {
                     if (status == "success") {
-                        row.classList.add("table-success");
                         commitNode.children[0].classList.add("fa-check-circle");
                     } else if (status == "failure") {
                         row.classList.add("table-danger");
@@ -71,17 +96,23 @@ window.post_commit_update = function(el) {
                     }
                 }
             });
-        let dropdown = row.children[row.children.length - 1].children[0].children[1].children[0].children[0]; // td -> row -> col-1 -> dropdown -> btn
-        dropdown.onclick = () => {
-            bootstrap.Dropdown.getOrCreateInstance(dropdown).toggle();
+        }
+        let dropdown = row.children[row.children.length - 1].children[0].children[1].children[0]; // td -> row -> col-1 -> dropdown
+        let dropdownBtn = dropdown.children[0];
+        dropdownBtn.onclick = () => {
+            bootstrap.Dropdown.getOrCreateInstance(dropdownBtn).toggle();
             row.classList.toggle("active");
+        }
+        let menuItems = dropdown.children[1].children;
+        for (const menuItem of menuItems) {
+            menuItem.children[0].onclick = () => {
+                if (menuItem.dataset.func == "mark_commit") {
+                    markCommit(commit, menuItem.dataset.status)
+                }
+            }
         }
     }
 }
-
-window.elementHandlers = {
-    "Settings": handleSettings,
-};
 
 // Hook up JavaScript communication
 // and callback to notify Python

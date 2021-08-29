@@ -69,6 +69,7 @@ class Gateway(flx.Label):
         self.actions = {
             "change_page": self.change_page,
             "app_update": self.app_update,
+            "mark_commit": self.mark_commit,
         }
         self.elements = {
             "Button": flx.Button,
@@ -132,6 +133,9 @@ class Gateway(flx.Label):
                     window.elementHandlers[el_name](flx_node.outernode)
                 element.remove()
         self.__exit__()
+
+    def mark_commit(self, sha, status):
+        self.root.mark_commit(sha, status)
 
     @flx.action
     def set_jfs(self, filebrowser):
