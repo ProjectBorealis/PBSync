@@ -1,0 +1,90 @@
+<nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom border-secondary sticky-top">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="#"> {% include 'logo.html' %} </a>
+    <button
+      class="navbar-toggler"
+      type="button"
+      data-bs-toggle="collapse"
+      data-bs-target="#navbarSupportedContent"
+      aria-controls="navbarSupportedContent"
+      aria-expanded="false"
+      aria-label="Toggle navigation"
+    >
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <a
+            {% if PAGE == "sync" %}
+            class="nav-link active fw-bold"
+            {% else %}
+            class="nav-link"
+            {% endif %}
+            {% if PAGE != "sync" %}
+            onclick="changePage('sync')"
+            {% endif %}
+            aria-current="page" href="#">
+              Sync
+          </a>
+        </li>
+        <li class="nav-item">
+          <a
+            {% if PAGE == "submit" %}
+            class="nav-link active fw-bold"
+            {% else %}
+            class="nav-link"
+            {% endif %}
+            {% if PAGE != "submit" %}
+            onclick="changePage('submit')"
+            {% endif %}
+            aria-current="page" href="#">
+              Submit
+          </a>
+        </li>
+        <li class="nav-item">
+          <a
+            {% if PAGE == "filter" %}
+            class="nav-link active fw-bold"
+            {% else %}
+            class="nav-link"
+            {% endif %}
+            {% if PAGE != "filter" %}
+            onclick="changePage('filter')"
+            {% endif %}
+            aria-current="page" href="#">
+              Filter
+          </a>
+        </li>
+        <li class="nav-item">
+          <a
+            {% if PAGE == "Build" %}
+            class="nav-link active fw-bold"
+            {% else %}
+            class="nav-link"
+            {% endif %}
+            {% if PAGE != "Build" %}
+            onclick="changePage('Build')"
+            {% endif %}
+            aria-current="page" href="#">
+              Build
+          </a>
+        </li>
+        <li class="nav-item">
+          <a
+            {% if PAGE == "settings" %}
+            class="nav-link active fw-bold"
+            {% else %}
+            class="nav-link"
+            {% endif %}
+            {% if PAGE != "settings" %}
+            onclick="changePage('settings')"
+            {% endif %}
+            aria-current="page" href="#">
+              Settings
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>

@@ -1,0 +1,58 @@
+#app {
+    height: 100vh;
+    overflow-y: auto;
+    background-color: var(--bs-dark);
+    color: var(--bs-light);
+}
+
+#app-inner {
+    margin-top: 1rem;
+}
+
+.flx-LineEdit {
+    width: 100%;
+    border-radius: 0.25rem;
+}
+
+.nav-pills .flx-Button {
+    text-align: start;
+}
+
+.flx-BaseButton {
+    color: inherit;
+}
+
+.flx-Widget:not(.flx-Layout) > .flx-Layout {
+    position: initial;
+}
+
+.flx-box {
+    justify-content: initial;
+}
+
+.flx-Label {
+    align-self: center;
+}
+
+.fa-check-circle {
+    color: var(--bs-success);
+}
+
+.table-danger .fa-times-circle {
+    color: inherit;
+}
+
+.fa-times-circle {
+    color: var(--bs-danger);
+}
+
+.commit-dropdown > .btn {
+    line-height: 1;
+    padding: .15rem .75rem;
+    visibility: hidden;
+}
+
+tr:hover .commit-dropdown > .btn,
+tr.active .commit-dropdown > .btn {
+    visibility: visible;
+}

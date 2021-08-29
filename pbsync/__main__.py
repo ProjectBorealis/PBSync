@@ -19,6 +19,9 @@ from pbpy import pbpy_version
 from pbpy import pbdispatch
 from pbpy import pbuac
 
+import pbgui.main
+import pbgui.gateway
+
 try:
     import pbsync_version
 except ImportError:
@@ -34,7 +37,6 @@ def config_handler(config_var, config_parser_func):
 
 
 def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None):
-
     sync_val = sync_val.lower()
 
     if sync_val == "all" or sync_val == "force" or sync_val == "partial":
@@ -429,6 +431,7 @@ def main(argv):
 
     parser.add_argument("--sync", help="Main command for the PBSync, synchronizes the project with latest changes from the repo, and does some housekeeping",
                         choices=["all", "partial", "binaries", "engineversion", "engine", "force", "ddc"])
+    parser.add_argument("--gui", help="Open the GUI app", action='store_true')
     parser.add_argument("--printversion", help="Prints requested version information into console.",
                         choices=["current-engine", "latest-engine", "project"])
     parser.add_argument(
@@ -528,7 +531,12 @@ def main(argv):
         run UpdateProject again.""", True)
 
     # Parse args
-    if not (args.sync is None):
+    if not (args.gui is None):
+        def sync():
+            return sync_handler(args.sync, args.repository, args.bundle)
+        pbgui.set_default_page("sync")
+        pbgui.main.run(sync)
+    elif not (args.sync is None):
         sync_handler(args.sync, args.repository, args.bundle)
     elif not (args.printversion is None):
         printversion_handler(args.printversion, args.repository)
