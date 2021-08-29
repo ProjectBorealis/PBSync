@@ -461,7 +461,7 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
             changed_files = diff_proc.stdout.splitlines()
         else:
             changed_files = []
-        
+
         # Get the latest files, but skip smudge so we can super charge a LFS pull as one batch
         cmdline = [pbgit.get_git_executable(), "-c", "filter.lfs.smudge=", "-c", "filter.lfs.process=", "-c", "filter.lfs.required=false"]
         # if we can fast forward merge, do that instead of a rebase (faster, safer)
