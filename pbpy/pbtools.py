@@ -453,7 +453,14 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
     if not it_has_any(out, "-0"):
         start_lfs_fetch()
         pbunreal.ensure_ue_closed()
-        pblog.info("Please wait while getting the latest changes from the repository. It may take a while...")        
+        pblog.info("Please wait while getting the latest changes from the repository. It may take a while...")
+
+        # Check what files we are going to change
+        diff_proc = run_with_combined_output([pbgit.get_git_executable(), "diff", "--name-only", f"HEAD...origin/{branch_name}"])
+        if diff_proc.returncode == 0:
+            changed_files = diff_proc.stdout.splitlines()
+        else:
+            changed_files = []
         
         # Get the latest files, but skip smudge so we can super charge a LFS pull as one batch
         cmdline = [pbgit.get_git_executable(), "-c", "filter.lfs.smudge=", "-c", "filter.lfs.process=", "-c", "filter.lfs.required=false"]
@@ -466,22 +473,28 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
             cmdline.extend(["rebase", "--autostash"])
         cmdline.append(f"origin/{branch_name}")
         result = run_with_combined_output(cmdline)
+
+        # LFS checkout incompatible with fs monitor, is a repo config
+        run([pbgit.get_git_executable(), "config", "-f", ".gitconfig", "core.useBuiltinFSMonitor", "false"])
+
         # Checkout LFS in one go since we skipped smudge and fetched in the background
         finish_lfs_fetch()
-        diff_proc = run_with_combined_output([pbgit.get_git_executable(), "diff", "--name-only", f"HEAD...origin/{branch_name}"])
-        if diff_proc.returncode == 0:
-            changed_files = diff_proc.stdout.splitlines()
-        else:
-            changed_files = []
         # if there's a lot of files, or we didn't find any, just let LFS do the work
         lfs_checkout = [pbgit.get_lfs_executable(), "checkout"]
         if len(changed_files) <= 50 and changed_files:
-            lfs_checkout.extend(" ".join(changed_files))
+            lfs_checkout.append("--")
+            lfs_checkout.extend(changed_files)
             run(lfs_checkout)
         else:
             run_with_combined_output(lfs_checkout)
+
+        # revert back to our config
+        run([pbgit.get_git_executable(), "config", "-f", ".gitconfig", "core.useBuiltinFSMonitor", "true"])
+
         # update plugin submodules
         run([pbgit.get_git_executable(), "submodule", "update", "--init", "--", "Plugins"])
+
+        # see if the update was successful
         code = result.returncode
         out = result.stdout
         pblog.info(out)
