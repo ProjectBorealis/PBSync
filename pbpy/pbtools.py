@@ -8,6 +8,7 @@ import stat
 import json
 import threading
 import hashlib
+import multiprocessing
 
 from subprocess import CalledProcessError
 from pathlib import Path
@@ -27,7 +28,7 @@ def handle_env(env):
         return os.environ
     else:
         return os.environ | env
-    
+
 
 def handle_env_out(cmd, env_out):
     if env_out:
@@ -339,6 +340,12 @@ def get_running_process(process_name):
     return None
 
 
+def chunks(lst, n):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
+
+
 def wipe_workspace():
     current_branch = pbgit.get_current_branch_name()
     response = input(f"This command will wipe your workspace and get latest changes from {current_branch}. Are you sure? [y/N] ")
@@ -435,6 +442,13 @@ def finish_lfs_fetch():
     pblog.info("Finished LFS fetch.")
 
 
+def do_lfs_checkout(files):
+    # todo: is not using Git LFS user exe ok?
+    lfs_checkout = ["git-lfs", "checkout", "--"]
+    lfs_checkout.extend(files)
+    run(lfs_checkout)
+
+
 def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
     branch_name = pbgit.get_current_branch_name()
     if branch_name not in pbconfig.get("branches"):
@@ -474,25 +488,22 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         cmdline.append(f"origin/{branch_name}")
         result = run_with_combined_output(cmdline)
 
-        # LFS checkout incompatible with fs monitor, is a repo config
+        # update plugin submodules
+        run([pbgit.get_git_executable(), "submodule", "update", "--init", "--", "Plugins"])
+
+        # LFS checkout incompatible with fs monitor, which is a repo config
         run([pbgit.get_git_executable(), "config", "-f", ".gitconfig", "core.useBuiltinFSMonitor", "false"])
 
-        # Checkout LFS in one go since we skipped smudge and fetched in the background
-        finish_lfs_fetch()
-        # if there's a lot of files, or we didn't find any, just let LFS do the work
-        lfs_checkout = [pbgit.get_lfs_executable(), "checkout"]
-        if len(changed_files) <= 50 and changed_files:
-            lfs_checkout.append("--")
-            lfs_checkout.extend(changed_files)
-            run(lfs_checkout)
-        else:
-            run_with_combined_output(lfs_checkout)
+        chunked_files = chunks(changed_files, 50)
+
+        # split it out to multiprocess
+        with multiprocessing.Pool() as pool:
+            # Checkout LFS in one go since we skipped smudge and fetched in the background
+            finish_lfs_fetch()
+            pool.map(do_lfs_checkout, chunked_files)
 
         # revert back to our config
         run([pbgit.get_git_executable(), "config", "-f", ".gitconfig", "core.useBuiltinFSMonitor", "true"])
-
-        # update plugin submodules
-        run([pbgit.get_git_executable(), "submodule", "update", "--init", "--", "Plugins"])
 
         # see if the update was successful
         code = result.returncode
