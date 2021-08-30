@@ -415,32 +415,22 @@ def maintain_repo():
 
 
 lfs_fetch_thread = None
-lfs_fetch_should_print = False
 
-
-def lfs_fetch_log_func(msg):
-    if lfs_fetch_should_print:
-        print(msg)
-
-
-def do_lfs_fetch():
+def do_lfs_fetch(files):
     branch_name = pbgit.get_current_branch_name()
-    run_stream([pbgit.get_lfs_executable(), "fetch", "origin", f"origin/{branch_name}"], logfunc=lfs_fetch_log_func)
+    fetch = [pbgit.get_lfs_executable(), "fetch", "origin", f"origin/{branch_name}", "-I", ",".join(files)]
+    run(fetch)
 
 
-def start_lfs_fetch():
-    pblog.info("Starting LFS fetch...")
+def start_lfs_fetch(files):
     global lfs_fetch_thread
-    lfs_fetch_thread = threading.Thread(target=do_lfs_fetch)
+    lfs_fetch_thread = threading.Thread(target=do_lfs_fetch, args=(files,))
     lfs_fetch_thread.start()
 
 
 def finish_lfs_fetch():
-    pblog.info("Finishing LFS fetch...")
-    global lfs_fetch_should_print
-    lfs_fetch_should_print = True
-    lfs_fetch_thread.join()
-    pblog.info("Finished LFS fetch.")
+    if lfs_fetch_thread is not None:
+        lfs_fetch_thread.join()
 
 
 def do_lfs_checkout(files):
@@ -466,7 +456,6 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
     out = get_combined_output([pbgit.get_git_executable(), "status", "--porcelain=2", "--branch"])
 
     if not it_has_any(out, "-0"):
-        start_lfs_fetch()
         pbunreal.ensure_ue_closed()
         pblog.info("Please wait while getting the latest changes from the repository. It may take a while...")
 
@@ -476,6 +465,19 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
             changed_files = diff_proc.stdout.splitlines()
         else:
             changed_files = []
+
+        changed_files = [file for file in changed_files if pbgit.is_lfs_file(file)]
+
+        cpus = os.cpu_count()
+        total = len(changed_files)
+        fetch_processes = min(cpus, math.ceil(total / 50))
+        fetch_batch_size = min(50, math.ceil(total / fetch_processes))
+        if fetch_batch_size == total:
+            start_lfs_fetch(changed_files)
+        else:
+            fetch_batched = chunks(changed_files, fetch_batch_size)
+            with multiprocessing.Pool(fetch_processes) as pool:
+                pool.map(do_lfs_fetch, fetch_batched)
 
         # Get the latest files, but skip smudge so we can super charge a LFS pull as one batch
         cmdline = [pbgit.get_git_executable(), "-c", "filter.lfs.smudge=", "-c", "filter.lfs.process=", "-c", "filter.lfs.required=false"]
@@ -492,17 +494,16 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         # update plugin submodules
         run([pbgit.get_git_executable(), "submodule", "update", "--init", "--", "Plugins"])
 
-        # LFS checkout incompatible with fs monitor, which is a repo config
-        run([pbgit.get_git_executable(), "config", "-f", ".gitconfig", "core.useBuiltinFSMonitor", "false"])
-
-        hello = pbgit.get_lfs_file_regex()
-
-        changed_files =  [file for file in changed_files if pbgit.is_lfs_file(file)]
-
-        total = len(changed_files)
-        processes = min(os.cpu_count(), math.ceil(total / 5))
+        processes = min(cpus, math.ceil(total / 5))
         batch_size = min(50, math.ceil(total / processes))
         chunked_files = chunks(changed_files, batch_size)
+
+        # make index.lock to block LFS from updating index
+        with open(".git/index.lock", "w") as f:
+            pass
+
+        # Update index without FS monitor
+        run([pbgit.get_git_executable(), "config", "-f", ".gitconfig", "core.useBuiltinFSMonitor", "false"])
 
         # split it out to multiprocess
         with multiprocessing.Pool(processes) as pool:
@@ -510,11 +511,13 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
             finish_lfs_fetch()
             pool.map(do_lfs_checkout, chunked_files)
 
-        update_index = [pbgit.get_git_executable(), "update-index", "-q", "--refresh", "--"]
+        os.remove(".git/index.lock")
+
+        update_index = [pbgit.get_git_executable(), "update-index", "-q", "--refresh", "--unmerged", "--"]
         update_index.extend(changed_files)
         run(update_index)
 
-        # revert back to our config
+        # Revert back to using FS monitor
         run([pbgit.get_git_executable(), "config", "-f", ".gitconfig", "core.useBuiltinFSMonitor", "true"])
 
         # see if the update was successful
