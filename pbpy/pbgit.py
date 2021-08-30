@@ -6,6 +6,8 @@ import pathlib
 import multiprocessing
 import itertools
 import pathlib
+import re
+import fnmatch
 
 from urllib.parse import urlparse
 from functools import lru_cache
@@ -158,6 +160,22 @@ def fix_lfs_ro_attr():
         for message in itertools.chain(pool.imap_unordered(read_only, not_locked, 100), pool.imap_unordered(read_write, locked)):
             if message:
                 pblog.warning(message)
+
+
+@lru_cache()
+def get_lfs_file_regex():
+    files = []
+    with open(".gitattributes") as f:
+        for line in f:
+            pair = line.strip().split(" ")
+            if pair[1] == "lfs" or pair[1] == "lock":
+                files.append(fnmatch.translate(pair[0]))
+    file_group = "|".join(files)
+    return re.compile(f"^({file_group})$")
+
+
+def is_lfs_file(file):
+    return get_lfs_file_regex().match(file) is not None
 
 
 def set_tracking_information(upstream_branch_name: str):

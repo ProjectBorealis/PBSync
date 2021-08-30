@@ -8,6 +8,7 @@ import stat
 import json
 import threading
 import hashlib
+import math
 import multiprocessing
 
 from subprocess import CalledProcessError
@@ -446,7 +447,7 @@ def do_lfs_checkout(files):
     # todo: is not using Git LFS user exe ok?
     lfs_checkout = ["git-lfs", "checkout", "--"]
     lfs_checkout.extend(files)
-    run(lfs_checkout)
+    run_with_combined_output(lfs_checkout)
 
 
 def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
@@ -494,13 +495,24 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         # LFS checkout incompatible with fs monitor, which is a repo config
         run([pbgit.get_git_executable(), "config", "-f", ".gitconfig", "core.useBuiltinFSMonitor", "false"])
 
-        chunked_files = chunks(changed_files, 50)
+        hello = pbgit.get_lfs_file_regex()
+
+        changed_files =  [file for file in changed_files if pbgit.is_lfs_file(file)]
+
+        total = len(changed_files)
+        processes = min(os.cpu_count(), math.ceil(total / 5))
+        batch_size = min(50, math.ceil(total / processes))
+        chunked_files = chunks(changed_files, batch_size)
 
         # split it out to multiprocess
-        with multiprocessing.Pool() as pool:
+        with multiprocessing.Pool(processes) as pool:
             # Checkout LFS in one go since we skipped smudge and fetched in the background
             finish_lfs_fetch()
             pool.map(do_lfs_checkout, chunked_files)
+
+        update_index = [pbgit.get_git_executable(), "update-index", "-q", "--refresh", "--"]
+        update_index.extend(changed_files)
+        run(update_index)
 
         # revert back to our config
         run([pbgit.get_git_executable(), "config", "-f", ".gitconfig", "core.useBuiltinFSMonitor", "true"])
