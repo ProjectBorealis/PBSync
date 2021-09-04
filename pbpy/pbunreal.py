@@ -696,13 +696,25 @@ def ue_config(path):
     config = MultiConfigParser(allow_no_value=True, delimiters=("=",), strict=False, comment_prefixes=(";",), dict_type=multi_dict, interpolation=configparser.Interpolation())
     # case sensitive
     config.optionxform = lambda option: option
-    config.read(path)
+    write_config = True
+    if os.path.exists(path):
+        try:
+            config.read(path)
+        except UnicodeDecodeError:
+            try:
+                with open(path, 'r', encoding='utf-16') as f:
+                    config.readfp(f)
+            except Exception as e:
+                pblog.error(f"Unreal config parsing failed for {path}. Skipping.")
+                pblog.exception(str(e))
+                write_config = False
     try:
         yield config
     finally:
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, 'w+') as ini_file:
-            config.write(ini_file, space_around_delimiters=False)
+        if write_config:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(path, 'w+') as ini_file:
+                config.write(ini_file, space_around_delimiters=False)
 
 
 def update_source_control():
