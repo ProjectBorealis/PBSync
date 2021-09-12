@@ -459,66 +459,84 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         pbunreal.ensure_ue_closed()
         pblog.info("Please wait while getting the latest changes from the repository. It may take a while...")
 
-        # Check what files we are going to change
-        diff_proc = run_with_combined_output([pbgit.get_git_executable(), "diff", "--name-only", f"HEAD...origin/{branch_name}"])
-        if diff_proc.returncode == 0:
-            changed_files = diff_proc.stdout.splitlines()
+        use_new_sync = False
+        if use_new_sync:
+            # Check what files we are going to change
+            diff_proc = run_with_combined_output([pbgit.get_git_executable(), "diff", "--name-only", f"HEAD...origin/{branch_name}"])
+            if diff_proc.returncode == 0:
+                changed_files = diff_proc.stdout.splitlines()
+            else:
+                changed_files = []
+
+            changed_files = [file for file in changed_files if pbgit.is_lfs_file(file)]
+
+            cpus = os.cpu_count()
+            total = len(changed_files)
+            fetch_processes = min(cpus, math.ceil(total / 50))
+            fetch_batch_size = min(50, math.ceil(total / fetch_processes))
+            if fetch_batch_size == total:
+                start_lfs_fetch(changed_files)
+            else:
+                fetch_batched = chunks(changed_files, fetch_batch_size)
+                with multiprocessing.Pool(fetch_processes) as pool:
+                    pool.map(do_lfs_fetch, fetch_batched)
+
+            # Get the latest files, but skip smudge so we can super charge a LFS pull as one batch
+            cmdline = [pbgit.get_git_executable(), "-c", "filter.lfs.smudge=", "-c", "filter.lfs.process=", "-c", "filter.lfs.required=false"]
+            # if we can fast forward merge, do that instead of a rebase (faster, safer)
+            if it_has_any(out, "+0"):
+                pblog.info("Fast forwarding workspace to the latest changes from the repository...")
+                cmdline.extend(["merge", "--ff-only"])
+            else:
+                pblog.info("Rebasing workspace with the latest changes from the repository...")
+                cmdline.extend(["rebase", "--autostash"])
+            cmdline.append(f"origin/{branch_name}")
+            result = run_with_combined_output(cmdline)
+
+            # update plugin submodules
+            run([pbgit.get_git_executable(), "submodule", "update", "--init", "--", "Plugins"])
+
+            processes = min(cpus, math.ceil(total / 5))
+            batch_size = min(50, math.ceil(total / processes))
+            chunked_files = chunks(changed_files, batch_size)
+
+            # make index.lock to block LFS from updating index
+            with open(".git/index.lock", "w") as f:
+                pass
+
+            # Update index without FS monitor
+            run([pbgit.get_git_executable(), "config", "-f", ".gitconfig", "core.useBuiltinFSMonitor", "false"])
+
+            # split it out to multiprocess
+            with multiprocessing.Pool(processes) as pool:
+                # Checkout LFS in one go since we skipped smudge and fetched in the background
+                finish_lfs_fetch()
+                pool.map(do_lfs_checkout, chunked_files)
+
+            os.remove(".git/index.lock")
+
+            update_index = [pbgit.get_git_executable(), "update-index", "-q", "--refresh", "--unmerged", "--"]
+            update_index.extend(changed_files)
+            run(update_index)
+
+            # Revert back to using FS monitor
+            run([pbgit.get_git_executable(), "config", "-f", ".gitconfig", "core.useBuiltinFSMonitor", "true"])
         else:
-            changed_files = []
+            # Get the latest files
+            cmdline = [pbgit.get_git_executable()]
+            # if we can fast forward merge, do that instead of a rebase (faster, safer)
+            if it_has_any(out, "+0"):
+                pblog.info("Fast forwarding workspace to the latest changes from the repository...")
+                cmdline.extend(["merge", "--ff-only"])
+            else:
+                pblog.info("Rebasing workspace with the latest changes from the repository...")
+                cmdline.extend(["rebase", "--autostash"])
+            cmdline.append(f"origin/{branch_name}")
+            result = run_with_combined_output(cmdline)
 
-        changed_files = [file for file in changed_files if pbgit.is_lfs_file(file)]
+            # update plugin submodules
+            run([pbgit.get_git_executable(), "submodule", "update", "--init", "--", "Plugins"])
 
-        cpus = os.cpu_count()
-        total = len(changed_files)
-        fetch_processes = min(cpus, math.ceil(total / 50))
-        fetch_batch_size = min(50, math.ceil(total / fetch_processes))
-        if fetch_batch_size == total:
-            start_lfs_fetch(changed_files)
-        else:
-            fetch_batched = chunks(changed_files, fetch_batch_size)
-            with multiprocessing.Pool(fetch_processes) as pool:
-                pool.map(do_lfs_fetch, fetch_batched)
-
-        # Get the latest files, but skip smudge so we can super charge a LFS pull as one batch
-        cmdline = [pbgit.get_git_executable(), "-c", "filter.lfs.smudge=", "-c", "filter.lfs.process=", "-c", "filter.lfs.required=false"]
-        # if we can fast forward merge, do that instead of a rebase (faster, safer)
-        if it_has_any(out, "+0"):
-            pblog.info("Fast forwarding workspace to the latest changes from the repository...")
-            cmdline.extend(["merge", "--ff-only"])
-        else:
-            pblog.info("Rebasing workspace with the latest changes from the repository...")
-            cmdline.extend(["rebase", "--autostash"])
-        cmdline.append(f"origin/{branch_name}")
-        result = run_with_combined_output(cmdline)
-
-        # update plugin submodules
-        run([pbgit.get_git_executable(), "submodule", "update", "--init", "--", "Plugins"])
-
-        processes = min(cpus, math.ceil(total / 5))
-        batch_size = min(50, math.ceil(total / processes))
-        chunked_files = chunks(changed_files, batch_size)
-
-        # make index.lock to block LFS from updating index
-        with open(".git/index.lock", "w") as f:
-            pass
-
-        # Update index without FS monitor
-        run([pbgit.get_git_executable(), "config", "-f", ".gitconfig", "core.useBuiltinFSMonitor", "false"])
-
-        # split it out to multiprocess
-        with multiprocessing.Pool(processes) as pool:
-            # Checkout LFS in one go since we skipped smudge and fetched in the background
-            finish_lfs_fetch()
-            pool.map(do_lfs_checkout, chunked_files)
-
-        os.remove(".git/index.lock")
-
-        update_index = [pbgit.get_git_executable(), "update-index", "-q", "--refresh", "--unmerged", "--"]
-        update_index.extend(changed_files)
-        run(update_index)
-
-        # Revert back to using FS monitor
-        run([pbgit.get_git_executable(), "config", "-f", ".gitconfig", "core.useBuiltinFSMonitor", "true"])
 
         # see if the update was successful
         code = result.returncode
