@@ -371,7 +371,7 @@ def maintain_repo():
     pblog.info("Starting repo maintenance...")
 
     commands = [
-        f"{pbgit.get_lfs_executable()} prune -c",
+        f"{pbgit.get_lfs_executable()} prune -fc",
         f"{pbgit.get_lfs_executable()} dedup"
     ]
 

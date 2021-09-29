@@ -31,6 +31,69 @@ def get_token_env():
         pbtools.error_state(f"Credential retrieval failed. Please get help from {pbconfig.get('support_channel')}")
 
 
+def download_release_file(version, pattern=None, directory=None, repo=None):
+    if not os.path.isfile(gh_executable_path):
+        pblog.error(f"GH CLI executable not found at {gh_executable_path}")
+        return 1
+
+    creds = get_token_env()
+
+    args = [gh_executable_path, "release", "download", version]
+
+    def try_remove(path):
+        if os.path.exists(path):
+            try:
+                os.remove(path)
+            except Exception as e:
+                pblog.exception(str(e))
+                pblog.error(f"Exception thrown while removing {path}. Please remove it manually.")
+                return -1
+
+    if pattern:
+        if isinstance(pattern, list):
+            for file in pattern:
+                res = try_remove(file)
+                if res != 0:
+                    return res
+                args.extend(["-p", file])
+        else:
+            res = try_remove(file)
+            if res != 0:
+                return res
+            args.extend(["-p", pattern])
+    
+    pattern = "*"
+
+    if directory:
+        args.extend(["-D", directory])
+
+    if repo:
+        args.extend(["-R", repo])
+
+    try:
+        proc = pbtools.run_with_combined_output(args, env=creds)
+        output = proc.stdout
+        if proc.returncode == 0:
+            pass
+        elif pbtools.it_has_any(output, "release not found", "no assets"):
+            pblog.error(f"Release {version} not found. Please wait and try again later.")
+            return -1
+        elif "The file exists" in output:
+            pblog.error(f"File {pattern} was not able to be overwritten. Please remove it manually and run UpdateProject again.")
+            return -1
+        else:
+            pblog.error(f"Unknown error occurred while pulling release file {pattern} for release {version}")
+            pblog.error(f"Command output was: {output}")
+            return 1
+    except Exception as e:
+        pblog.exception(str(e))
+        pblog.error(
+            f"Exception thrown while pulling release file {file} for {version}")
+        return 1
+
+    return 0
+
+
 def is_pull_binaries_required():
     if not os.path.isfile(gh_executable_path):
         return False
@@ -45,7 +108,7 @@ def pull_binaries(version_number: str, pass_checksum=False):
         pblog.error(f"GH CLI executable not found at {gh_executable_path}")
         return 1
 
-    # Remove binary package if it exists, hub is not able to overwrite existing files
+    # Remove binary package if it exists, gh is not able to overwrite existing files
     if os.path.exists(binary_package_name):
         try:
             os.remove(binary_package_name)
