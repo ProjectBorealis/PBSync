@@ -36,11 +36,15 @@ def download_release_file(version, pattern=None, directory=None, repo=None):
         pblog.error(f"GH CLI executable not found at {gh_executable_path}")
         return 1
 
-    creds = get_token_env()
-
     args = [gh_executable_path, "release", "download", version]
 
+    if directory:
+        args.extend(["-D", directory])
+    else:
+        directory = "."
+
     def try_remove(path):
+        path = os.path.join(directory, path)
         if os.path.exists(path):
             try:
                 os.remove(path)
@@ -48,27 +52,29 @@ def download_release_file(version, pattern=None, directory=None, repo=None):
                 pblog.exception(str(e))
                 pblog.error(f"Exception thrown while removing {path}. Please remove it manually.")
                 return -1
+        return 0
+
+    def check_wildcard(path):
+        if "*" in file:
+            return False
+        return True
 
     if pattern:
-        if isinstance(pattern, list):
-            for file in pattern:
+        if not isinstance(pattern, list):
+            pattern = [pattern]
+        for file in pattern:
+            if check_wildcard(file):
                 res = try_remove(file)
                 if res != 0:
                     return res
-                args.extend(["-p", file])
-        else:
-            res = try_remove(file)
-            if res != 0:
-                return res
-            args.extend(["-p", pattern])
-    
-    pattern = "*"
-
-    if directory:
-        args.extend(["-D", directory])
+            args.extend(["-p", file])
+    else:
+        pattern = "*"
 
     if repo:
         args.extend(["-R", repo])
+
+    creds = get_token_env()
 
     try:
         proc = pbtools.run_with_combined_output(args, env=creds)
@@ -79,7 +85,7 @@ def download_release_file(version, pattern=None, directory=None, repo=None):
             pblog.error(f"Release {version} not found. Please wait and try again later.")
             return -1
         elif "The file exists" in output:
-            pblog.error(f"File {pattern} was not able to be overwritten. Please remove it manually and run UpdateProject again.")
+            pblog.error(f"File {directory}/{pattern} was not able to be overwritten. Please remove it manually and run UpdateProject again.")
             return -1
         else:
             pblog.error(f"Unknown error occurred while pulling release file {pattern} for release {version}")

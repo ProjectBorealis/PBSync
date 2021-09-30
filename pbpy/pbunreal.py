@@ -2,6 +2,7 @@ import itertools
 import re
 import os
 import json
+import time
 import glob
 import configparser
 import contextlib
@@ -626,9 +627,13 @@ def download_engine(bundle_name=None, download_symbols=False):
         pblog.info("Registering Unreal Engine file associations")
         selector_path = get_unreal_version_selector_path()
         cmdline = [selector_path, "/fileassociations"]
-        pblog.info("Requesting admin permission to isntall Unreal Engine Prerequisites...")
+        pblog.info("Requesting admin permission to install Unreal Engine Prerequisites...")
         if not pbuac.isUserAdmin():
-            pbuac.runAsAdmin(cmdline)
+            time.sleep(1)
+            try:
+                pbuac.runAsAdmin(cmdline)
+            except OSError:
+                pblog.error("User declined permission. Automatic install failed.")
         else:
             pbtools.run(cmdline)
         # generate project files for developers)

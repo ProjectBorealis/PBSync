@@ -6,6 +6,7 @@ import argparse
 import webbrowser
 import threading
 import multiprocessing
+import time
 
 from pathlib import Path
 
@@ -55,31 +56,45 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         pblog.info("------------------")
 
         detected_git_version = pbgit.get_git_version()
+        supported_git_version = pbconfig.get('supported_git_version')
         needs_git_update = False
-        if detected_git_version == pbconfig.get('supported_git_version'):
+        if detected_git_version == supported_git_version:
             pblog.info(f"Current Git version: {detected_git_version}")
         else:
+            pblog.warning("Git is not updated to the supported version in your system")
+            pblog.warning(f"Supported Git Version: {pbconfig.get('supported_git_version')}")
+            pblog.warning(f"Current Git Version: {detected_git_version}")
             needs_git_update = True
-            if ("vfs" not in pbconfig.get('supported_git_version') or "vfs" in detected_git_version) and sys.platform == "win32" or sys.platform == "darwin":
-                pblog.info("Attempting auto-update of Git...")
+            if "vfs" in detected_git_version and sys.platform == "win32" or sys.platform == "darwin":
+                pblog.info("Auto-updating Git...")
                 if sys.platform == "win32":
-                    proc = pbtools.run([pbgit.get_git_executable(), "update-git-for-windows", "-y"])
+                    version = f"v{supported_git_version}"
+                    directory = "Saved/PBSyncDownloads"
+                    download = f"Git-{supported_git_version}-64-bit.exe"
+                    repo = "microsoft/git"
+                    if pbgh.download_release_file(version, download, directory=directory, repo=repo) != 0:
+                        pblog.error("Git auto-update failed, please download and install manually.")
+                        webbrowser.open(f"https://github.com/{repo}/releases/download/{version}/{download}")
+                    else:
+                        download_path = f"Saved\\PBSyncDownloads\\{download}"
+                        proc = pbtools.run([download_path])
+                        if proc.returncode:
+                            pblog.error("Git auto-update failed. Please try manually:")
+                            webbrowser.open(f"https://github.com/{repo}/releases/download/{version}/{download}")
+                        else:
+                            needs_git_update = False
+                        os.remove(download_path)
                 else:
                     proc = pbtools.run([pbgit.get_git_executable(), "update-microsoft-git"])
-                # if non-zero, error out
-                if proc.returncode:
-                    pblog.warning("Git auto-update failed. Please try manually:")
-                else:
-                    needs_git_update = False
-                    input("Launching Git update, please press enter when done installing. ")
+                    # if non-zero, error out
+                    if proc.returncode:
+                        pblog.error("Git auto-update failed, please download and install manually.")
+                    else:
+                        needs_git_update = False
+                        input("Launching Git update, please press enter when done installing. ")
             if needs_git_update:
-                pblog.error("Git is not updated to the supported version in your system")
-                pblog.error(f"Supported Git Version: {pbconfig.get('supported_git_version')}")
-                pblog.error(f"Current Git Version: {detected_git_version}")
                 pblog.error("Please install the supported Git version from https://github.com/microsoft/git/releases")
                 pblog.error(f"Visit {pbconfig.get('git_instructions')} for installation instructions")
-                if os.name == "nt":
-                    webbrowser.open(f"https://github.com/microsoft/git/releases/download/v{pbconfig.get('supported_git_version')}/Git-{pbconfig.get('supported_git_version')}-64-bit.exe")
 
 
         if os.name == "nt" and pbgit.get_git_executable() == "git" and pbgit.get_lfs_executable() == "git-lfs":
@@ -113,6 +128,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
                 if not is_admin and len(delete_paths) > 0:
                     pblog.info("Requesting admin permission to delete bundled Git LFS which is overriding your installed version...")
+                    time.sleep(1)
                     quoted_paths = [f'"{path}"' for path in delete_paths]
                     delete_cmdline = ["cmd.exe", "/c", "DEL", "/q", "/f"] + quoted_paths
                     try:
@@ -134,23 +150,44 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         if detected_lfs_version == supported_lfs_version:
             pblog.info(f"Current Git LFS version: {detected_lfs_version}")
         else:
-            pblog.error("Git LFS is not updated to the supported version in your system")
-            pblog.error(f"Supported Git LFS Version: {supported_lfs_version}")
-            pblog.error(f"Current Git LFS Version: {detected_lfs_version}")
-            pblog.error("Please install the supported Git LFS version from https://git-lfs.github.com")
-            if os.name == "nt":
-                webbrowser.open(f"https://github.com/git-lfs/git-lfs/releases/download/v{supported_lfs_version}/git-lfs-windows-v{supported_lfs_version}.exe")
+            pblog.warning("Git LFS is not updated to the supported version in your system")
+            pblog.warning(f"Supported Git LFS Version: {supported_lfs_version}")
+            pblog.warning(f"Current Git LFS Version: {detected_lfs_version}")
             needs_git_update = True
+            if os.name == "nt":
+                pblog.info("Auto-updating Git LFS...")
+                version = f"v{supported_lfs_version}"
+                directory = "Saved/PBSyncDownloads"
+                download = f"git-lfs-windows-{version}.exe"
+                repo = "git-lfs/git-lfs"
+                result = pbgh.download_release_file(version, download, directory=directory, repo=repo)
+                if result != 0:
+                    pblog.error("Git LFS auto-update failed, please download and install manually.")
+                    webbrowser.open(f"https://github.com/{repo}/releases/download/{version}/{download}")
+                else:
+                    download_path = f"Saved\\PBSyncDownloads\\{download}"
+                    proc = pbtools.run([download_path])
+                    if proc.returncode:
+                        pblog.error("Git LFS auto-update failed, please download and install manually.")
+                        webbrowser.open(f"https://github.com/{repo}/releases/download/{version}/{download}")
+                    else:
+                        needs_git_update = False
+                    os.remove(download_path)
+
+            if needs_git_update:
+                pblog.error("Please install the supported Git LFS version from https://git-lfs.github.com")
+            
 
         detected_gcm_version = pbgit.get_gcm_version()
         supported_gcm_version_raw = pbconfig.get('supported_gcm_version')
-        supported_gcm_version = f"{supported_gcm_version_raw}{pbconfig.get('supported_gcm_version_suffix')}"
+        supported_gcm_version = f"{supported_gcm_version_raw}"
         if detected_gcm_version == supported_gcm_version:
             pblog.info(f"Current Git Credential Manager Core version: {detected_gcm_version}")
         else:
-            pblog.error("Git Credential Manager Core is not updated to the supported version in your system")
-            pblog.error(f"Supported Git Credential Manager Core Version: {supported_gcm_version}")
-            pblog.error(f"Current Git Credential Manager Core Version: {detected_gcm_version}")
+            pblog.warning("Git Credential Manager Core is not updated to the supported version in your system")
+            pblog.warning(f"Supported Git Credential Manager Core Version: {supported_gcm_version}")
+            pblog.warning(f"Current Git Credential Manager Core Version: {detected_gcm_version}")
+            needs_git_update = True
             if detected_gcm_version.startswith("diff"):
                 # remove the old credential helper (it may get stuck, and Core won't be able to install)
                 pbtools.run_with_combined_output([pbgit.get_git_executable(), "config", "--unset-all", "credential.helper"])
@@ -162,10 +199,28 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                     pblog.error("Please uninstall this and Git Credential Manager Core if you have it in \"Add or remove programs\" and then install Git Credential Manager Core again.")
                 else:
                     pblog.error("Please uninstall Git Credential Manager Core if you have it in \"Add or remove programs\" and then install Git Credential Manager Core again.")
-            pblog.error("Please install the supported Git Credential Manager Core version from https://github.com/microsoft/Git-Credential-Manager-Core/releases")
-            if os.name == "nt":
-                webbrowser.open(f"https://github.com/microsoft/Git-Credential-Manager-Core/releases/download/v{supported_gcm_version}/gcmcore-win-x86-{supported_gcm_version_raw}.{pbconfig.get('gcm_download_suffix')}.exe")
-            needs_git_update = True
+            else:
+                if os.name == "nt":
+                    pblog.info("Auto-updating Git Credential Manager Core...")
+                    version = f"v{supported_gcm_version}"
+                    directory = "Saved/PBSyncDownloads"
+                    download = f"gcmcore-win-x86-{supported_gcm_version_raw}.{pbconfig.get('gcm_download_suffix')}.exe"
+                    repo = "microsoft/Git-Credential-Manager-Core"
+                    if pbgh.download_release_file(version, download, directory=directory, repo=repo) != 0:
+                        pblog.error("Git Credential Manager Core auto-update failed, please download and install manually.")
+                        webbrowser.open(f"https://github.com/{repo}/releases/download/{version}/{download}")
+                    else:
+                        download_path = f"Saved\\PBSyncDownloads\\{download}"
+                        proc = pbtools.run([download_path])
+                        if proc.returncode:
+                            pblog.error("Git Credential Manager Core auto-update failed, please download and install manually.")
+                            webbrowser.open(f"https://github.com/{repo}/releases/download/{version}/{download}")
+                        else:
+                            needs_git_update = False
+                        os.remove(download_path)
+
+            if needs_git_update:
+                pblog.error("Please install the supported Git Credential Manager Core version from https://github.com/microsoft/Git-Credential-Manager-Core/releases")
 
         if needs_git_update:
             error_state()
@@ -468,12 +523,10 @@ def main(argv):
             'supported_git_version': ('git/version', None),
             'supported_lfs_version': ('git/lfsversion', None),
             'supported_gcm_version': ('git/gcmversion', None),
-            'supported_gcm_version_suffix': ('git/gcmversionsuffix', None),
             'gcm_download_suffix': ('git/gcmsuffix', None),
             'expected_branch_name': ('git/expectedbranch', None if args.debugbranch is None else str(args.debugbranch)),
             'git_url': ('git/url', None),
             'branches': ('git/branches/branch', None),
-            'checksum_file': ('git/checksumfile', None),
             'log_file_path': ('log/file', None),
             'user_config': ('project/userconfig', None),
             'ci_config': ('project/ciconfig', None),

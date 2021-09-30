@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <config>
     <project>
-        <enginebaseversion>4.26</enginebaseversion>
+        <enginebaseversion>4.27</enginebaseversion>
         <uprojectname>SampleProject.uproject</uprojectname>
         <defaultgameinipath>Config/DefaultGame.ini</defaultgameinipath>
         <userconfig>.user-sync</userconfig>
@@ -9,18 +9,16 @@
         <packagepdbs>True</packagepdbs>
     </project>
     <git>
-        <version>2.32.0.vfs.0.3</version>
+        <version>2.33.0.vfs.0.0</version>
         <lfsversion>3.0.1</lfsversion>
-        <gcmversion>2.0.475</gcmversion>
-        <gcmversionsuffix></gcmversionsuffix>
-        <gcmsuffix>64295</gcmsuffix>
+        <gcmversion>2.0.498</gcmversion>
+        <gcmsuffix>54650</gcmsuffix>
         <expectedbranch>promoted</expectedbranch>
-        <url>https://github.com/GithubUser/samplerepository.git</url>
+        <url>https://github.com/user/repo.git</url>
         <branches>
             <branch>main</branch>
-            <branch>trunk</branch>
+            <branch>promoted</branch>
         </branches>
-        <checksumfile>.checksum</checksumfile>
     </git>
     <versionator>
         <defaultbundle>editor</defaultbundle>
@@ -38,7 +36,7 @@
         <drm>Saved/StagedBuilds/WindowsNoEditor/SampleProject/Binaries/Win64</drm>
     </dispatch>
     <resharper>
-        <version>2021.1.5</version>
+        <version>2021.2.1</version>
     </resharper>
     <msg>
         <git_instructions>https://gitforwindows.org/</git_instructions>
