@@ -110,41 +110,53 @@ def is_pull_binaries_required():
 
 
 def pull_binaries(version_number: str, pass_checksum=False):
-    if not os.path.isfile(gh_executable_path):
-        pblog.error(f"GH CLI executable not found at {gh_executable_path}")
-        return 1
+    if pass_checksum:
+        checksum_json_path = None
+    else:
+        checksum_json_path = pbconfig.get("checksum_file")
+        if not os.path.exists(checksum_json_path):
+            pblog.error(f"Checksum json file not found at {checksum_json_path}")
+            return 1
 
-    # Remove binary package if it exists, gh is not able to overwrite existing files
-    if os.path.exists(binary_package_name):
+    if not pbtools.compare_hash_single(binary_package_name, checksum_json_path):
+        if not os.path.isfile(gh_executable_path):
+            pblog.error(f"GH CLI executable not found at {gh_executable_path}")
+            return 1
+
+        # Remove binary package if it exists, gh is not able to overwrite existing files
+        if os.path.exists(binary_package_name):
+            try:
+                os.remove(binary_package_name)
+            except Exception as e:
+                pblog.exception(str(e))
+                pblog.error(f"Exception thrown while removing {binary_package_name}. Please remove it manually.")
+                return -1
+
+        creds = get_token_env()
+
         try:
-            os.remove(binary_package_name)
+            proc = pbtools.run_with_combined_output([gh_executable_path, "release", "download", version_number, "-p", binary_package_name], env=creds)
+            output = proc.stdout
+            if proc.returncode == 0:
+                pass
+            elif pbtools.it_has_any(output, "release not found", "no assets"):
+                pblog.error(f"Release {version_number} not found. Please wait and try again later.")
+                return -1
+            elif "The file exists" in output:
+                pblog.error(f"File {binary_package_name} was not able to be overwritten. Please remove it manually and run UpdateProject again.")
+                return -1
+            else:
+                pblog.error(f"Unknown error occurred while pulling binaries for release {version_number}")
+                pblog.error(f"Command output was: {output}")
+                return 1
         except Exception as e:
             pblog.exception(str(e))
-            pblog.error(f"Exception thrown while removing {binary_package_name}. Please remove it manually.")
-            return -1
-
-    creds = get_token_env()
-
-    try:
-        proc = pbtools.run_with_combined_output([gh_executable_path, "release", "download", version_number, "-p", binary_package_name], env=creds)
-        output = proc.stdout
-        if proc.returncode == 0:
-            pass
-        elif pbtools.it_has_any(output, "release not found", "no assets"):
-            pblog.error(f"Release {version_number} not found. Please wait and try again later.")
-            return -1
-        elif "The file exists" in output:
-            pblog.error(f"File {binary_package_name} was not able to be overwritten. Please remove it manually and run UpdateProject again.")
-            return -1
-        else:
-            pblog.error(f"Unknown error occurred while pulling binaries for release {version_number}")
-            pblog.error(f"Command output was: {output}")
+            pblog.error(
+                f"Exception thrown while pulling binaries for {version_number}")
             return 1
-    except Exception as e:
-        pblog.exception(str(e))
-        pblog.error(
-            f"Exception thrown while pulling binaries for {version_number}")
-        return 1
+
+        if not pbtools.compare_hash_single(binary_package_name, checksum_json_path):
+            return 1
 
     pbunreal.ensure_ue_closed()
 
@@ -157,17 +169,6 @@ def pull_binaries(version_number: str, pass_checksum=False):
             pblog.error("Exception thrown while cleaning Binaries folder")
             return 1
     try:
-        if pass_checksum:
-            checksum_json_path = None
-        else:
-            checksum_json_path = pbconfig.get("checksum_file")
-            if not os.path.exists(checksum_json_path):
-                pblog.error(f"Checksum json file is not found at {checksum_json_path}")
-                return 1
-
-            if not pbtools.compare_hash_single(binary_package_name, checksum_json_path):
-                return 1
-
         with ZipFile(binary_package_name) as zip_file:
             zip_file.extractall()
             if pass_checksum:
