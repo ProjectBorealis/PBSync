@@ -461,7 +461,7 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
 
     # reset plugin submodules
     if pbgit.is_on_expected_branch():
-        shutil.rmtree("Plugins")
+        shutil.rmtree("Plugins", ignore_errors=True)
 
     if not it_has_any(out, "-0"):
         pbunreal.ensure_ue_closed()
