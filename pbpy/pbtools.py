@@ -463,9 +463,10 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         pbunreal.ensure_ue_closed()
         pblog.info("Please wait while getting the latest changes from the repository. It may take a while...")
 
-        # reset plugin submodules
-        if pbgit.is_on_expected_branch():
-            shutil.rmtree("Plugins", ignore_errors=True)
+        if False:
+            # reset plugin submodules
+            if pbgit.is_on_expected_branch():
+                shutil.rmtree("Plugins", ignore_errors=True)
 
         use_new_sync = False
         if use_new_sync:
