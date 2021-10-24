@@ -814,7 +814,7 @@ def build_source():
     if ms_build is None:
         pbtools.error_state("Could not find MSBuild.")
     sln_path = get_sln_path().resolve()
-    proc = pbtools.run_stream([ms_build, str(sln_path), "-m", "/nologo", "/t:build", '/property:configuration=Development Editor', "/property:Platform=Win64"], logfunc=lambda x: pbtools.checked_stream_log(x, error="error ", warning="warning "))
+    proc = pbtools.run_stream([ms_build, str(sln_path), "/nologo", "/t:build", '/property:configuration=Development Editor', "/property:Platform=Win64"], logfunc=lambda x: pbtools.checked_stream_log(x, error="error ", warning="warning "))
     if proc.returncode:
         pbtools.error_state("Build failed.")
 
