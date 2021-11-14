@@ -75,7 +75,7 @@ def run_with_output(cmd, env=None, env_out=None):
 
 
 def default_stream_log(msg):
-    pblog.info(str)
+    pblog.info(msg)
 
 
 def checked_stream_log(msg, error="error", warning="warning"):
