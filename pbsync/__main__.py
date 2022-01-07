@@ -184,7 +184,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         if detected_gcm_version.endswith("git-credential-manager-core.exe"):
             pbtools.run_with_combined_output([pbgit.get_git_executable(), "config", "credential.helper", "manager-core"])
             pbtools.run_with_combined_output([pbgit.get_git_executable(), "config", "--global", "credential.helper", "manager-core"])
-            pbgit.get_gcm_version.cache_clear()
+            pbgit.get_gcm_executable.cache_clear()
             detected_gcm_version = pbgit.get_gcm_version()
         if detected_gcm_version == supported_gcm_version:
             pblog.info(f"Current Git Credential Manager Core version: {detected_gcm_version}")
