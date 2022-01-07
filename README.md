@@ -4,6 +4,10 @@ Advanced workspace synchronization tool for Unreal Engine projects hosted on git
 
 ## Development
 
+### Dependencies
+
+Run `dependencies.bat` on Windows or `dependencies.sh` on Linux.
+
 ### Setup
 
 On Linux, this step can be skipped.
