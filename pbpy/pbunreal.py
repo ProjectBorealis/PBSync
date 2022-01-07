@@ -493,14 +493,13 @@ gb_div = 1.0 / gb_multiplier
 
 def register_engine(version, path):
     if os.name == "nt":
-        pbtools.run(["reg", "add", r"Software\Epic Games\Unreal Engine\Builds", "/v", version, "/t", "REG_SZ", "/d", path])
+        pbtools.run(["reg", "add", r"HKCU\Software\Epic Games\Unreal Engine\Builds", "/v", version, "/t", "REG_SZ", "/d", path, "/f"])
 
 
 def download_engine(bundle_name=None, download_symbols=False):
     is_ci = pbconfig.get("is_ci")
     version = get_engine_version_with_prefix()
-    engine_ver = f"{bundle_name}-{version}"
-    engine_id = f"{uev_prefix}{engine_ver}"
+    engine_id = f"{uev_prefix}{version}"
 
     root = get_engine_install_root()
 
