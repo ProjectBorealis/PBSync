@@ -371,8 +371,7 @@ def maintain_repo():
     pblog.info("Starting repo maintenance...")
 
     commands = [
-        f"{pbgit.get_lfs_executable()} prune -fc",
-        f"{pbgit.get_lfs_executable()} dedup"
+        f"{pbgit.get_lfs_executable()} prune -fc"
     ]
 
     if os.name == "nt" and pbgit.get_git_executable() == "git":
