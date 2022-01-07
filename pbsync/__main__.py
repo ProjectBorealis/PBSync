@@ -179,8 +179,13 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             
 
         detected_gcm_version = pbgit.get_gcm_version()
-        supported_gcm_version_raw = pbconfig.get('supported_gcm_version')
-        supported_gcm_version = f"{supported_gcm_version_raw}"
+        supported_gcm_version = pbconfig.get('supported_gcm_version')
+        # logic for moving to proper config for GCM
+        if detected_gcm_version.endswith("git-credential-manager-core.exe"):
+            pbtools.run_with_combined_output([pbgit.get_git_executable(), "config", "credential.helper", "manager-core"])
+            pbtools.run_with_combined_output([pbgit.get_git_executable(), "config", "--global", "credential.helper", "manager-core"])
+            pbgit.get_gcm_version.cache_clear()
+            detected_gcm_version = pbgit.get_gcm_version()
         if detected_gcm_version == supported_gcm_version:
             pblog.info(f"Current Git Credential Manager Core version: {detected_gcm_version}")
         else:
@@ -189,11 +194,10 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             pblog.warning(f"Current Git Credential Manager Core Version: {detected_gcm_version}")
             needs_git_update = True
             if detected_gcm_version.startswith("diff"):
-                # remove the old credential helper (it may get stuck, and Core won't be able to install)
-                pbtools.run_with_combined_output([pbgit.get_git_executable(), "config", "--unset-all", "credential.helper"])
-                pbtools.run_with_combined_output([pbgit.get_git_executable(), "config", "--global", "--unset-all", "credential.helper"])
+                # remove the old credential helper and set the new one (it may get stuck, and Core won't be able to install)
+                pbtools.run_with_combined_output([pbgit.get_git_executable(), "config", "credential.helper", "manager-core"])
+                pbtools.run_with_combined_output([pbgit.get_git_executable(), "config", "--global", "credential.helper", "manager-core"])
                 exe_location = detected_gcm_version.split(".", 1)[1]
-                # if they actually have a Windows program installed, inform them.
                 if exe_location.endswith(".exe"):
                     pblog.error(f"It seems like you have another Git credential helper installed at: {exe_location}.")
                     pblog.error("Please uninstall this and Git Credential Manager Core if you have it in \"Add or remove programs\" and then install Git Credential Manager Core again.")
@@ -204,7 +208,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                     pblog.info("Auto-updating Git Credential Manager Core...")
                     version = f"v{supported_gcm_version}"
                     directory = "Saved/PBSyncDownloads"
-                    download = f"gcmcore-win-x86-{supported_gcm_version_raw}.{pbconfig.get('gcm_download_suffix')}.exe"
+                    download = f"gcmcore-win-x86-{supported_gcm_version}.{pbconfig.get('gcm_download_suffix')}.exe"
                     repo = "microsoft/Git-Credential-Manager-Core"
                     if pbgh.download_release_file(version, download, directory=directory, repo=repo) != 0:
                         pblog.error("Git Credential Manager Core auto-update failed, please download and install manually.")

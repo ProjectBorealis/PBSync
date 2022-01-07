@@ -55,9 +55,13 @@ def get_gcm_executable():
     if not gcm_exec:
         return None
     # helper installed, but not GCM Core
-    if "git-credential-manager-core" not in gcm_exec:
+    if "manager-core" != gcm_exec:
         return f"diff.{gcm_exec}"
     return gcm_exec
+
+
+def get_gcm_cmdline():
+    return get_git_executable(), f"credential-{get_gcm_executable()}"
 
 
 def get_git_version():
@@ -97,7 +101,7 @@ def get_gcm_version():
         return missing_version
     if gcm_exec.startswith("diff"):
         return gcm_exec
-    installed_version = pbtools.get_one_line_output([gcm_exec, "--version"])
+    installed_version = pbtools.get_one_line_output([*get_gcm_cmdline(), "--version"])
 
     if installed_version == "":
         return missing_version
@@ -263,7 +267,7 @@ def get_credentials():
         creds += f"username={repo_url.username}\n"
     creds += "\n"
 
-    proc = pbtools.run_with_stdin([get_gcm_executable(), "get"], input=creds)
+    proc = pbtools.run_with_stdin([*get_gcm_cmdline(), "get"], input=creds)
 
     if proc.returncode != 0:
         return (None, None)
@@ -279,7 +283,7 @@ def get_credentials():
 
     # force reauthentication
     if cred_dict.get("username") == "PersonalAccessToken":
-        proc = pbtools.run_with_stdin([get_gcm_executable(), "erase"], input=creds)
+        proc = pbtools.run_with_stdin([*get_gcm_cmdline(), "erase"], input=creds)
         check_remote_connection()
 
     return cred_dict.get("username"), cred_dict.get("password")
