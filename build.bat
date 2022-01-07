@@ -8,9 +8,8 @@ pyinstaller --onefile ^
             -n PBSync ^
             --clean ^
             --console ^
-            --icon=icon.ico ^
             --runtime-tmpdir Saved ^
-            --key %random% ^
+            --key cd17c3ab10dba6bd ^
             -i resources/icon.ico ^
             --version-file version.rc ^
-            -p pbpy:pbsync pbsync/__main__.py
+            -p . pbsync/__main__.py %*
