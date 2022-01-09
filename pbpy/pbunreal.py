@@ -446,7 +446,7 @@ def get_bundle_verification_file(bundle_name):
 @lru_cache()
 def get_engine_base_path():
     if is_source_install():
-        return get_engine_install_root()
+        return Path(get_engine_install_root())
     version = get_engine_version()
     if version is not None:
         root = get_engine_install_root()
@@ -493,11 +493,10 @@ gb_div = 1.0 / gb_multiplier
 
 def register_engine(version, path):
     if os.name == "nt":
-        pbtools.run(["reg", "add", r"HKCU\Software\Epic Games\Unreal Engine\Builds", "/v", version, "/t", "REG_SZ", "/d", path, "/f"])
+        pbtools.run(["reg", "add", r"HKCU\Software\Epic Games\Unreal Engine\Builds", "/f", "/v", version, "/t", "REG_SZ", "/d", path])
 
 
 def download_engine(bundle_name=None, download_symbols=False):
-    is_ci = pbconfig.get("is_ci")
     version = get_engine_version_with_prefix()
     engine_id = f"{uev_prefix}{version}"
 
@@ -506,6 +505,9 @@ def download_engine(bundle_name=None, download_symbols=False):
     if is_source_install():
         register_engine(engine_id, root)
         return True
+    
+    is_ci = pbconfig.get("is_ci")
+    
     if root is not None:
         # create install dir if doesn't exist
         os.makedirs(root, exist_ok=True)
