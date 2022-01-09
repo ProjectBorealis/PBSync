@@ -89,7 +89,7 @@ def generate_config(config_path, parser_func):
             return False
 
         # Add CI information
-        config["is_ci"] = os.getenv('PBSYNC_CI') is not None
+        config["is_ci"] = os.getenv('PBSYNC_CI') is not None or os.getenv('CI') is not None
         config["checksum_file"] = ".checksum"
 
         return True
