@@ -818,13 +818,12 @@ def get_devenv_path():
 
 def build_source():
     base = get_engine_base_path()
-    get_ms_build = base / "Engine" / "Build" / "BatchFiles" / "GetMSBuildPath.bat"
-    pbtools.run_with_output([str(get_ms_build)], env_out=["MSBUILD_EXE"])
-    ms_build = os.environ.get("MSBUILD_EXE")
-    if ms_build is None:
-        pbtools.error_state("Could not find MSBuild.")
-    sln_path = get_sln_path().resolve()
-    proc = pbtools.run_stream([ms_build, str(sln_path), "/nologo", "/t:build", '/property:configuration=Development Editor', "/property:Platform=Win64"], logfunc=lambda x: pbtools.checked_stream_log(x, error="error ", warning="warning "))
+    ubt = base / "Engine" / "Build" / "BatchFiles"
+    platform = get_platform_name()
+    if platform == "Linux" or platform == "Mac":
+        ubt = ubt / platform
+    ubt = ubt / "Build.sh"
+    proc = pbtools.run_stream([ubt, platform, "Development", f"-project={str(get_uproject_path())}", "-TargetType=Editor"], logfunc=lambda x: pbtools.checked_stream_log(x, error="error ", warning="warning "))
     if proc.returncode:
         pbtools.error_state("Build failed.")
 
