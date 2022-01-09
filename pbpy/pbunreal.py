@@ -821,8 +821,9 @@ def build_source():
     ubt = base / "Engine" / "Build" / "BatchFiles"
     platform = get_platform_name()
     if platform == "Linux" or platform == "Mac":
-        ubt = ubt / platform
-    ubt = ubt / "Build.sh"
+        ubt = ubt / platform / "Build.sh"
+    else:
+        ubt = ubt / "Build.bat"
     proc = pbtools.run_stream([ubt, platform, "Development", f"-project={str(get_uproject_path())}", "-TargetType=Editor"], logfunc=lambda x: pbtools.checked_stream_log(x, error="error ", warning="warning "))
     if proc.returncode:
         pbtools.error_state("Build failed.")
