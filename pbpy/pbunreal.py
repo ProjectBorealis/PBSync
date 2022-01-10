@@ -477,6 +477,26 @@ def get_unreal_version_selector_path():
         return base_path / Path("Engine/Binaries/Win64/UnrealVersionSelector-Win64-Shipping.exe")
 
 
+def run_unreal_setup():
+    base_path = get_engine_base_path()
+    pblog.info("Installing Unreal Engine prerequisites")
+    prereq_exe = "UEPrereqSetup_x64" if is_ue5() else "UE4PrereqSetup_x64"
+    prereq_path = base_path / Path(f"Engine/Extras/Redist/en-us/{prereq_exe}.exe")
+    pbtools.run([str(prereq_path), "/quiet"])
+    pblog.info("Registering Unreal Engine file associations")
+    selector_path = get_unreal_version_selector_path()
+    cmdline = [selector_path, "/fileassociations"]
+    pblog.info("Requesting admin permission to install Unreal Engine Prerequisites...")
+    if not pbuac.isUserAdmin():
+        time.sleep(1)
+        try:
+            pbuac.runAsAdmin(cmdline)
+        except OSError:
+            pblog.error("User declined permission. Automatic install failed.")
+    else:
+        pbtools.run(cmdline)
+
+
 @lru_cache()
 def get_uproject_path():
     return Path(pbconfig.get("uproject_name")).resolve()
@@ -498,12 +518,20 @@ def register_engine(version, path):
 
 def download_engine(bundle_name=None, download_symbols=False):
     version = get_engine_version_with_prefix()
+
+    if version is None:
+        return True
+
     engine_id = f"{uev_prefix}{version}"
 
     root = get_engine_install_root()
 
     if is_source_install():
         register_engine(engine_id, root)
+        if not check_ue_file_association():
+            run_unreal_setup()
+        if not get_sln_path().exists():
+            generate_project_files()
         return True
     
     is_ci = pbconfig.get("is_ci")
@@ -630,26 +658,10 @@ def download_engine(bundle_name=None, download_symbols=False):
 
     # if not CI, run the setup tasks
     if root is not None and not is_ci and needs_exe:
-        pblog.info("Installing Unreal Engine prerequisites")
-        prereq_exe = "UEPrereqSetup_x64" if is_ue5() else "UE4PrereqSetup_x64"
-        prereq_path = base_path / Path(f"Engine/Extras/Redist/en-us/{prereq_exe}.exe")
-        pbtools.run([str(prereq_path), "/quiet"])
-        pblog.info("Registering Unreal Engine file associations")
-        selector_path = get_unreal_version_selector_path()
-        cmdline = [selector_path, "/fileassociations"]
-        pblog.info("Requesting admin permission to install Unreal Engine Prerequisites...")
-        if not pbuac.isUserAdmin():
-            time.sleep(1)
-            try:
-                pbuac.runAsAdmin(cmdline)
-            except OSError:
-                pblog.error("User declined permission. Automatic install failed.")
-        else:
-            pbtools.run(cmdline)
-        # generate project files for developers)
+        run_unreal_setup()
+        # generate project files for developers
         if not pbgit.is_on_expected_branch():
-            uproject = str(get_uproject_path())
-            pbtools.run([selector_path, "/projectfiles", uproject])
+            generate_project_files()
 
     return True
 

@@ -335,7 +335,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         fix_attr_thread.join()
         pblog.info("Finished LFS read flag fix.")
 
-        launch_pref = pbconfig.get_user("project", "launch", "editor")
+        launch_pref = pbconfig.get_user("project", "launch", "none") if is_ci else pbconfig.get_user("project", "launch", "editor")
         if launch_pref == "vs":
             os.startfile(pbunreal.get_sln_path())
         elif launch_pref == "rider":
