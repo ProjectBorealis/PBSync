@@ -395,9 +395,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         if pbunreal.download_engine(requested_bundle_name, symbols_needed):
             pblog.info(f"Engine build {requested_bundle_name}-{engine_version} successfully registered")
             if pbconfig.get("is_ci"):
-                keep = 3
-                pblog.info(f"Keeping the last {keep} engine versions and removing the rest.")
-                pbunreal.clean_old_engine_installations(keep=keep)
+                pbunreal.clean_old_engine_installations(keep=3)
         else:
             error_state(f"Something went wrong while registering engine build {requested_bundle_name}-{engine_version}")
 

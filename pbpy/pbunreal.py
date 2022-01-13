@@ -369,6 +369,7 @@ def clean_old_engine_installations(keep=1):
         if is_source_install():
             return True
         if engine_install_root is not None and os.path.isdir(engine_install_root):
+            pblog.info(f"Keeping the last {keep} engine versions and removing the rest.")
             folders = os.listdir(engine_install_root)
             for i in range(0, len(folders) - keep):
                 folder = folders[i]
@@ -623,7 +624,7 @@ def download_engine(bundle_name=None, download_symbols=False):
                     dst = f"file://{root}"
                     command_runner.RunNamedCommand('cp' if legacy_archives else 'rs', args=["-n", gcs_uri, dst], collect_analytics=False, skip_update_check=True, parallel_operations=needs_exe and needs_symbols)
 
-    # Extract and register with ueversionator
+    # Extract with ueversionator
     if needs_exe:
         command_set = ["ueversionator.exe"]
 
