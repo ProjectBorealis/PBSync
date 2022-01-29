@@ -249,8 +249,6 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                 error_state(f"You are in the middle of a rebase. Changes on one of your commits will be overridden by incoming changes. Please request help in {pbconfig.get('support_channel')} to resolve conflicts, and please do not run UpdateProject until the issue is resolved.",
                                     fatal_error=True)
 
-        current_branch = pbgit.get_current_branch_name()
-
         # undo single branch clone
         if not is_ci:
             pbtools.run([pbgit.get_git_executable(), "config", "remote.origin.fetch", "+refs/heads/*:refs/remotes/origin/*"])
@@ -534,6 +532,7 @@ def main(argv):
             'uproject_name': ('project/uprojectname', None),
             'defaultgame_path': ('project/defaultgameinipath', None),
             'package_pdbs': ('project/packagepdbs', None),
+            'ddc_key': ('project/ddc_key', None),
             'dispatch_config': ('dispatch/config', None),
             'dispatch_drm': ('dispatch/drm', None),
             'dispatch_stagedir': ('dispatch/stagedir', None),

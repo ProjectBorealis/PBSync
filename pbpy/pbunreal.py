@@ -1,3 +1,4 @@
+from distutils import command
 import itertools
 import re
 import os
@@ -360,6 +361,19 @@ def generate_ddc_data():
     f"Error occurred while reading project version for DDC data generation. Please get support from {pbconfig.get('support_channel')}")
 
 
+def sync_ddc():
+    if pbconfig.get('uses_gcs') != "True":
+        pblog.error("Syncing DDC data requires GCS.")
+        return False
+    pblog.info("Syncing DDC data...")
+    shared_ddc = str(Path("SharedDDC").resolve())
+    gcs_bucket = get_ddc_gsuri()
+    gcs_uri = f"{gcs_bucket}/{pbconfig.get('ddc_key')}"
+    command_runner = init_gcs()
+    command_runner.RunNamedCommand('rs', args=["-Cir", gcs_uri, shared_ddc], collect_analytics=False, skip_update_check=True, parallel_operations=True)
+    pblog.success("Synced DDC data.")
+
+
 def clean_old_engine_installations(keep=1):
     current_version = get_engine_version_with_prefix()
     regex_pattern = engine_installation_folder_regex[0] + get_engine_version_prefix() + engine_installation_folder_regex[1]
@@ -403,6 +417,19 @@ def get_versionator_gsuri(fallback=None):
             pblog.exception(str(e))
     return None
 
+@lru_cache()
+def get_ddc_gsuri(fallback=None):
+    if pbconfig.get('uses_gcs') == "True":
+        try:
+            uev_config = configparser.ConfigParser()
+            uev_config.read(".ueversionator")
+            baseurl = uev_config.get("ddc", "baseurl", fallback=fallback)
+            if baseurl:
+                domain = urlparse(baseurl).hostname
+                return f"gs://{domain}/"
+        except Exception as e:
+            pblog.exception(str(e))
+    return None
 
 @lru_cache()
 def is_versionator_symbols_enabled():
@@ -516,8 +543,12 @@ def register_engine(version, path):
     if os.name == "nt":
         pbtools.run(["reg", "add", r"HKCU\Software\Epic Games\Unreal Engine\Builds", "/f", "/v", version, "/t", "REG_SZ", "/d", path])
 
+g_command_runner = None
 
 def init_gcs():
+    if g_command_runner:
+        return g_command_runner
+    global g_command_runner
     if (gslib.utils.parallelism_framework_util.CheckMultiprocessingAvailableAndInit().is_available):
         # These setup methods must be called, and, on Windows, they can only be
         # called from within an "if __name__ == '__main__':" block.
@@ -525,10 +556,11 @@ def init_gcs():
         gslib.boto_translation.InitializeMultiprocessingVariables()
     else:
         gslib.command.InitializeThreadingVariables()
-    return CommandRunner(command_map={
+    g_command_runner = CommandRunner(command_map={
         "cp": CpCommand,
         "rs": RsyncCommand
     })
+    return g_command_runner
 
 def download_engine(bundle_name=None, download_symbols=False):
     version = get_engine_version_with_prefix()
@@ -575,8 +607,6 @@ def download_engine(bundle_name=None, download_symbols=False):
 
         if not legacy_archives:
             pblog.success("Using new remote sync method for engine update.")
-
-        command_runner = None
 
         if needs_exe or needs_symbols:
             if not is_ci and os.path.isdir(root):
@@ -656,15 +686,14 @@ def download_engine(bundle_name=None, download_symbols=False):
     # rsync patches
     if pbconfig.get('uses_gcs') == "True" and legacy_archives:
         pblog.info("Remote syncing patches for engine.")
-        if not command_runner:
-            command_runner = init_gcs()
+        command_runner = init_gcs()
 
         # Download folder
         pattern = f"{bundle_name}-{version}*/" if download_symbols else f"{bundle_name}/"
         gcs_bucket = get_versionator_gsuri()
         gcs_uri = f"{gcs_bucket}{pattern}"
         dst = f"file://{root}"
-        command_runner.RunNamedCommand('rs', args=[gcs_uri, dst], collect_analytics=False, skip_update_check=True, parallel_operations=True)
+        command_runner.RunNamedCommand('rs', args=["-Cir", gcs_uri, dst], collect_analytics=False, skip_update_check=True, parallel_operations=True)
 
 
     # if not CI, run the setup tasks
