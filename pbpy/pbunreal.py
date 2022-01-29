@@ -19,7 +19,7 @@ from urllib.parse import urlparse
 from pathlib import Path
 from gslib.command_runner import CommandRunner
 from gslib.commands.cp import CpCommand
-# from gslib.commands.rsync import RsyncCommand
+from gslib.commands.rsync import RsyncCommand
 
 import gslib
 
@@ -517,6 +517,19 @@ def register_engine(version, path):
         pbtools.run(["reg", "add", r"HKCU\Software\Epic Games\Unreal Engine\Builds", "/f", "/v", version, "/t", "REG_SZ", "/d", path])
 
 
+def init_gcs():
+    if (gslib.utils.parallelism_framework_util.CheckMultiprocessingAvailableAndInit().is_available):
+        # These setup methods must be called, and, on Windows, they can only be
+        # called from within an "if __name__ == '__main__':" block.
+        gslib.command.InitializeMultiprocessingVariables()
+        gslib.boto_translation.InitializeMultiprocessingVariables()
+    else:
+        gslib.command.InitializeThreadingVariables()
+    return CommandRunner(command_map={
+        "cp": CpCommand,
+        "rs": RsyncCommand
+    })
+
 def download_engine(bundle_name=None, download_symbols=False):
     version = get_engine_version_with_prefix()
 
@@ -557,15 +570,13 @@ def download_engine(bundle_name=None, download_symbols=False):
                 needs_exe = True
                 needs_symbols = download_symbols
                 shutil.rmtree(str(base_path), ignore_errors=True)
-        try:
-            legacy_archives = pbconfig.get_user_config().getboolean("ue4v-user", "legacy", fallback=True)
-        except:
-            legacy_archives = True
 
         legacy_archives = True
 
         if not legacy_archives:
             pblog.success("Using new remote sync method for engine update.")
+
+        command_runner = None
 
         if needs_exe or needs_symbols:
             if not is_ci and os.path.isdir(root):
@@ -593,39 +604,22 @@ def download_engine(bundle_name=None, download_symbols=False):
                         pblog.error(f"Required space: {must_free:.2f}GB")
                         pbtools.error_state()
 
-            if pbconfig.get('uses_gcs') == "True":
-                # Use gsutil to download the files efficiently
-                if (gslib.utils.parallelism_framework_util.CheckMultiprocessingAvailableAndInit().is_available):
-                    # These setup methods must be called, and, on Windows, they can only be
-                    # called from within an "if __name__ == '__main__':" block.
-                    gslib.command.InitializeMultiprocessingVariables()
-                    gslib.boto_translation.InitializeMultiprocessingVariables()
-                else:
-                    gslib.command.InitializeThreadingVariables()
-                command_runner = CommandRunner(command_map={
-                    "cp": CpCommand,
-                    # "rs": RsyncCommand
-                })
-                patterns = []
+            if pbconfig.get('uses_gcs') == "True" and legacy_archives:
+                command_runner = init_gcs()
                 if needs_exe and needs_symbols:
-                    if legacy_archives:
-                        patterns.append(f"{bundle_name}*")
-                    else:
-                        patterns.append(f"{bundle_name}")
-                        patterns.append(f"{bundle_name}-symbols")
+                    pattern = f"{bundle_name}*"
                 elif needs_symbols:
-                    patterns.append(f"{bundle_name}-symbols")
+                    pattern = f"{bundle_name}-symbols"
                 else:
-                    patterns.append(f"{bundle_name}")
-                patterns = [f"{pattern}-{version}.7z" if legacy_archives else "/" for pattern in patterns]
+                    pattern = f"{bundle_name}"
+                pattern = f"{pattern}-{version}.7z"
                 gcs_bucket = get_versionator_gsuri()
-                for pattern in patterns:
-                    gcs_uri = f"{gcs_bucket}{pattern}"
-                    dst = f"file://{root}"
-                    command_runner.RunNamedCommand('cp' if legacy_archives else 'rs', args=["-n", gcs_uri, dst], collect_analytics=False, skip_update_check=True, parallel_operations=needs_exe and needs_symbols)
+                gcs_uri = f"{gcs_bucket}{pattern}"
+                dst = f"file://{root}"
+                command_runner.RunNamedCommand('cp' if legacy_archives else 'rs', args=["-n", gcs_uri, dst], collect_analytics=False, skip_update_check=True, parallel_operations=needs_exe and needs_symbols)
 
     # Extract with ueversionator
-    if needs_exe:
+    if (needs_exe or needs_symbols) and legacy_archives:
         command_set = ["ueversionator.exe"]
 
         command_set.append("-assume-valid")
@@ -656,6 +650,22 @@ def download_engine(bundle_name=None, download_symbols=False):
 
         if pbtools.run(command_set).returncode != 0:
             return False
+    else:
+        register_engine(engine_id, root)
+
+    # rsync patches
+    if pbconfig.get('uses_gcs') == "True" and legacy_archives:
+        pblog.info("Remote syncing patches for engine.")
+        if not command_runner:
+            command_runner = init_gcs()
+
+        # Download folder
+        pattern = f"{bundle_name}-{version}*/" if download_symbols else f"{bundle_name}/"
+        gcs_bucket = get_versionator_gsuri()
+        gcs_uri = f"{gcs_bucket}{pattern}"
+        dst = f"file://{root}"
+        command_runner.RunNamedCommand('rs', args=[gcs_uri, dst], collect_analytics=False, skip_update_check=True, parallel_operations=True)
+
 
     # if not CI, run the setup tasks
     if root is not None and not is_ci and needs_exe:
