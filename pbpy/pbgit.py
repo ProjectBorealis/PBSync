@@ -117,18 +117,19 @@ def get_lockables():
     return lockables
 
 
-def get_locked(key="ours"):
+def get_locked(key="ours", include_new=True):
     proc = pbtools.run_with_combined_output([get_lfs_executable(), "locks", "--verify", "--json"])
     if proc.returncode:
         return None
     locked_objects = json.loads(proc.stdout)[key]
     locked = set([l.get("path") for l in locked_objects])
     # also check untracked and added files
-    proc = pbtools.run_with_combined_output([get_git_executable(), "status", "--porcelain"])
-    if not proc.returncode:
-        for line in proc.stdout.splitlines():
-            if line[0] == "?" or line[1] == "?" or line[0] == "A" or line[1] == "A":
-                locked.add(line[3:])
+    if key == "ours" and include_new:
+        proc = pbtools.run_with_combined_output([get_git_executable(), "status", "--porcelain"])
+        if not proc.returncode:
+            for line in proc.stdout.splitlines():
+                if line[0] == "?" or line[1] == "?" or line[0] == "A" or line[1] == "A":
+                    locked.add(line[3:])
     return locked
 
 
@@ -160,6 +161,19 @@ def fix_lfs_ro_attr():
         for message in itertools.chain(pool.imap_unordered(read_only, not_locked, 100), pool.imap_unordered(read_write, locked)):
             if message:
                 pblog.warning(message)
+
+
+def unlock_unmodified():
+    modified = get_modified_files(paths=False)
+    pending = pbtools.get_combined_output([get_lfs_executable(), "push", "--dry-run", "origin"])
+    pending = pending.splitlines()
+    pending = {line.rsplit(" => ", 1)[1] for line in pending}
+    keep = modified + pending
+    locked = get_locked()
+    unlock = [file for file in locked if file not in keep]
+    args = [get_lfs_executable(), "unlock"]
+    args.extend(unlock)
+    return pbtools.run(args).returncode == 0
 
 
 @lru_cache()
@@ -285,6 +299,8 @@ def get_credentials():
     return cred_dict.get("username"), cred_dict.get("password")
 
 
-def get_modified_files():
+def get_modified_files(paths=True):
     proc = pbtools.run_with_output([get_git_executable(), "status", "--porcelain"])
-    return [pathlib.Path(line[3:]) for line in proc.stdout.splitlines()]
+    if paths:
+        return {pathlib.Path(line[3:]) for line in proc.stdout.splitlines()}
+    return {line[3:] for line in proc.stdout.splitlines()}
