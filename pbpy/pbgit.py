@@ -169,10 +169,27 @@ def unlock_unmodified():
     pending = pbtools.get_combined_output([get_lfs_executable(), "push", "--dry-run", "origin"])
     pending = pending.splitlines()
     pending = {line.rsplit(" => ", 1)[1] for line in pending}
-    keep = modified + pending
+    keep = modified | pending
     locked = get_locked()
-    unlock = [file for file in locked if file not in keep]
-    args = [get_lfs_executable(), "unlock"]
+    unlock = {file for file in locked if file not in keep}
+    prefix_filter = []
+    for path in modified:
+        # if a folder
+        if pathlib.Path(path).is_dir():
+            prefix_filter.append(path)
+    unlock_it = list(unlock)
+    for file in unlock_it:
+        found = False
+        for prefix in prefix_filter:
+            if file.startswith(prefix):
+                unlock.remove(file)
+                found = True
+        if found:
+            continue
+    unlock = list(unlock)
+    if not unlock:
+        return True
+    args = [get_lfs_executable(), "unlock", "-f"]
     args.extend(unlock)
     return pbtools.run(args).returncode == 0
 
