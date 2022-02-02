@@ -532,7 +532,7 @@ def main(argv):
             'uproject_name': ('project/uprojectname', None),
             'defaultgame_path': ('project/defaultgameinipath', None),
             'package_pdbs': ('project/packagepdbs', None),
-            'ddc_key': ('project/ddc_key', None),
+            'ddc_key': ('project/ddckey', None),
             'dispatch_config': ('dispatch/config', None),
             'dispatch_drm': ('dispatch/drm', None),
             'dispatch_stagedir': ('dispatch/stagedir', None),
