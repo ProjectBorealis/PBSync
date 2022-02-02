@@ -154,6 +154,7 @@ def read_write(file):
 
 
 def fix_lfs_ro_attr():
+    unlock_unmodified()
     lockables = get_lockables()
     locked = get_locked()
     not_locked = lockables - locked
