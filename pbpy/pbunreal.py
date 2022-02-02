@@ -545,9 +545,9 @@ def register_engine(version, path):
 g_command_runner = None
 
 def init_gcs():
+    global g_command_runner
     if g_command_runner:
         return g_command_runner
-    global g_command_runner
     if (gslib.utils.parallelism_framework_util.CheckMultiprocessingAvailableAndInit().is_available):
         # These setup methods must be called, and, on Windows, they can only be
         # called from within an "if __name__ == '__main__':" block.
