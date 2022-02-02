@@ -31,7 +31,7 @@ from pbpy import pbgit
 from pbpy import pbuac
 
 # Those variable values are not likely to be changed in the future, it's safe to keep them hardcoded
-uev_prefix = "ue4v:"
+uev_prefix = "uev:"
 uplugin_ext = ".uplugin"
 uproject_ext = ".uproject"
 uplugin_version_key = "VersionName"
