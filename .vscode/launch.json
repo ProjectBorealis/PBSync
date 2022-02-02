@@ -4,13 +4,13 @@
         {
             "id": "debugPath",
             "description": "Please enter working directory for PBSync",
-            "default": "C:\\pb",
+            "default": "C:\\src\\pb",
             "type": "promptString"
         },
         {
             "id": "debugBranch",
             "description": "Please enter branch to be used as expected branch",
-            "default": "main",
+            "default": "trunk",
             "type": "promptString"
         },
         {
@@ -70,7 +70,7 @@
         },
         {
             "name": "Sync All",
-            "args": ["--sync", "all", "--debugpath", "${input:debugPath}", "--debugbranch", "${input:debugBranch}", "--config", "PBSyncTemp/PBSync.xml"],
+            "args": ["--sync", "all", "--debugpath", "${input:debugPath}", "--debugbranch", "${input:debugBranch}"],
             "type": "python",
             "justMyCode": false,
             "request": "launch",
