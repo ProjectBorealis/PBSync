@@ -1,4 +1,3 @@
-from distutils import command
 import itertools
 import re
 import os
