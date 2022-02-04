@@ -95,8 +95,29 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "Generate DDC",
+            "name": "Sync DDC",
             "args": ["--sync", "ddc", "--debugpath", "${input:debugPath}"],
+            "type": "python",
+            "request": "launch",
+            "module": "pbsync",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Generate DDC",
+            "args": [
+                "--build",
+                "ddc",
+                "--debugpath",
+                "${input:debugPath}"
+            ],
+            "type": "python",
+            "request": "launch",
+            "module": "pbsync",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Upload Cloud DDC",
+            "args": ["--build", "s3ddc", "--debugpath", "${input:debugPath}"],
             "type": "python",
             "request": "launch",
             "module": "pbsync",

@@ -889,10 +889,10 @@ def upload_cloud_ddc():
     cache = Path("DerivedDataCache")
     if is_source_install():
         root = get_engine_install_root()
-        cache = root / "Engine" / cache
+        cache = Path(root) / "Engine" / cache
     cache = str(cache.resolve())
     manifest = str(Path("Build/DDC.json").resolve())
-    proc = pbtools.run_stream([str(get_uat_path()), "UploadDDCToAWS", f"-project={str(get_uproject_path())}", f"-Bucket={get_ddc_bucket()}", f"-CredentialsFile={credentials}", "-CredentialsKey=default", f"-CacheDir={cache}", f"-FilterDir={access_logs}", f"-Manifest={manifest}"])
+    proc = pbtools.run_stream([get_uat_path(), "UploadDDCToAWS", f"-project={str(get_uproject_path())}", f"-Bucket={get_ddc_bucket()}", f"-CredentialsFile={credentials}", "-CredentialsKey=default", f"-CacheDir={cache}", f"-FilterDir={access_logs}", f"-Manifest={manifest}"])
     if proc.returncode:
         pbtools.error_state("Upload failed.")
 
