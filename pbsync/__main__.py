@@ -1,3 +1,4 @@
+from functools import partial
 from pbpy.pbtools import error_state
 import os.path
 import os
@@ -372,7 +373,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         pblog.info(f"Successfully changed engine version as {str(engine_version)}")
 
     elif sync_val == "ddc":
-        pbunreal.generate_ddc_data()
+        pbunreal.sync_ddc_vt()
 
     elif sync_val == "binaries":
         project_version = pbunreal.get_project_version()
@@ -398,23 +399,26 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             error_state(f"Something went wrong while registering engine build {requested_bundle_name}-{engine_version}")
 
 
+build_hooks = {
+    "sln": pbunreal.generate_project_files,
+    "source": pbunreal.build_source,
+    "internal": partial(pbunreal.build_game, "Test"),
+    "game": pbunreal.build_game,
+    "package": pbunreal.package_binaries,
+    "release": pbgh.generate_release,
+    "inspect": pbunreal.inspect_source,
+    "inspectall": partial(pbunreal.inspect_source, all=True),
+    "s3ddc": pbunreal.upload_cloud_ddc,
+    "ddc": pbunreal.generate_ddc_data
+}
+
+
 def build_handler(build_val):
-    if build_val == "sln":
-        pbunreal.generate_project_files()
-    elif build_val == "source":
-        pbunreal.build_source()
-    elif build_val == "internal":
-        pbunreal.build_game("Test")
-    elif build_val == "game":
-        pbunreal.build_game()
-    elif build_val == "package":
-        pbunreal.package_binaries()
-    elif build_val == "release":
-        pbgh.generate_release()
-    elif build_val == "inspect":
-        pbunreal.inspect_source()
-    elif build_val == "inspectall":
-        pbunreal.inspect_source(all=True)
+    build_func = build_hooks.get(build_val)
+    if build_func:
+        build_func()
+    else:
+        error_state(f"Unknown build target {build_val}\n. Available targets: {', '.join(build_hooks.keys())}")
 
 
 def clean_handler(clean_val):

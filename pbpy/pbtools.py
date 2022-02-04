@@ -319,8 +319,9 @@ def error_state(msg=None, fatal_error=False, hush=False, term=False):
         pblog.info(run_with_combined_output([pbgit.get_git_executable(), "status"]).stdout)
         pblog.info(run_with_combined_output([pbgit.get_git_executable(), "reflog", "-10"]).stdout)
         # This is a fatal error, so do not let user run PBSync until issue is fixed
-        with open(error_file, 'w') as error_state_file:
-            error_state_file.write("1")
+        if False:
+            with open(error_file, 'w') as error_state_file:
+                error_state_file.write("1")
     if not hush:
         pblog.info(f"Logs are saved in {pbconfig.get('log_file_path')}.")
     if not term:
