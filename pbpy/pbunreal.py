@@ -360,17 +360,17 @@ def generate_ddc_data():
     f"Error occurred while reading project version for DDC data generation. Please get support from {pbconfig.get('support_channel')}")
 
 
-def sync_ddc():
+def sync_ddc_vt():
     if pbconfig.get('uses_gcs') != "True":
-        pblog.error("Syncing DDC data requires GCS.")
+        pblog.error("Syncing DDC VT data requires GCS.")
         return False
-    pblog.info("Syncing DDC data...")
-    shared_ddc = str(Path("SharedDDC").resolve())
+    pblog.info("Syncing DDC VT data...")
+    shared_ddc = str(Path("DerivedDataCache/VT").resolve())
     gcs_bucket = get_ddc_gsuri()
     gcs_uri = f"{gcs_bucket}/{pbconfig.get('ddc_key')}"
     command_runner = init_gcs()
-    command_runner.RunNamedCommand('rs', args=["-Cir", gcs_uri, shared_ddc], collect_analytics=False, skip_update_check=True, parallel_operations=True)
-    pblog.success("Synced DDC data.")
+    command_runner.RunNamedCommand('rs', args=["-Cir", f"{gcs_uri}/VT", shared_ddc], collect_analytics=False, skip_update_check=True, parallel_operations=True)
+    pblog.success("Synced DDC VT data.")
 
 
 def clean_old_engine_installations(keep=1):
@@ -416,8 +416,9 @@ def get_versionator_gsuri(fallback=None):
             pblog.exception(str(e))
     return None
 
+
 @lru_cache()
-def get_ddc_gsuri(fallback=None):
+def get_ddc_bucket(fallback=None):
     if pbconfig.get('uses_gcs') == "True":
         try:
             uev_config = configparser.ConfigParser()
@@ -425,10 +426,19 @@ def get_ddc_gsuri(fallback=None):
             baseurl = uev_config.get("ddc", "baseurl", fallback=fallback)
             if baseurl:
                 domain = urlparse(baseurl).hostname
-                return f"gs://{domain}/"
+                return domain
         except Exception as e:
             pblog.exception(str(e))
     return None
+
+
+@lru_cache()
+def get_ddc_gsuri(fallback=None):
+    bucket = get_ddc_bucket(fallback)
+    if bucket:
+        return f"gs://{bucket}/"
+    return None
+
 
 @lru_cache()
 def is_versionator_symbols_enabled():
@@ -867,6 +877,26 @@ def get_devenv_path():
     return None
 
 
+@lru_cache()
+def get_uat_path():
+    base = get_engine_base_path()
+    return base / "Engine" / "Build" / "BatchFiles" / "RunUAT.bat"
+
+
+def upload_cloud_ddc():
+    credentials = str(Path("Build/credentials").resolve())
+    access_logs = str(Path("Saved/AccessLogs").resolve())
+    cache = Path("DerivedDataCache")
+    if is_source_install():
+        root = get_engine_install_root()
+        cache = root / "Engine" / cache
+    cache = str(cache.resolve())
+    manifest = str(Path("Build/DDC.json").resolve())
+    proc = pbtools.run_stream([str(get_uat_path()), "UploadDDCToAWS", f"-project={str(get_uproject_path())}", f"-Bucket={get_ddc_bucket()}", f"-CredentialsFile={credentials}", "-CredentialsKey=default", f"-CacheDir={cache}", f"-FilterDir={access_logs}", f"-Manifest={manifest}"])
+    if proc.returncode:
+        pbtools.error_state("Upload failed.")
+
+
 def build_source():
     base = get_engine_base_path()
     ubt = base / "Engine" / "Build" / "BatchFiles"
@@ -881,9 +911,7 @@ def build_source():
 
 
 def build_game(configuration="Shipping"):
-    base = get_engine_base_path()
-    uat_path = base / "Engine" / "Build" / "BatchFiles" / "RunUAT.bat"
-    proc = pbtools.run_stream([uat_path, "BuildCookRun", f"-project={str(get_uproject_path())}", f"-clientconfig={configuration}", "-NoP4", "-NoCodeSign", "-cook", "-build", "-stage", "-prereqs", "-pak", "-CrashReporter"], logfunc=lambda x: pbtools.checked_stream_log(x, error="Error: ", warning="Warning: "))
+    proc = pbtools.run_stream([str(get_uat_path()), "BuildCookRun", f"-project={str(get_uproject_path())}", f"-clientconfig={configuration}", "-NoP4", "-NoCodeSign", "-cook", "-build", "-stage", "-prereqs", "-pak", "-CrashReporter"], logfunc=lambda x: pbtools.checked_stream_log(x, error="Error: ", warning="Warning: "))
     if proc.returncode:
         pbtools.error_state("Build failed.")
 

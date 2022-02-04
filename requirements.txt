@@ -1,5 +1,7 @@
 pytest
 
+setuptools<50.0.0
+
 psutil
 coloredlogs
 colorama
