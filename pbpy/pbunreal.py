@@ -367,7 +367,7 @@ def sync_ddc_vt():
     pblog.info("Syncing DDC VT data...")
     shared_ddc = str(Path("DerivedDataCache/VT").resolve())
     gcs_bucket = get_ddc_gsuri()
-    gcs_uri = f"{gcs_bucket}/{pbconfig.get('ddc_key')}"
+    gcs_uri = f"{gcs_bucket}{pbconfig.get('ddc_key')}"
     command_runner = init_gcs()
     command_runner.RunNamedCommand('rs', args=["-Cir", f"{gcs_uri}/VT", shared_ddc], collect_analytics=False, skip_update_check=True, parallel_operations=True)
     pblog.success("Synced DDC VT data.")
