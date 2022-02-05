@@ -660,12 +660,12 @@ def download_engine(bundle_name=None, download_symbols=False):
 
         if needs_exe or needs_symbols:
             if not is_ci and os.path.isdir(root):
-                required_free_gb = 7 # extracted
+                required_free_gb = 8 # extracted
                 required_free_gb += 2 # archive
                 
                 if needs_symbols:
-                    required_free_gb += 25 # extracted
-                    required_free_gb += 1 # archive
+                    required_free_gb += 35 # extracted
+                    required_free_gb += 3 # archive
 
                 required_free_space = required_free_gb * gb_multiplier
 
