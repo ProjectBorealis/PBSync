@@ -417,24 +417,31 @@ def get_versionator_gsuri(fallback=None):
     return None
 
 
-@lru_cache()
-def get_ddc_bucket(fallback=None):
+@lru_cache
+def get_ddc_url(fallback=None):
     if pbconfig.get('uses_gcs') == "True":
         try:
             uev_config = configparser.ConfigParser()
             uev_config.read(".ueversionator")
             baseurl = uev_config.get("ddc", "baseurl", fallback=fallback)
-            if baseurl:
-                domain = urlparse(baseurl).hostname
-                return domain
+            return baseurl
         except Exception as e:
             pblog.exception(str(e))
     return None
 
 
 @lru_cache()
+def get_ddc_bucket(fallback=None):
+    baseurl = get_ddc_url(fallback=fallback)
+    if baseurl:
+        domain = urlparse(baseurl).hostname
+        return domain
+    return None
+
+
+@lru_cache()
 def get_ddc_gsuri(fallback=None):
-    bucket = get_ddc_bucket(fallback)
+    bucket = get_ddc_bucket(fallback=fallback)
     if bucket:
         return f"gs://{bucket}/"
     return None
@@ -887,12 +894,14 @@ def upload_cloud_ddc():
     credentials = str(Path("Build/credentials").resolve())
     access_logs = str(Path("Saved/AccessLogs").resolve())
     cache = Path("DerivedDataCache")
+    root = get_engine_install_root()
     if is_source_install():
-        root = get_engine_install_root()
         cache = Path(root) / "Engine" / cache
     cache = str(cache.resolve())
     manifest = str(Path("Build/DDC.json").resolve())
-    proc = pbtools.run_stream([get_uat_path(), "UploadDDCToAWS", f"-project={str(get_uproject_path())}", f"-Bucket={get_ddc_bucket()}", f"-CredentialsFile={credentials}", "-CredentialsKey=default", f"-CacheDir={cache}", f"-FilterDir={access_logs}", f"-Manifest={manifest}"])
+    manifest = os.path.relpath(manifest, start=root)
+    # for some reason https://storage.googleapis.com doesn't work, so we have to settle for domain-named nesting...
+    proc = pbtools.run_stream([get_uat_path(), "UploadDDCToAWS", f"-Bucket={get_ddc_bucket()}", f"-CredentialsFile={credentials}", "-CredentialsKey=default", f"-CacheDir={cache}", f"-FilterDir={access_logs}", f"-Manifest={manifest}", f"-ServiceURL={get_ddc_url()}"])
     if proc.returncode:
         pbtools.error_state("Upload failed.")
 
