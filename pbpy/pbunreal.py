@@ -731,7 +731,7 @@ def download_engine(bundle_name=None, download_symbols=False):
         if pbtools.run(command_set).returncode != 0:
             return False
     else:
-        register_engine(engine_id, root)
+        register_engine(engine_id, get_engine_base_path())
 
     # rsync patches
     if pbconfig.get('uses_gcs') == "True" and legacy_archives:
