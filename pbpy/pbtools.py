@@ -503,7 +503,10 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
             result = run_with_combined_output(cmdline)
 
             # update plugin submodules
-            run([pbgit.get_git_executable(), "submodule", "update", "--init", "--", "Plugins"])
+            if run_with_combined_output([pbgit.get_git_executable(), "ls-files", "--", "Plugins"]).stdout:
+                run_with_combined_output([pbgit.get_git_executable(), "submodule", "update", "--init", "--", "Plugins"])
+            else:
+                shutil.rmtree("Plugins", ignore_errors=True)
 
             processes = min(cpus, math.ceil(total / 5))
             batch_size = min(50, math.ceil(total / processes))
@@ -544,7 +547,10 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
             result = run_with_combined_output(cmdline)
 
             # update plugin submodules
-            run([pbgit.get_git_executable(), "submodule", "update", "--init", "--", "Plugins"])
+            if run_with_combined_output([pbgit.get_git_executable(), "ls-files", "--", "Plugins"]).stdout:
+                run_with_combined_output([pbgit.get_git_executable(), "submodule", "update", "--init", "--", "Plugins"])
+            else:
+                shutil.rmtree("Plugins", ignore_errors=True)
 
 
         # see if the update was successful
