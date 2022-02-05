@@ -20,6 +20,10 @@ from pathlib import Path
 from gslib.command_runner import CommandRunner
 from gslib.commands.cp import CpCommand
 from gslib.commands.rsync import RsyncCommand
+from gslib.utils import boto_util
+from gslib.sig_handling import GetCaughtSignals
+from gslib.sig_handling import InitializeSignalHandling
+from gslib.sig_handling import RegisterSignalHandler
 
 import gslib
 
@@ -41,6 +45,31 @@ ddc_folder_name = "DerivedDataCache"
 engine_installation_folder_regex = [r"[0-9].[0-9]{2}.*-", r"-[0-9]{8}"]
 
 p4merge_path = ".github/p4merge/p4merge.exe"
+
+
+# pylint: disable=unused-argument
+def _CleanupSignalHandler(signal_num, cur_stack_frame):
+  """Cleans up if process is killed with SIGINT, SIGQUIT or SIGTERM.
+
+  Note that this method is called after main() has been called, so it has
+  access to all the modules imported at the start of main().
+
+  Args:
+    signal_num: Unused, but required in the method signature.
+    cur_stack_frame: Unused, but required in the method signature.
+  """
+  _Cleanup()
+  if (gslib.utils.parallelism_framework_util.
+      CheckMultiprocessingAvailableAndInit().is_available):
+    gslib.command.TeardownMultiprocessingProcesses()
+
+
+def _Cleanup():
+  for fname in boto_util.GetCleanupFiles():
+    try:
+      os.unlink(fname)
+    except:  # pylint: disable=bare-except
+      pass
 
 
 @lru_cache()
@@ -565,6 +594,7 @@ def init_gcs():
     global g_command_runner
     if g_command_runner:
         return g_command_runner
+    InitializeSignalHandling()
     if (gslib.utils.parallelism_framework_util.CheckMultiprocessingAvailableAndInit().is_available):
         # These setup methods must be called, and, on Windows, they can only be
         # called from within an "if __name__ == '__main__':" block.
@@ -576,6 +606,10 @@ def init_gcs():
         "cp": CpCommand,
         "rs": RsyncCommand
     })
+
+    for signal_num in GetCaughtSignals():
+        RegisterSignalHandler(signal_num, _CleanupSignalHandler)
+
     return g_command_runner
 
 def download_engine(bundle_name=None, download_symbols=False):
