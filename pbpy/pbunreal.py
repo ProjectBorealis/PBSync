@@ -742,7 +742,7 @@ def download_engine(bundle_name=None, download_symbols=False):
         patterns = []
         patterns.append(f"{bundle_name}-{version}/")
         if download_symbols:
-            patterns.append(f"{bundle_name}-{version}-symbols/")
+            patterns.append(f"{bundle_name}-symbols-{version}/")
         gcs_bucket = get_versionator_gsuri()
         dst = f"file://{root}"
         for pattern in patterns:
