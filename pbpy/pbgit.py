@@ -189,7 +189,7 @@ def unlock_unmodified():
     unlock = list(unlock)
     if not unlock:
         return True
-    args = [get_lfs_executable(), "unlock", "-f"]
+    args = [get_lfs_executable(), "unlock"]
     args.extend(unlock)
     return pbtools.run(args).returncode == 0
 
