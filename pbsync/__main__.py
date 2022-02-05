@@ -330,6 +330,8 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         pblog.info("Updating Unreal configuration settings")
         pbunreal.update_source_control()
 
+        pbunreal.sync_ddc_vt()
+
         pblog.info("Finishing LFS read flag fix...")
         fix_attr_thread.join()
         pblog.info("Finished LFS read flag fix.")
