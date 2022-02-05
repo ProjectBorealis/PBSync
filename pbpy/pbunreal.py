@@ -686,17 +686,17 @@ def download_engine(bundle_name=None, download_symbols=False):
 
             if pbconfig.get('uses_gcs') == "True" and legacy_archives:
                 command_runner = init_gcs()
-                if needs_exe and needs_symbols:
-                    pattern = f"{bundle_name}*"
-                elif needs_symbols:
-                    pattern = f"{bundle_name}-symbols"
-                else:
-                    pattern = f"{bundle_name}"
-                pattern = f"{pattern}-{version}.7z"
+                patterns = []
+                if needs_exe:
+                    patterns.append(f"{bundle_name}")
+                if needs_symbols:
+                    patterns.append(f"{bundle_name}-symbols")
+                patterns = [f"{pattern}-{version}.7z" for pattern in patterns]
                 gcs_bucket = get_versionator_gsuri()
-                gcs_uri = f"{gcs_bucket}{pattern}"
                 dst = f"file://{root}"
-                command_runner.RunNamedCommand('cp' if legacy_archives else 'rs', args=["-n", gcs_uri, dst], collect_analytics=False, skip_update_check=True, parallel_operations=needs_exe and needs_symbols)
+                for pattern in patterns:
+                    gcs_uri = f"{gcs_bucket}{pattern}"
+                    command_runner.RunNamedCommand('cp' if legacy_archives else 'rs', args=["-n", gcs_uri, dst], collect_analytics=False, skip_update_check=True, parallel_operations=needs_exe and needs_symbols)
 
     # Extract with ueversionator
     if (needs_exe or needs_symbols) and legacy_archives:
@@ -739,11 +739,16 @@ def download_engine(bundle_name=None, download_symbols=False):
         command_runner = init_gcs()
 
         # Download folder
-        pattern = f"{bundle_name}-{version}*/" if download_symbols else f"{bundle_name}/"
+        patterns = []
+        if needs_exe:
+            patterns.append(f"{bundle_name}-{version}/")
+        if needs_symbols:
+            patterns.append(f"{bundle_name}-{version}-symbols/")
         gcs_bucket = get_versionator_gsuri()
-        gcs_uri = f"{gcs_bucket}{pattern}"
         dst = f"file://{root}"
-        command_runner.RunNamedCommand('rs', args=["-Cir", gcs_uri, dst], collect_analytics=False, skip_update_check=True, parallel_operations=True)
+        for pattern in patterns:
+            gcs_uri = f"{gcs_bucket}{pattern}"
+            command_runner.RunNamedCommand('rs', args=["-Cir", gcs_uri, dst], collect_analytics=False, skip_update_check=True, parallel_operations=True)
 
 
     # if not CI, run the setup tasks
