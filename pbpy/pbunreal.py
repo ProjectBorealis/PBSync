@@ -394,11 +394,13 @@ def sync_ddc_vt():
         pblog.error("Syncing DDC VT data requires GCS.")
         return False
     pblog.info("Syncing DDC VT data...")
-    shared_ddc = str(Path("DerivedDataCache/VT").resolve())
+    shared_ddc = Path("DerivedDataCache/VT")
+    shared_ddc.mkdir(parents=True, exist_ok=True)
+    shared_ddc = str(shared_ddc.resolve())
     gcs_bucket = get_ddc_gsuri()
     gcs_uri = f"{gcs_bucket}{pbconfig.get('ddc_key')}"
     command_runner = init_gcs()
-    command_runner.RunNamedCommand('rs', args=["-Cir", f"{gcs_uri}/VT", shared_ddc], collect_analytics=False, skip_update_check=True, parallel_operations=True)
+    command_runner.RunNamedCommand('rsync', args=["-Cir", f"{gcs_uri}/VT", shared_ddc], collect_analytics=False, skip_update_check=True, parallel_operations=True)
     pblog.success("Synced DDC VT data.")
 
 
@@ -604,7 +606,7 @@ def init_gcs():
         gslib.command.InitializeThreadingVariables()
     g_command_runner = CommandRunner(command_map={
         "cp": CpCommand,
-        "rs": RsyncCommand
+        "rsync": RsyncCommand
     })
 
     for signal_num in GetCaughtSignals():
@@ -696,7 +698,7 @@ def download_engine(bundle_name=None, download_symbols=False):
                 dst = f"file://{root}"
                 for pattern in patterns:
                     gcs_uri = f"{gcs_bucket}{pattern}"
-                    command_runner.RunNamedCommand('cp' if legacy_archives else 'rs', args=["-n", gcs_uri, dst], collect_analytics=False, skip_update_check=True, parallel_operations=needs_exe and needs_symbols)
+                    command_runner.RunNamedCommand('cp' if legacy_archives else 'rsync', args=["-n", gcs_uri, dst], collect_analytics=False, skip_update_check=True, parallel_operations=needs_exe and needs_symbols)
 
     # Extract with ueversionator
     if (needs_exe or needs_symbols) and legacy_archives:
@@ -744,10 +746,10 @@ def download_engine(bundle_name=None, download_symbols=False):
         if download_symbols:
             patterns.append(f"{bundle_name}-symbols-{version}/")
         gcs_bucket = get_versionator_gsuri()
-        dst = f"file://{root}"
+        dst = f"file://{get_engine_base_path()}"
         for pattern in patterns:
             gcs_uri = f"{gcs_bucket}{pattern}"
-            command_runner.RunNamedCommand('rs', args=["-Cir", gcs_uri, dst], collect_analytics=False, skip_update_check=True, parallel_operations=True)
+            command_runner.RunNamedCommand('rsync', args=["-Cir", gcs_uri, dst], collect_analytics=False, skip_update_check=True, parallel_operations=False)
 
 
     # if not CI, run the setup tasks
