@@ -546,9 +546,6 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
             cmdline.append(f"origin/{branch_name}")
             result = run_with_combined_output(cmdline)
 
-            # run an LFS pull
-            run([pbgit.get_lfs_executable(), "pull"])
-
             # update plugin submodules
             if run_with_combined_output([pbgit.get_git_executable(), "ls-files", "--", "Plugins"]).stdout:
                 run_with_combined_output([pbgit.get_git_executable(), "submodule", "update", "--init", "--", "Plugins"])
