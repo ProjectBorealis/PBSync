@@ -46,6 +46,8 @@ engine_installation_folder_regex = [r"[0-9].[0-9]{2}.*-", r"-[0-9]{8}"]
 
 p4merge_path = ".github/p4merge/p4merge.exe"
 
+long_path = "\\\\?\\"
+
 
 # pylint: disable=unused-argument
 def _CleanupSignalHandler(signal_num, cur_stack_frame):
@@ -397,6 +399,9 @@ def sync_ddc_vt():
     shared_ddc = Path("DerivedDataCache/VT")
     shared_ddc.mkdir(parents=True, exist_ok=True)
     shared_ddc = str(shared_ddc.resolve())
+    # long path support
+    if os.name == 'nt':
+        shared_ddc = f"{long_path}{shared_ddc}"
     gcs_bucket = get_ddc_gsuri()
     gcs_uri = f"{gcs_bucket}{pbconfig.get('ddc_key')}"
     command_runner = init_gcs()
@@ -746,7 +751,10 @@ def download_engine(bundle_name=None, download_symbols=False):
         if download_symbols:
             patterns.append(f"{bundle_name}-symbols-{version}/")
         gcs_bucket = get_versionator_gsuri()
-        dst = f"file://{get_engine_base_path()}"
+        dst = get_engine_base_path()
+        # long path support
+        if os.name == 'nt':
+            dst = f"{long_path}{dst}"
         for pattern in patterns:
             gcs_uri = f"{gcs_bucket}{pattern}"
             command_runner.RunNamedCommand('rsync', args=["-Cir", gcs_uri, dst], collect_analytics=False, skip_update_check=True, parallel_operations=False)
