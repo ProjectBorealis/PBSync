@@ -46,6 +46,8 @@ engine_installation_folder_regex = [r"[0-9].[0-9]{2}.*-", r"-[0-9]{8}"]
 
 p4merge_path = ".github/p4merge/p4merge.exe"
 
+reg_path = r"HKCU\Software\Epic Games\Unreal Engine\Builds"
+
 long_path = "\\\\?\\"
 
 
@@ -593,7 +595,12 @@ gb_div = 1.0 / gb_multiplier
 
 def register_engine(version, path):
     if os.name == "nt":
-        pbtools.run(["reg", "add", r"HKCU\Software\Epic Games\Unreal Engine\Builds", "/f", "/v", version, "/t", "REG_SZ", "/d", path])
+        query = pbtools.run_with_combined_output(["reg", "query", reg_path, "/f", path, "/e", "/t", "REG_SZ"]).stdout.splitlines()
+        for res in query:
+            if res.startswith("    "):
+                key, rtype, value = res.split("    ")[1:]
+                pbtools.run(["reg", "delete", reg_path, "/v", key, "/f"])
+        pbtools.run(["reg", "add", reg_path, "/f", "/v", version, "/t", "REG_SZ", "/d", path])
 
 g_command_runner = None
 
@@ -757,7 +764,7 @@ def download_engine(bundle_name=None, download_symbols=False):
             dst = f"{long_path}{dst}"
         for pattern in patterns:
             gcs_uri = f"{gcs_bucket}{pattern}"
-            command_runner.RunNamedCommand('rsync', args=["-Cir", gcs_uri, dst], collect_analytics=False, skip_update_check=True, parallel_operations=False)
+            command_runner.RunNamedCommand('rsync', args=["-Cir", gcs_uri, dst], collect_analytics=False, skip_update_check=True, parallel_operations=True)
 
 
     # if not CI, run the setup tasks
