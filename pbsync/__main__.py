@@ -404,6 +404,8 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 build_hooks = {
     "sln": pbunreal.generate_project_files,
     "source": pbunreal.build_source,
+    "debuggame": partial(pbunreal.build_game, "DebugGame"),
+    "development": partial(pbunreal.build_game, "Development"),
     "internal": partial(pbunreal.build_game, "Test"),
     "game": pbunreal.build_game,
     "package": pbunreal.package_binaries,
@@ -411,7 +413,8 @@ build_hooks = {
     "inspect": pbunreal.inspect_source,
     "inspectall": partial(pbunreal.inspect_source, all=True),
     "s3ddc": pbunreal.upload_cloud_ddc,
-    "ddc": pbunreal.generate_ddc_data
+    "ddc": pbunreal.generate_ddc_data,
+    "clearcook": pbunreal.clear_cook_cache,
 }
 
 
@@ -471,10 +474,6 @@ def autoversion_handler(autoversion_val):
 
 
 def publish_handler(publish_val, dispatch_exec_path):
-    if dispatch_exec_path is None:
-        error_state(
-            "--dispatch argument should be provided for --publish command", hush=True)
-
     if not pbdispatch.push_build(publish_val, dispatch_exec_path, pbconfig.get('dispatch_config'), pbconfig.get('dispatch_stagedir')):
        error_state("Something went wrong while pushing a new playable build.")
 
@@ -497,7 +496,7 @@ def main(argv):
     parser.add_argument("--publish", help="Publishes a playable build with provided build type",
                         choices=["internal", "playtester"])
     parser.add_argument(
-        "--dispatch", help="Required dispatch executable path for --publish command")
+        "--dispatch", help="Required dispatch executable path for --publish command", default="dispatch")
     parser.add_argument(
         "--bundle", help="Engine bundle name for --sync engine command. If not provided, engine download will use the default bundle supplied by the config file")
     parser.add_argument(

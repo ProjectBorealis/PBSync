@@ -974,6 +974,10 @@ def build_source():
         pbtools.error_state("Build failed.")
 
 
+def clear_cook_cache():
+    shutil.rmtree("Saved/Cooked", ignore_errors=True)
+
+
 def build_game(configuration="Shipping"):
     proc = pbtools.run_stream([str(get_uat_path()), "BuildCookRun", f"-project={str(get_uproject_path())}", f"-clientconfig={configuration}", "-NoP4", "-NoCodeSign", "-cook", "-build", "-stage", "-prereqs", "-pak", "-CrashReporter"], logfunc=lambda x: pbtools.checked_stream_log(x, error="Error: ", warning="Warning: "))
     if proc.returncode:
