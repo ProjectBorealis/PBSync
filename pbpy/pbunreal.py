@@ -949,7 +949,7 @@ def upload_cloud_ddc():
     credentials = str(Path("Build/credentials").resolve())
     access_logs = str(Path("Saved/AccessLogs").resolve())
     cache = Path("DerivedDataCache")
-    root = get_engine_install_root()
+    root = get_engine_base_path()
     if is_source_install():
         cache = Path(root) / "Engine" / cache
     cache = str(cache.resolve())
@@ -959,6 +959,18 @@ def upload_cloud_ddc():
     proc = pbtools.run_stream([get_uat_path(), "UploadDDCToAWS", f"-Bucket={get_ddc_bucket()}", f"-CredentialsFile={credentials}", "-CredentialsKey=default", f"-CacheDir={cache}", f"-FilterDir={access_logs}", f"-Manifest={manifest}", f"-ServiceURL={get_ddc_url()}"])
     if proc.returncode:
         pbtools.error_state("Upload failed.")
+    shared_ddc = Path("DerivedDataCache/VT")
+    if not shared_ddc.exists():
+        pbtools.error_state("Virtual textures don't exist.")
+    shared_ddc.mkdir(parents=True, exist_ok=True)
+    shared_ddc = str(shared_ddc.resolve())
+    # long path support
+    if os.name == 'nt':
+        shared_ddc = f"{long_path}{shared_ddc}"
+    gcs_bucket = get_ddc_gsuri()
+    gcs_uri = f"{gcs_bucket}{pbconfig.get('ddc_key')}"
+    command_runner = init_gcs()
+    command_runner.RunNamedCommand('rsync', args=["-Cir", shared_ddc, f"{gcs_uri}/VT"], collect_analytics=False, skip_update_check=True, parallel_operations=True)
 
 
 def build_source():
