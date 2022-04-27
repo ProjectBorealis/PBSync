@@ -58,7 +58,7 @@ def shutdown():
         user_filename = get_user_config_filename()
         attributes = 0
         restore_hidden = False
-        if os.name == "nt":
+        if os.name == "nt" and os.path.exists(user_filename):
             import win32api, win32con
             attributes = win32api.GetFileAttributes(user_filename)
             restore_hidden = attributes & win32con.FILE_ATTRIBUTE_HIDDEN

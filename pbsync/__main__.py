@@ -66,13 +66,13 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             pblog.warning(f"Supported Git Version: {pbconfig.get('supported_git_version')}")
             pblog.warning(f"Current Git Version: {detected_git_version}")
             needs_git_update = True
+            repo = "microsoft/git"
+            version = f"v{supported_git_version}"
             if "vfs" in detected_git_version and sys.platform == "win32" or sys.platform == "darwin":
                 pblog.info("Auto-updating Git...")
                 if sys.platform == "win32":
-                    version = f"v{supported_git_version}"
                     directory = "Saved/PBSyncDownloads"
                     download = f"Git-{supported_git_version}-64-bit.exe"
-                    repo = "microsoft/git"
                     if pbgh.download_release_file(version, download, directory=directory, repo=repo) != 0:
                         pblog.error("Git auto-update failed, please download and install manually.")
                         webbrowser.open(f"https://github.com/{repo}/releases/download/{version}/{download}")
@@ -94,7 +94,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                         needs_git_update = False
                         input("Launching Git update, please press enter when done installing. ")
             if needs_git_update:
-                pblog.error("Please install the supported Git version from https://github.com/microsoft/git/releases")
+                pblog.error(f"Please install the supported Git version from https://github.com/{repo}/releases/tag/{version}")
                 pblog.error(f"Visit {pbconfig.get('git_instructions')} for installation instructions")
 
 
@@ -154,13 +154,13 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             pblog.warning("Git LFS is not updated to the supported version in your system")
             pblog.warning(f"Supported Git LFS Version: {supported_lfs_version}")
             pblog.warning(f"Current Git LFS Version: {detected_lfs_version}")
+            version = f"v{supported_lfs_version}"
             needs_git_update = True
+            repo = "git-lfs/git-lfs"
             if os.name == "nt":
                 pblog.info("Auto-updating Git LFS...")
-                version = f"v{supported_lfs_version}"
                 directory = "Saved/PBSyncDownloads"
                 download = f"git-lfs-windows-{version}.exe"
-                repo = "git-lfs/git-lfs"
                 result = pbgh.download_release_file(version, download, directory=directory, repo=repo)
                 if result != 0:
                     pblog.error("Git LFS auto-update failed, please download and install manually.")
@@ -176,7 +176,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                     os.remove(download_path)
 
             if needs_git_update:
-                pblog.error("Please install the supported Git LFS version from https://git-lfs.github.com")
+                pblog.error(f"Please install the supported Git LFS version from https://github.com/{repo}/releases/tag/{version}")
             
 
         detected_gcm_version = pbgit.get_gcm_version()
@@ -305,6 +305,10 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         pblog.info("------------------")
 
         pblog.info("Checking for engine updates...")
+        uproject_file = pbconfig.get('uproject_name')
+        if pbgit.sync_file(uproject_file) != 0:
+            error_state(f"Something went wrong while updating the uproject file. Please request help in {pbconfig.get('support_channel')}.")
+
         engine_version = pbunreal.get_engine_version_with_prefix()
         if engine_version is not None:
             pblog.info("Registering current engine build if it exists. Otherwise, the build will be downloaded...")
