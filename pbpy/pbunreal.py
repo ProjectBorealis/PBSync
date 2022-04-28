@@ -456,12 +456,12 @@ def get_versionator_gsuri(fallback=None):
 
 
 @lru_cache
-def get_ddc_url(fallback=None):
+def get_ddc_url(fallback=None, upload=False):
     if pbconfig.get('uses_gcs') == "True":
         try:
             uev_config = configparser.ConfigParser()
             uev_config.read(".ueversionator")
-            baseurl = uev_config.get("ddc", "baseurl", fallback=fallback)
+            baseurl = uev_config.get("ddc", "uploadurl" if upload else "baseurl", fallback=fallback)
             return baseurl
         except Exception as e:
             pblog.exception(str(e))
@@ -950,13 +950,13 @@ def upload_cloud_ddc():
     access_logs = str(Path("Saved/AccessLogs").resolve())
     cache = Path("DerivedDataCache")
     root = get_engine_base_path()
-    if is_source_install():
-        cache = Path(root) / "Engine" / cache
     cache = str(cache.resolve())
     manifest = str(Path("Build/DDC.json").resolve())
     manifest = os.path.relpath(manifest, start=root)
     # for some reason https://storage.googleapis.com doesn't work, so we have to settle for domain-named nesting...
-    proc = pbtools.run_stream([get_uat_path(), "UploadDDCToAWS", f"-Bucket={get_ddc_bucket()}", f"-CredentialsFile={credentials}", "-CredentialsKey=default", f"-CacheDir={cache}", f"-FilterDir={access_logs}", f"-Manifest={manifest}", f"-ServiceURL={get_ddc_url()}"])
+    # we upload to a ServiceURL bucket.com -> storage.googleapis.com/bucket.com
+    # but AWS takes a Bucket and ServiceURL, we use the bucket.com's "bucket": bucket.com/bucket.com -> storage.googleapis.com/bucket.com/bucket.com
+    proc = pbtools.run_stream([get_uat_path(), "UploadDDCToAWS", f"-Bucket={get_ddc_bucket()}", f"-CredentialsFile={credentials}", "-CredentialsKey=default", f"-CacheDir={cache}", f"-FilterDir={access_logs}", f"-Manifest={manifest}", f"-ServiceURL={get_ddc_url(upload=True)}"])
     if proc.returncode:
         pbtools.error_state("Upload failed.")
     shared_ddc = Path("DerivedDataCache/VT")
