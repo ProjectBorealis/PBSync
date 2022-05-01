@@ -637,8 +637,8 @@ def download_engine(bundle_name=None, download_symbols=False):
     root = get_engine_install_root()
 
     if is_source_install():
-        pbtools.run(pbgit.get_git_executable(), "-C", str(root), "pull")
-        pbtools.run(pbgit.get_git_executable(), "-C", str(root), "submodule", "update", "--init", "--remote", "--recursive")
+        pbtools.run([pbgit.get_git_executable(), "-C", str(root), "pull"])
+        pbtools.run([pbgit.get_git_executable(), "-C", str(root), "submodule", "update", "--init", "--remote", "--recursive"])
         register_engine(engine_id, root)
         if not check_ue_file_association():
             run_unreal_setup()
