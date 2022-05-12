@@ -44,7 +44,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         remote_state, remote_url = pbgit.check_remote_connection()
         if not remote_state:
             error_state(
-                f"Remote connection was not successful. Please verify that you have a valid git remote URL and internet connection. Current git remote URL: {remote_url}")
+                f"Remote connection was not successful. Please verify that you have an internet connection. Current git remote URL: {remote_url}")
         else:
             pblog.info("Remote connection is up")
 

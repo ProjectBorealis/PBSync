@@ -251,7 +251,7 @@ def check_remote_connection():
         current_url = recent_url
         pblog.info(output)
 
-    out = pbtools.run_with_output([get_git_executable(), "ls-remote", "--exit-code", "-h"]).returncode
+    out = pbtools.run_with_output([get_git_executable(), "ls-remote", "-hq", "--refs"]).returncode
     return out == 0, current_url
 
 
