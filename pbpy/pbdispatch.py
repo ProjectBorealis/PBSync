@@ -32,4 +32,7 @@ def push_build(branch_type, dispath_exec_path, dispatch_config, dispatch_stagedi
     # Push and Publish the build
     proc = pbtools.run([dispath_exec_path, "build", "push", branch_id, dispatch_config, dispatch_stagedir, "-p"])
     result = proc.returncode
-    return result == 0
+    success = result == 0
+    if not success:
+        pblog.error("Dispatch failed. Maybe try logging in again: dispatch login")
+    return success
