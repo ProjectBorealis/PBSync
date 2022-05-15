@@ -499,7 +499,7 @@ def main(argv):
     If workspace is provided, workspace will be reset with latest changes from current branch (not revertible)""", choices=["engine", "workspace"])
     parser.add_argument("--config", help=f"Path of config XML file. If not provided, ./{default_config_name} is used as default", default=default_config_name)
     parser.add_argument("--publish", help="Publishes a playable build with provided build type",
-                        choices=["internal", "playtester"])
+                        choices=["internal", "playtester"], default="internal")
     parser.add_argument(
         "--dispatch", help="Required dispatch executable path for --publish command", default="dispatch")
     parser.add_argument(
