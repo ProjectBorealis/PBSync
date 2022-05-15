@@ -423,9 +423,10 @@ build_hooks = {
 
 
 def build_handler(build_val):
-    build_func = build_hooks.get(build_val)
-    if build_func:
-        build_func()
+    for build_action in build_val:
+        build_func = build_hooks.get(build_action)
+        if build_func:
+            build_func()
 
 
 def clean_handler(clean_val):
@@ -493,7 +494,7 @@ def main(argv):
         "--repository", help="gcloud repository url for --printversion latest-engine and --sync engine commands")
     parser.add_argument("--autoversion", help="Automatic version update for project version",
                         choices=["hotfix", "update", "release"])
-    parser.add_argument("--build", help="Does build task according to the specified argument.", choices=list(build_hooks.keys()))
+    parser.add_argument("--build", help="Does build task according to the specified argument.", action='append', choices=list(build_hooks.keys()))
     parser.add_argument("--clean", help="""Do cleanup according to specified argument. If engine is provided, old engine installations will be cleared
     If workspace is provided, workspace will be reset with latest changes from current branch (not revertible)""", choices=["engine", "workspace"])
     parser.add_argument("--config", help=f"Path of config XML file. If not provided, ./{default_config_name} is used as default", default=default_config_name)
@@ -584,24 +585,25 @@ def main(argv):
         before running PBSync.\nIf you have already fixed the problem, you may remove {pbtools.error_file} from your project folder and 
         run UpdateProject again.""", True)
 
-    # Parse args
-    if not (args.sync is None):
-        sync_handler(args.sync, args.repository, args.bundle)
-    elif not (args.printversion is None):
-        printversion_handler(args.printversion, args.repository)
-    elif not (args.autoversion is None):
-        autoversion_handler(args.autoversion)
-    elif not (args.build is None):
-        build_handler(args.build)
-    elif not (args.clean is None):
-        clean_handler(args.clean)
-    elif not (args.publish is None):
-        publish_handler(args.publish, args.dispatch)
-    else:
+    if len(sys.argv) < 2:
         pblog.error("At least one valid argument should be passed!")
         pblog.error("Did you mean to launch UpdateProject?")
         input("Press enter to continue...")
         error_state(hush=True)
+
+    # Parse args
+    if not (args.printversion is None):
+        printversion_handler(args.printversion, args.repository)
+    if not (args.clean is None):
+        clean_handler(args.clean)
+    if not (args.sync is None):
+        sync_handler(args.sync, args.repository, args.bundle)
+    if not (args.autoversion is None):
+        autoversion_handler(args.autoversion)
+    if not (args.build is None):
+        build_handler(args.build)
+    if not (args.publish is None):
+        publish_handler(args.publish, args.dispatch)
 
     pbconfig.shutdown()
 
