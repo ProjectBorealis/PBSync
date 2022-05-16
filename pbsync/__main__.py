@@ -487,7 +487,7 @@ def main(argv):
     parser = argparse.ArgumentParser(description=f"PBSync | PBpy Library Version: {pbpy_version.ver} | PBSync Program Version: {pbsync_version.ver}")
 
     parser.add_argument("--sync", help="Main command for the PBSync, synchronizes the project with latest changes from the repo, and does some housekeeping",
-                        choices=["all", "partial", "binaries", "engineversion", "engine", "force", "ddc"])
+                        choices=["all", "partial", "binaries", "engineversion", "engine", "force", "ddc"], const="all", nargs="?")
     parser.add_argument("--printversion", help="Prints requested version information into console.",
                         choices=["current-engine", "latest-engine", "project"])
     parser.add_argument(
@@ -499,7 +499,7 @@ def main(argv):
     If workspace is provided, workspace will be reset with latest changes from current branch (not revertible)""", choices=["engine", "workspace"])
     parser.add_argument("--config", help=f"Path of config XML file. If not provided, ./{default_config_name} is used as default", default=default_config_name)
     parser.add_argument("--publish", help="Publishes a playable build with provided build type",
-                        choices=["internal", "playtester"], const="internal", default="internal", nargs="?")
+                        choices=["internal", "playtester"], const="internal", nargs="?")
     parser.add_argument(
         "--dispatch", help="Required dispatch executable path for --publish command", default="dispatch")
     parser.add_argument(
