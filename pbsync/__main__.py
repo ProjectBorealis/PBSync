@@ -183,45 +183,48 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         supported_gcm_version_raw = pbconfig.get('supported_gcm_version')
         supported_gcm_version = f"{supported_gcm_version_raw}"
         if detected_gcm_version == supported_gcm_version:
-            pblog.info(f"Current Git Credential Manager Core version: {detected_gcm_version}")
+            pblog.info(f"Current Git Credential Manager version: {detected_gcm_version}")
         else:
-            pblog.warning("Git Credential Manager Core is not updated to the supported version in your system")
-            pblog.warning(f"Supported Git Credential Manager Core Version: {supported_gcm_version}")
-            pblog.warning(f"Current Git Credential Manager Core Version: {detected_gcm_version}")
+            pblog.warning("Git Credential Manager is not updated to the supported version in your system")
+            pblog.warning(f"Supported Git Credential Manager Version: {supported_gcm_version}")
+            pblog.warning(f"Current Git Credential Manager Version: {detected_gcm_version}")
             needs_git_update = True
             if detected_gcm_version.startswith("diff"):
-                # remove the old credential helper (it may get stuck, and Core won't be able to install)
+                # remove the old credential helper (it may get stuck, and GCM won't be able to install)
                 pbtools.run_with_combined_output([pbgit.get_git_executable(), "config", "--unset-all", "credential.helper"])
                 pbtools.run_with_combined_output([pbgit.get_git_executable(), "config", "--global", "--unset-all", "credential.helper"])
                 exe_location = detected_gcm_version.split(".", 1)[1]
                 # if they actually have a Windows program installed, inform them.
                 if exe_location.endswith(".exe"):
                     pblog.error(f"It seems like you have another Git credential helper installed at: {exe_location}.")
-                    pblog.error("Please uninstall this and Git Credential Manager Core if you have it in \"Add or remove programs\" and then install Git Credential Manager Core again.")
+                    pblog.error("Please uninstall this and Git Credential Manager if you have it in \"Add or remove programs\" and then install Git Credential Manager again.")
                 else:
-                    pblog.error("Please uninstall Git Credential Manager Core if you have it in \"Add or remove programs\" and then install Git Credential Manager Core again.")
+                    pblog.error("Please uninstall Git Credential Manager if you have it in \"Add or remove programs\" and then install Git Credential Manager again.")
             else:
                 if os.name == "nt":
-                    pblog.info("Auto-updating Git Credential Manager Core...")
+                    pblog.info("Auto-updating Git Credential Manager...")
                     version = f"v{supported_gcm_version}"
                     directory = "Saved/PBSyncDownloads"
-                    download = f"gcmcore-win-x86-{supported_gcm_version_raw}.{pbconfig.get('gcm_download_suffix')}.exe"
-                    repo = "microsoft/Git-Credential-Manager-Core"
+                    suffix = ""
+                    if {pbconfig.get('gcm_download_suffix')}:
+                        suffix = f".{pbconfig.get('gcm_download_suffix')}"
+                    download = f"gcmcore-win-x86-{supported_gcm_version_raw}{suffix}.exe"
+                    repo = "GitCredentialManager/git-credential-manager"
                     if pbgh.download_release_file(version, download, directory=directory, repo=repo) != 0:
-                        pblog.error("Git Credential Manager Core auto-update failed, please download and install manually.")
+                        pblog.error("Git Credential Manager auto-update failed, please download and install manually.")
                         webbrowser.open(f"https://github.com/{repo}/releases/download/{version}/{download}")
                     else:
                         download_path = f"Saved\\PBSyncDownloads\\{download}"
                         proc = pbtools.run([download_path])
                         if proc.returncode:
-                            pblog.error("Git Credential Manager Core auto-update failed, please download and install manually.")
+                            pblog.error("Git Credential Manager auto-update failed, please download and install manually.")
                             webbrowser.open(f"https://github.com/{repo}/releases/download/{version}/{download}")
                         else:
                             needs_git_update = False
                         os.remove(download_path)
 
             if needs_git_update:
-                pblog.error("Please install the supported Git Credential Manager Core version from https://github.com/microsoft/Git-Credential-Manager-Core/releases")
+                pblog.error("Please install the supported Git Credential Manager version from https://github.com/GitCredentialManager/git-credential-manager/releases")
 
         if needs_git_update:
             error_state()
