@@ -1,6 +1,6 @@
 pytest
 
-setuptools<50.0.0
+setuptools
 
 psutil
 coloredlogs
