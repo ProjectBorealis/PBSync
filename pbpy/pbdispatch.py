@@ -14,16 +14,7 @@ def push_build(branch_type, dispath_exec_path, dispatch_config, dispatch_stagedi
         pblog.error("dispatch.app_id was not configured.")
         return False
 
-    if branch_type == "internal":
-        branch_id_key = 'internal_bid'
-    elif branch_type == "playtester":
-        branch_id_key = 'playtester_bid'
-        pblog.error("Playtester builds are not allowed at the moment.")
-        return False
-    else:
-        pblog.error("Unknown Dispatch branch type specified.")
-        return False
-
+    branch_id_key = f"{branch_type}_bid"
     branch_id = pbconfig.get_user('dispatch', branch_id_key)
     if branch_id is None or branch_id == "":
         pblog.error(f"{branch_id_key} was not configured.")
