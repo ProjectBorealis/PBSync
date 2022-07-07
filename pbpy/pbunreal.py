@@ -947,6 +947,10 @@ def get_uat_path():
     return base / "Engine" / "Build" / "BatchFiles" / "RunUAT.bat"
 
 
+def fill_ddc():
+    pbtools.run([get_editor_path(), get_uproject_path(), "-DDC=EnumerateForS3DDC", "-execcmds=\"Automation RunTests FillDDCForPIETest\" -unattended"])
+
+
 def upload_cloud_ddc():
     credentials = str(Path("Build/credentials").resolve())
     access_logs = str(Path("Saved/AccessLogs").resolve())

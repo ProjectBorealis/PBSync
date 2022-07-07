@@ -419,6 +419,7 @@ build_hooks = {
     "release": pbgh.generate_release,
     "inspect": pbunreal.inspect_source,
     "inspectall": partial(pbunreal.inspect_source, all=True),
+    "fillddc": pbunreal.fill_ddc,
     "s3ddc": pbunreal.upload_cloud_ddc,
     "ddc": pbunreal.generate_ddc_data,
     "clearcook": pbunreal.clear_cook_cache,
