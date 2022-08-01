@@ -468,6 +468,11 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
             if pbgit.is_on_expected_branch():
                 shutil.rmtree("Plugins", ignore_errors=True)
 
+        res_out = ""
+        def res_log(log):
+            pblog.info(log)
+            res_out += log
+
         use_new_sync = False
         if use_new_sync:
             # Check what files we are going to change
@@ -544,20 +549,18 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
                 pblog.info("Rebasing workspace with the latest changes from the repository...")
                 cmdline.extend(["rebase", "--autostash"])
             cmdline.append(f"origin/{branch_name}")
-            result = run_with_combined_output(cmdline)
+            result = run_stream(cmdline, logfunc=res_log)
 
             # update plugin submodules
             if run_with_combined_output([pbgit.get_git_executable(), "ls-files", "--", "Plugins"]).stdout:
-                run_with_combined_output([pbgit.get_git_executable(), "submodule", "update", "--init", "--", "Plugins"])
+                run_stream([pbgit.get_git_executable(), "submodule", "update", "--init", "--", "Plugins"])
             else:
                 shutil.rmtree("Plugins", ignore_errors=True)
 
 
         # see if the update was successful
         code = result.returncode
-        out = result.stdout
-        pblog.info(out)
-        out = out.lower()
+        out = res_out.lower()
         error = code != 0
     else:
         error = False
