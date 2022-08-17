@@ -167,7 +167,7 @@ def fix_lfs_ro_attr():
     lockables = get_lockables()
     locked = get_locked()
     not_locked = lockables - locked
-    with multiprocessing.Pool() as pool:
+    with multiprocessing.Pool(min(8, os.cpu_count())) as pool:
         for message in itertools.chain(pool.imap_unordered(read_only, not_locked, 100), pool.imap_unordered(read_write, locked)):
             if message:
                 pblog.warning(message)
