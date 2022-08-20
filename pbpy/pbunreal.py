@@ -637,6 +637,10 @@ def download_engine(bundle_name=None, download_symbols=False):
     root = get_engine_install_root()
 
     if is_source_install():
+        branch = pbtools.get_combined_output([pbgit.get_git_executable(), "-C", str(root), "branch", "--show-current"])
+        base_branch = get_engine_prefix()
+        if not branch.startswith(base_branch):
+            pbtools.run([pbgit.get_git_executable(), "-C", str(root), "switch", base_branch])
         pbtools.run([pbgit.get_git_executable(), "-C", str(root), "pull"])
         pbtools.run([pbgit.get_git_executable(), "-C", str(root), "submodule", "update", "--init", "--remote", "--recursive"])
         register_engine(engine_id, root)
