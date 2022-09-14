@@ -19,6 +19,7 @@ from pbpy import pbgit
 from pbpy import pbconfig
 from pbpy import pbpy_version
 from pbpy import pbdispatch
+from pbpy import pbsteamcmd
 from pbpy import pbuac
 
 try:
@@ -482,9 +483,22 @@ def autoversion_handler(autoversion_val):
         error_state("Error occurred while increasing project version")
 
 
-def publish_handler(publish_val, dispatch_exec_path):
-    if not pbdispatch.push_build(publish_val, dispatch_exec_path, pbconfig.get('dispatch_config'), pbconfig.get('dispatch_stagedir')):
-       error_state("Something went wrong while pushing a new playable build.")
+PUBLISHERS = {
+    "dispatch": lambda publish_val, pubexe: pbdispatch.publish_build(publish_val, pubexe, pbconfig.get('publish_stagedir'), pbconfig.get('dispatch_config')),
+    "steamcmd": lambda publish_val, pubexe: pbsteamcmd.publish_build(publish_val, pubexe, pbconfig.get('publish_stagedir'))
+}
+
+
+def publish_handler(publish_val, pubexe):
+    publisher = pbconfig.get('publish_publisher')
+    if not pubexe:
+        pubexe = publisher
+    fn = PUBLISHERS.get(publisher)
+    if not fn:
+        error_state(f"Unknown publisher: {publisher}")
+    result = fn(publish_val, pubexe)
+    if result:
+       error_state(f"Something went wrong while publishing a new build. Error code {result}")
 
 
 def main(argv):
@@ -505,7 +519,7 @@ def main(argv):
     parser.add_argument("--publish", help="Publishes a playable build with provided build type",
                         choices=["internal", "playtester"], const="internal", nargs="?")
     parser.add_argument(
-        "--dispatch", help="Required dispatch executable path for --publish command", default="dispatch")
+        "--pubexe", help="Required publisher executable path for --publish command", default="")
     parser.add_argument(
         "--bundle", help="Engine bundle name for --sync engine command. If not provided, engine download will use the default bundle supplied by the config file")
     parser.add_argument(
@@ -545,9 +559,10 @@ def main(argv):
             'defaultgame_path': ('project/defaultgameinipath', None),
             'package_pdbs': ('project/packagepdbs', None),
             'ddc_key': ('project/ddckey', None),
+            'publish_publisher': ('publish/publisher', None),
+            'publish_stagedir': ('publish/stagedir', None),
             'dispatch_config': ('dispatch/config', None),
             'dispatch_drm': ('dispatch/drm', None),
-            'dispatch_stagedir': ('dispatch/stagedir', None),
             'resharper_version': ('resharper/version', None),
             'engine_prefix': ('versionator/engineprefix', None),
             'engine_type': ('versionator/enginetype', None),
@@ -607,7 +622,7 @@ def main(argv):
     if not (args.build is None):
         build_handler(args.build)
     if not (args.publish is None):
-        publish_handler(args.publish, args.dispatch)
+        publish_handler(args.publish, args.pubexe)
 
     pbconfig.shutdown()
 

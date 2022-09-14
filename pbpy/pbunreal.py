@@ -20,6 +20,7 @@ from pathlib import Path
 from gslib.command_runner import CommandRunner
 from gslib.commands.cp import CpCommand
 from gslib.commands.rsync import RsyncCommand
+from gslib.commands.ls import LsCommand
 from gslib.utils import boto_util
 from gslib.sig_handling import GetCaughtSignals
 from gslib.sig_handling import InitializeSignalHandling
@@ -618,7 +619,8 @@ def init_gcs():
         gslib.command.InitializeThreadingVariables()
     g_command_runner = CommandRunner(command_map={
         "cp": CpCommand,
-        "rsync": RsyncCommand
+        "rsync": RsyncCommand,
+        "ls": LsCommand,
     })
 
     for signal_num in GetCaughtSignals():
@@ -770,6 +772,10 @@ def download_engine(bundle_name=None, download_symbols=False):
             dst = f"{long_path}{dst}"
         for pattern in patterns:
             gcs_uri = f"{gcs_bucket}{pattern}"
+            try:
+                remote_file_list = command_runner.RunNamedCommand('ls', args=["gs://engine.projectborealis.com/editor-4.27-PB-20220205/"], collect_analytics=False, skip_update_check=True, parallel_operations=True)
+            except:
+                continue
             command_runner.RunNamedCommand('rsync', args=["-Cir", gcs_uri, dst], collect_analytics=False, skip_update_check=True, parallel_operations=True)
 
 

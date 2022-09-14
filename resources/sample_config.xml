@@ -31,9 +31,12 @@
     <log>
         <file>pbsync_log.txt</file>
     </log>
+    <publish>
+        <publisher>dispatch</publisher>
+        <stagedir>Saved/StagedBuilds</stagedir>
+    </publish>
     <dispatch>
         <config>Dispatch/DispatchConfig.json</config>
-        <stagedir>Saved/StagedBuilds</stagedir>
         <drm>Saved/StagedBuilds/WindowsNoEditor/SampleProject/Binaries/Win64</drm>
     </dispatch>
     <resharper>
