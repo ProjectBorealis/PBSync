@@ -32,4 +32,6 @@ def publish_build(branch_type, dispath_exec_path, publish_stagedir, dispatch_con
             pbtools.run([dispath_exec_path, "login"])
             # actually log in
             pbtools.run([dispath_exec_path, "login"])
+        else:
+            break
     return result
