@@ -958,7 +958,7 @@ def get_uat_path():
 
 
 def fill_ddc():
-    pbtools.run([get_editor_path(), get_uproject_path(), "-DDC=EnumerateForS3DDC", "-execcmds=\"Automation RunTests FillDDCForPIETest\" -unattended"])
+    pbtools.run([get_editor_path(), get_uproject_path(), "-DDC=EnumerateForS3DDC", "-execcmds=Automation RunTests FillDDCForPIETest", "-unattended"])
 
 
 def upload_cloud_ddc():
