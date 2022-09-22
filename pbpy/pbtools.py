@@ -150,6 +150,18 @@ def run_non_blocking(*commands):
         subprocess.Popen(cmdline, shell=True, start_new_session=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
+def run_non_blocking_ex(cmd, env=None):
+    if os.name == "posix":
+        cmd.insert("nohup", 0)
+        cmd = " ".join(cmd) if isinstance(cmd, list) else cmd
+
+    env = handle_env(env)
+    if os.name == "nt":
+        subprocess.Popen(cmd, shell=True, creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    elif os.name == "posix":
+        subprocess.Popen(cmd, shell=True, start_new_session=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+
 def get_combined_output(cmd, env=None, env_out=None):
     return run_with_combined_output(cmd, env=env, env_out=env_out).stdout
 

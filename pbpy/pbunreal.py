@@ -773,9 +773,11 @@ def download_engine(bundle_name=None, download_symbols=False):
         for pattern in patterns:
             gcs_uri = f"{gcs_bucket}{pattern}"
             try:
-                remote_file_list = command_runner.RunNamedCommand('ls', args=["gs://engine.projectborealis.com/editor-4.27-PB-20220205/"], collect_analytics=False, skip_update_check=True, parallel_operations=True)
+                file_list_status = command_runner.RunNamedCommand('ls', args=[gcs_uri], collect_analytics=False, skip_update_check=True, parallel_operations=True)
+                if file_list_status:
+                    break
             except:
-                continue
+                break
             command_runner.RunNamedCommand('rsync', args=["-Cir", gcs_uri, dst], collect_analytics=False, skip_update_check=True, parallel_operations=True)
 
 
@@ -958,7 +960,7 @@ def get_uat_path():
 
 
 def fill_ddc():
-    pbtools.run([get_editor_path(), get_uproject_path(), "-DDC=EnumerateForS3DDC", "-execcmds=Automation RunTests FillDDCForPIETest", "-unattended"])
+    pbtools.run([get_editor_path(), get_uproject_path(), "-DDC=EnumerateForS3DDC", "-execcmds=Automation RunTests FillDDCForPIETest"])
 
 
 def upload_cloud_ddc():
