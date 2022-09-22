@@ -12,8 +12,7 @@
     <git>
         <version>2.33.0.vfs.0.0</version>
         <lfsversion>3.0.1</lfsversion>
-        <gcmversion>2.0.498</gcmversion>
-        <gcmsuffix>54650</gcmsuffix>
+        <gcmversion>2.0.779</gcmversion>
         <expectedbranch>promoted</expectedbranch>
         <url>https://github.com/user/repo.git</url>
         <branches>

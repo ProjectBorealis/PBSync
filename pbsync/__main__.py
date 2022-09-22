@@ -206,10 +206,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                     pblog.info("Auto-updating Git Credential Manager...")
                     version = f"v{supported_gcm_version}"
                     directory = "Saved/PBSyncDownloads"
-                    suffix = ""
-                    if {pbconfig.get('gcm_download_suffix')}:
-                        suffix = f".{pbconfig.get('gcm_download_suffix')}"
-                    download = f"gcmcore-win-x86-{supported_gcm_version_raw}{suffix}.exe"
+                    download = f"gcm-win-x86-{supported_gcm_version_raw}.exe"
                     repo = "GitCredentialManager/git-credential-manager"
                     if pbgh.download_release_file(version, download, directory=directory, repo=repo) != 0:
                         pblog.error("Git Credential Manager auto-update failed, please download and install manually.")
@@ -545,7 +542,6 @@ def main(argv):
             'supported_git_version': ('git/version', None),
             'supported_lfs_version': ('git/lfsversion', None),
             'supported_gcm_version': ('git/gcmversion', None),
-            'gcm_download_suffix': ('git/gcmsuffix', None),
             'expected_branch_name': ('git/expectedbranch', None if args.debugbranch is None else str(args.debugbranch)),
             'git_url': ('git/url', None),
             'branches': ('git/branches/branch', None),
