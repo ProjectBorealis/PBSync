@@ -351,18 +351,27 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             pbtools.run_non_blocking(f'"{rider_bin}\\rider64.exe" "{str(pbunreal.get_sln_path().resolve())}"')
         elif pbunreal.is_ue_closed():
             if launch_pref == "editor":
+                launched_editor = False
                 if pbunreal.check_ue_file_association():
                     uproject_file = pbconfig.get('uproject_name')
                     path = str(Path(uproject_file).resolve())
                     try:
                         os.startfile(path)
+                        launched_editor = True
+                    except OSError:
+                        # files are associated, but the executable is not found
+                        pass
                     except NotImplementedError:
                         if sys.platform.startswith('linux'):
                             pbtools.run_non_blocking(f"xdg-open {path}")
-                        else:
-                            pblog.info(f"You may now launch {uproject_file} with Unreal Engine.")
-                else:
-                    error_state(f".uproject extension is not correctly set into Unreal Engine. Make sure you have Epic Games Launcher installed. If problem still persists, please get help in {pbconfig.get('support_channel')}.")
+                            launched_editor = True
+                
+                if not launched_editor:
+                    pblog.warning(f"PBSync failed to find a valid file association to launch the editor, and will attempt to launch the editor directly as a workaround.")
+                    pbtools.run_non_blocking_ex([pbunreal.get_editor_path(), path])
+                    pblog.warning(f"If PBSync failed to launch the directly directly, please launch {uproject_file} manually for now.")
+                    error_state(f"For a permanent fix, try clearing out file associations for the .uproject file type and launching PBSync again. Please get help in {pbconfig.get('support_channel')} if the issue continues.")
+                    
             # TODO
             #elif launch_pref == "debug":
             #    pbtools.run_non_blocking(f"\"{str(pbunreal.get_devenv_path())}\" \"{str(pbunreal.get_sln_path())}\" /DebugExe \"{str(pbunreal.get_editor_path())}\" \"{str(pbunreal.get_uproject_path())}\" -skipcompile")
