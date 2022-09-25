@@ -36,7 +36,6 @@
     </publish>
     <dispatch>
         <config>Dispatch/DispatchConfig.json</config>
-        <drm>Saved/StagedBuilds/WindowsNoEditor/SampleProject/Binaries/Win64</drm>
     </dispatch>
     <resharper>
         <version>2021.2.1</version>

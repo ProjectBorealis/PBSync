@@ -119,10 +119,13 @@ def get_gcm_version():
 
 def get_lockables():
     lockables = set()
-    lockables.update(pathlib.Path("Content").glob("**/*.uasset"))
-    lockables.update(pathlib.Path("Content").glob("**/*.umap"))
-    lockables.update(pathlib.Path("Plugins").glob("*/Content/**/*.uasset"))
-    lockables.update(pathlib.Path("Plugins").glob("*/Content/**/*.umap"))
+    content_dir = pathlib.Path("Content")
+    lockables.update(content_dir.glob("**/*.uasset"))
+    lockables.update(content_dir.glob("**/*.umap"))
+    plugins_dir = pathlib.Path("Plugins")
+    if plugins_dir.exists():
+        lockables.update(plugins_dir.glob("*/Content/**/*.uasset"))
+        lockables.update(plugins_dir.glob("*/Content/**/*.umap"))
     return lockables
 
 

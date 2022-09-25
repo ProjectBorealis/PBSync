@@ -300,6 +300,9 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             pblog.info(f"Current branch does not need auto synchronization: {pbgit.get_current_branch_name()}.")
             pbtools.maintain_repo()
 
+        symbols_needed = pbunreal.is_versionator_symbols_enabled()
+        pbunreal.clean_binaries_folder(not symbols_needed)
+
         fix_attr_thread = threading.Thread(target=pbgit.fix_lfs_ro_attr)
         fix_attr_thread.start()
 
@@ -314,7 +317,6 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         if engine_version is not None:
             pblog.info("Registering current engine build if it exists. Otherwise, the build will be downloaded...")
 
-            symbols_needed = pbunreal.is_versionator_symbols_enabled()
             bundle_name = pbconfig.get("uev_ci_bundle") if pbconfig.get("is_ci") else pbconfig.get("uev_default_bundle")
             bundle_name = pbconfig.get_user("project", "bundle", default=bundle_name)
 
@@ -567,7 +569,6 @@ def main(argv):
             'publish_publisher': ('publish/publisher', None),
             'publish_stagedir': ('publish/stagedir', None),
             'dispatch_config': ('dispatch/config', None),
-            'dispatch_drm': ('dispatch/drm', None),
             'resharper_version': ('resharper/version', None),
             'engine_prefix': ('versionator/engineprefix', None),
             'engine_type': ('versionator/enginetype', None),

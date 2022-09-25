@@ -88,8 +88,23 @@ def get_editor_program():
 
 
 @lru_cache()
+def get_exe_ext():
+    return ".exe" if os.name == 'nt' else ""
+
+
+@lru_cache()
+def get_dll_ext():
+    return ".dll" if os.name == 'nt' else ".so"
+
+
+@lru_cache()
+def get_sym_ext(force=False):
+    return ".pdb" if os.name == 'nt' else ".sym" if force else ""
+
+
+@lru_cache()
 def get_editor_relative_path():
-    return f"Engine/Binaries/Win64/{get_editor_program()}.exe"
+    return f"Engine/Binaries/{get_platform_name()}/{get_editor_program()}{get_exe_ext()}"
 
 
 @lru_cache()
@@ -521,9 +536,9 @@ def get_engine_type_folder():
 def get_bundle_verification_file(bundle_name):
     if bundle_name and "engine" in bundle_name:
         unreal_game = "UnrealGame" if is_ue5() else "UE4Game"
-        return f"Engine/Binaries/Win64/{unreal_game}."
+        return f"Engine/Binaries/{get_platform_name()}/{unreal_game}"
     else:
-        return f"Engine/Binaries/Win64/{get_editor_program()}."
+        return f"Engine/Binaries/{get_platform_name()}/{get_editor_program()}"
 
 
 @lru_cache()
@@ -557,14 +572,14 @@ def get_unreal_version_selector_path():
         return None
     else:
         base_path = get_engine_base_path()
-        return base_path / Path("Engine/Binaries/Win64/UnrealVersionSelector-Win64-Shipping.exe")
+        return base_path / Path(f"Engine/Binaries/{get_platform_name()}/UnrealVersionSelector-{get_platform_name()}-Shipping{get_exe_ext()}")
 
 
 def run_unreal_setup():
     base_path = get_engine_base_path()
     pblog.info("Installing Unreal Engine prerequisites")
     prereq_exe = "UEPrereqSetup_x64" if is_ue5() else "UE4PrereqSetup_x64"
-    prereq_path = base_path / Path(f"Engine/Extras/Redist/en-us/{prereq_exe}.exe")
+    prereq_path = base_path / Path(f"Engine/Extras/Redist/en-us/{prereq_exe}{get_exe_ext()}")
     pbtools.run([str(prereq_path), "/quiet"])
     pblog.info("Registering Unreal Engine file associations")
     selector_path = get_unreal_version_selector_path()
@@ -662,14 +677,14 @@ def download_engine(bundle_name=None, download_symbols=False):
         editor_verification = get_bundle_verification_file("editor")
         engine_verification = get_bundle_verification_file("engine")
         base_path = Path(root) / Path(version)
-        symbols_path = base_path / Path(editor_verification + "pdb")
+        symbols_path = base_path / Path(f"{editor_verification}{get_sym_ext()}")
         needs_symbols = download_symbols and not symbols_path.exists()
-        exe_path = base_path / Path(verification_file + "exe")
+        exe_path = base_path / Path(f"{verification_file}{get_exe_ext()}")
         needs_exe = not exe_path.exists()
         game_exe_path = None
         # handle downgrading to non-engine bundles
         if "engine" not in bundle_name:
-            game_exe_path = base_path / Path(engine_verification + "exe")
+            game_exe_path = base_path / Path(f"{engine_verification}{get_exe_ext()}")
             if game_exe_path.exists():
                 needs_exe = True
                 needs_symbols = download_symbols
@@ -722,7 +737,7 @@ def download_engine(bundle_name=None, download_symbols=False):
 
     # Extract with ueversionator
     if (needs_exe or needs_symbols) and legacy_archives:
-        command_set = ["ueversionator.exe"]
+        command_set = [f"ueversionator{get_exe_ext()}"]
 
         command_set.append("-assume-valid")
         command_set.append("-user-config")
@@ -1028,15 +1043,8 @@ def package_binaries():
     binaries_zip.unlink(missing_ok=True)
     base_path = Path(".")
 
-    for binaries_path in binaries_paths:
-        for ilk in base_path.glob(f"{binaries_path}/Win64/*.ilk"):
-            ilk.unlink()
+    clean_binaries_folder(pbconfig.get("package_pdbs") != "True")
 
-    if pbconfig.get("package_pdbs") != "True":
-        for binaries_path in binaries_paths:
-            for pdb in base_path.glob(f"{binaries_path}/Win64/*.pdb"):
-                pdb.unlink()
-    
     hashes = dict()
     with zipfile.ZipFile("Binaries.zip", "a") as zipf:
         for binaries_path in binaries_paths:
@@ -1123,3 +1131,19 @@ def inspect_source(all=False):
         pbtools.error_state("Resharper inspectcode found errors.")
     os.remove(inspect_file)
     shutil.rmtree(str(resharper_dir))
+
+
+clean_binaries_globs = [f"*-*-*{get_dll_ext()}", f"*-*-*{get_sym_ext(True)}", "*.patch_*"]
+
+
+def clean_binaries_folder(clean_pdbs):
+    base_path = Path(".")
+    for binaries_path in binaries_paths:
+        for glob in clean_binaries_globs:
+            for file in base_path.glob(f"{binaries_path}/{get_platform_name()}/{glob}"):
+                file.unlink()
+
+    if clean_pdbs:
+        for binaries_path in binaries_paths:
+            for pdb in base_path.glob(f"{binaries_path}/{get_platform_name()}/*{get_sym_ext(True)}"):
+                pdb.unlink()
