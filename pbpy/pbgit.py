@@ -2,13 +2,12 @@ import os
 import shutil
 import json
 import stat
-import pathlib
 import multiprocessing
 import itertools
-import pathlib
 import re
 import fnmatch
 
+from pathlib import Path
 from urllib.parse import urlparse
 from functools import lru_cache
 
@@ -119,11 +118,11 @@ def get_gcm_version():
 
 def get_lockables():
     lockables = set()
-    content_dir = pathlib.Path("Content")
+    content_dir = Path("Content")
     lockables.update(content_dir.glob("**/*.uasset"))
     lockables.update(content_dir.glob("**/*.umap"))
-    plugins_dir = pathlib.Path("Plugins")
-    if plugins_dir.exists():
+    plugins_dir = Path("Plugins")
+    if plugins_dir.is_dir():
         lockables.update(plugins_dir.glob("*/Content/**/*.uasset"))
         lockables.update(plugins_dir.glob("*/Content/**/*.umap"))
     return lockables
@@ -187,7 +186,7 @@ def unlock_unmodified():
     prefix_filter = []
     for path in modified:
         # if a folder
-        if pathlib.Path(path).is_dir():
+        if Path(path).is_dir():
             prefix_filter.append(path)
     unlock_it = list(unlock)
     for file in unlock_it:
@@ -332,5 +331,5 @@ def get_credentials():
 def get_modified_files(paths=True):
     proc = pbtools.run_with_output([get_git_executable(), "status", "--porcelain"])
     if paths:
-        return {pathlib.Path(line[3:]) for line in proc.stdout.splitlines()}
+        return {Path(line[3:]) for line in proc.stdout.splitlines()}
     return {line[3:] for line in proc.stdout.splitlines()}
