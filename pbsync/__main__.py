@@ -182,10 +182,23 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         # check if Git LFS was installed to a different path
         if os.name == "nt" and pbgit.get_lfs_executable() == "git-lfs":
             git_lfs_paths = [path for path in pbtools.whereis("git-lfs")]
-            for git_lfs_path in git_lfs_paths:
-                if supported_lfs_version == pbgit.get_lfs_version(git_lfs_path):
-                    pbconfig.get_user_config()["paths"]["git-lfs"] = git_lfs_path
-                    break
+            if len(git_lfs_paths) > 1:
+                index = 0
+                main_lfs_path = git_lfs_paths[0]
+                for git_lfs_path in git_lfs_paths:
+                    if supported_lfs_version == pbgit.get_lfs_version(git_lfs_path):
+                        if index != 0:
+                            pblog.info("Requesting admin permission to move installed Git LFS which is being overridden...")
+                            time.sleep(1)
+                            move_cmdline = ["cmd.exe", "/c", "MOVE", "/Y", f'"{git_lfs_path}"', f'"{main_lfs_path}"']
+                            try:
+                                ret = pbuac.runAsAdmin(move_cmdline)
+                            except OSError:
+                                pblog.error("User declined permission. Automatic move failed.")
+                                pblog.error(f"Git LFS is installed to a different location, overriding your installed version. Please install Git LFS to {main_lfs_path.parents[1]}.")
+                                error_state()
+                        break
+                    index += 1
 
 
         detected_gcm_version = pbgit.get_gcm_version()
