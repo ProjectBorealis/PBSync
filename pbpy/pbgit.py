@@ -84,8 +84,10 @@ def get_git_version():
     return installed_version
 
 
-def get_lfs_version():
-    installed_version_split = pbtools.get_one_line_output([get_lfs_executable(), "--version"]).split(" ")
+def get_lfs_version(lfs_exec=None):
+    if lfs_exec is None:
+        lfs_exec = get_lfs_executable()
+    installed_version_split = pbtools.get_one_line_output([lfs_exec, "--version"]).split(" ")
 
     if len(installed_version_split) == 0:
         return missing_version
@@ -145,23 +147,23 @@ def get_locked(key="ours", include_new=True):
 
 
 def read_only(file):
-        try:
-            os.chmod(file, stat.S_IREAD)
-            return None
-        except OSError as e:
-            return str(e)
+    try:
+        os.chmod(file, stat.S_IREAD)
+        return None
+    except OSError as e:
+        return str(e)
 
 
 def read_write(file):
-        try:
-            os.chmod(file, stat.S_IWRITE)
-            return None
-        except OSError as e:
-            err_str = str(e)
-            if "The system cannot find the file specified" in err_str:
-                return f"You have a locked file which does not exist: {str(e.filename)}"
-            else:
-                return err_str
+    try:
+        os.chmod(file, stat.S_IWRITE)
+        return None
+    except OSError as e:
+        err_str = str(e)
+        if "The system cannot find the file specified" in err_str:
+            return f"You have a locked file which does not exist: {str(e.filename)}"
+        else:
+            return err_str
 
 
 def fix_lfs_ro_attr():

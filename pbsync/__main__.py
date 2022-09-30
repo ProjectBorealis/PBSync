@@ -178,7 +178,15 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
             if needs_git_update:
                 pblog.error(f"Please install the supported Git LFS version from https://github.com/{repo}/releases/tag/{version}")
-            
+
+        # check if Git LFS was installed to a different path
+        if os.name == "nt" and pbgit.get_lfs_executable() == "git-lfs":
+            git_lfs_paths = [path for path in pbtools.whereis("git-lfs")]
+            for git_lfs_path in git_lfs_paths:
+                if supported_lfs_version == pbgit.get_lfs_version(git_lfs_path):
+                    pbconfig.get_user_config()["paths"]["git-lfs"] = git_lfs_path
+                    break
+
 
         detected_gcm_version = pbgit.get_gcm_version()
         supported_gcm_version_raw = pbconfig.get('supported_gcm_version')
@@ -367,13 +375,13 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                         if sys.platform.startswith('linux'):
                             pbtools.run_non_blocking(f"xdg-open {path}")
                             launched_editor = True
-                
+
                 if not launched_editor:
                     pblog.warning(f"PBSync failed to find a valid file association to launch the editor, and will attempt to launch the editor directly as a workaround.")
                     pbtools.run_non_blocking_ex([pbunreal.get_editor_path(), path])
                     pblog.warning(f"If PBSync failed to launch the directly directly, please launch {uproject_file} manually for now.")
                     error_state(f"For a permanent fix, try clearing out file associations for the .uproject file type and launching PBSync again. Please get help in {pbconfig.get('support_channel')} if the issue continues.")
-                    
+
             # TODO
             #elif launch_pref == "debug":
             #    pbtools.run_non_blocking(f"\"{str(pbunreal.get_devenv_path())}\" \"{str(pbunreal.get_sln_path())}\" /DebugExe \"{str(pbunreal.get_editor_path())}\" \"{str(pbunreal.get_uproject_path())}\" -skipcompile")
@@ -606,8 +614,8 @@ def main(argv):
 
     # Do not process further if we're in an error state
     if pbtools.check_error_state():
-        error_state(f"""Repository is currently in an error state. Please fix the issues in your workspace 
-        before running PBSync.\nIf you have already fixed the problem, you may remove {pbtools.error_file} from your project folder and 
+        error_state(f"""Repository is currently in an error state. Please fix the issues in your workspace
+        before running PBSync.\nIf you have already fixed the problem, you may remove {pbtools.error_file} from your project folder and
         run UpdateProject again.""", True)
 
     if len(sys.argv) < 2:
