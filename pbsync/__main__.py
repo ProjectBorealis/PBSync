@@ -20,6 +20,7 @@ from pbpy import pbconfig
 from pbpy import pbpy_version
 from pbpy import pbdispatch
 from pbpy import pbsteamcmd
+from pbpy import pbbutler
 from pbpy import pbuac
 
 try:
@@ -514,7 +515,8 @@ def autoversion_handler(autoversion_val):
 
 PUBLISHERS = {
     "dispatch": lambda publish_val, pubexe: pbdispatch.publish_build(publish_val, pubexe, pbconfig.get('publish_stagedir'), pbconfig.get('dispatch_config')),
-    "steamcmd": lambda publish_val, pubexe: pbsteamcmd.publish_build(publish_val, pubexe, pbconfig.get('publish_stagedir'))
+    "steamcmd": lambda publish_val, pubexe: pbsteamcmd.publish_build(publish_val, pubexe, pbconfig.get('publish_stagedir')),
+    "butler":  lambda publish_val, pubexe: pbbutler.publish_build(publish_val, pubexe, pbconfig.get('publish_stagedir'), pbconfig.get('butler_project')),
 }
 
 
@@ -525,7 +527,7 @@ def publish_handler(publish_val, pubexe):
     fn = PUBLISHERS.get(publisher)
     if not fn:
         error_state(f"Unknown publisher: {publisher}")
-    result = fn(publish_val, pubexe)
+    result = fn(publish_val.lower(), pubexe)
     if result:
        error_state(f"Something went wrong while publishing a new build. Error code {result}")
 
@@ -590,6 +592,7 @@ def main(argv):
             'publish_publisher': ('publish/publisher', None),
             'publish_stagedir': ('publish/stagedir', None),
             'dispatch_config': ('dispatch/config', None),
+            'butler_project': ('butler/project', None),
             'resharper_version': ('resharper/version', None),
             'engine_prefix': ('versionator/engineprefix', None),
             'engine_type': ('versionator/enginetype', None),
