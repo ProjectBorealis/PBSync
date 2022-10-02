@@ -34,6 +34,10 @@
         <publisher>dispatch</publisher>
         <stagedir>Saved/StagedBuilds</stagedir>
     </publish>
+    <butler>
+        <project>user/project</project>
+        <manifest>Butler/.itch.{0}.toml</manifest>
+    </butler>
     <dispatch>
         <config>Dispatch/DispatchConfig.json</config>
     </dispatch>

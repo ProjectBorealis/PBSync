@@ -516,7 +516,7 @@ def autoversion_handler(autoversion_val):
 PUBLISHERS = {
     "dispatch": lambda publish_val, pubexe: pbdispatch.publish_build(publish_val, pubexe, pbconfig.get('publish_stagedir'), pbconfig.get('dispatch_config')),
     "steamcmd": lambda publish_val, pubexe: pbsteamcmd.publish_build(publish_val, pubexe, pbconfig.get('publish_stagedir')),
-    "butler":  lambda publish_val, pubexe: pbbutler.publish_build(publish_val, pubexe, pbconfig.get('publish_stagedir'), pbconfig.get('butler_project')),
+    "butler": lambda publish_val, pubexe: pbbutler.publish_build(publish_val, pubexe, pbconfig.get('publish_stagedir'), pbconfig.get('butler_project'), pbconfig.get('butler_manifest')),
 }
 
 
@@ -593,6 +593,7 @@ def main(argv):
             'publish_stagedir': ('publish/stagedir', None),
             'dispatch_config': ('dispatch/config', None),
             'butler_project': ('butler/project', None),
+            'butler_manifest': ('butler/manifest', None),
             'resharper_version': ('resharper/version', None),
             'engine_prefix': ('versionator/engineprefix', None),
             'engine_type': ('versionator/enginetype', None),

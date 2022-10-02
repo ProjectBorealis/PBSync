@@ -1,9 +1,12 @@
 import platform
 
+from pathlib import Path
+import shutil
+
 from pbpy import pblog, pbtools, pbunreal
 
 
-def publish_build(branch_type, butler_exec_path, publish_stagedir, butler_project):
+def publish_build(branch_type, butler_exec_path, publish_stagedir, butler_project, butler_manifest):
     # Test if our configuration values exist
     if butler_project is None or butler_project == "":
         pblog.error("butler/project was not configured.")
@@ -18,6 +21,8 @@ def publish_build(branch_type, butler_exec_path, publish_stagedir, butler_projec
       plat = "linux"
     else:
       plat = plat.lower()
+
+    shutil.copyfile(butler_manifest.format(plat), Path(publish_stagedir) / ".itch.toml")
 
     channel = f"{branch_type}-{plat}"
 
