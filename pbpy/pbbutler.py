@@ -1,6 +1,6 @@
 import platform
 
-from pbpy import pblog, pbtools
+from pbpy import pblog, pbtools, pbunreal
 
 
 def publish_build(branch_type, butler_exec_path, publish_stagedir, butler_project):
@@ -22,6 +22,6 @@ def publish_build(branch_type, butler_exec_path, publish_stagedir, butler_projec
     channel = f"{branch_type}-{plat}"
 
     # Push and Publish the build
-    proc = pbtools.run([butler_exec_path, "push", publish_stagedir, f"{butler_project}:{channel}"])
+    proc = pbtools.run([butler_exec_path, "push", publish_stagedir, f"{butler_project}:{channel}", "--userversion", pbunreal.get_project_version()])
     result = proc.returncode
     return result
