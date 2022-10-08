@@ -1185,7 +1185,7 @@ def build_installed_build():
             "GCS_URL": get_versionator_gs_base(),
             "uebp_CL": str(changelist),
             "uebp_CodeCL": str(code_changelist),
-        }
+        },
         logfunc=lambda x: pbtools.checked_stream_log(x, error="Error: ", warning="Warning: ")
     )
 
