@@ -140,6 +140,14 @@
             "console": "integratedTerminal"
         },
         {
+            "name": "Build Installed Engine",
+            "args": ["--build", "installedbuild", "--debugpath", "${input:debugPath}"],
+            "type": "python",
+            "request": "launch",
+            "module": "pbsync",
+            "console": "integratedTerminal"
+        },
+        {
             "name": "Inspect Code",
             "args": ["--build", "inspect", "--debugpath", "${input:debugPath}"],
             "type": "python",

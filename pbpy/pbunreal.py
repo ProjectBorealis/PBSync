@@ -1177,7 +1177,7 @@ def build_installed_build():
         shutil.rmtree(local_build_archives)
 
     # build the installed engine
-    pbtools.run_stream(
+    proc = pbtools.run_stream(
         [str(get_uat_path()), "BuildGraph", "-Target=Archive Installed Build Win64", "-Script=Engine/Build/InstalledEngineBuild.xml", "-NoP4", "-NoCodeSign", "-Set:EditorTarget=editor", "-Set:HostPlatformEditorOnly=true", "-Set:WithLinuxAArch64=false", "-Set:WithFeaturePacks=false", "-Set:WithDDC=false", "-Set:WithFullDebugInfo=false"],
         env={
             "IsBuildMachine": "1",
@@ -1189,4 +1189,10 @@ def build_installed_build():
         logfunc=lambda x: pbtools.checked_stream_log(x, error="Error: ", warning="Warning: ")
     )
 
-    pbtools.run_stream(["gsutil", "-m", "-o", "GSUtil:parallel_composite_upload_threshold=100M", "cp", "*.7z", get_versionator_gsuri()], cwd=str(local_build_archives))
+    if proc.returncode:
+        pbtools.error_state("Failed to build installed engine.")
+
+    proc = pbtools.run_stream(["gsutil", "-m", "-o", "GSUtil:parallel_composite_upload_threshold=100M", "cp", "*.7z", get_versionator_gsuri()], cwd=str(local_build_archives))
+
+    if proc.returncode:
+        pbtools.error_state("Failed to upload installed engine.")

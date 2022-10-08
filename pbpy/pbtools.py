@@ -103,6 +103,7 @@ def run_stream(cmd, env=None, logfunc=None, cwd=None):
     if os.name == "posix":
         cmd = " ".join(cmd) if isinstance(cmd, list) else cmd
 
+    env = handle_env(env)
     proc = subprocess.Popen(cmd, text=True, shell=True, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env, cwd=cwd)
     returncode = None
     while True:
