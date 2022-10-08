@@ -457,7 +457,7 @@ def clean_old_engine_installations(keep=1):
 
 
 @lru_cache()
-def get_versionator_gsuri(fallback=None):
+def get_versionator_gs_base(fallback=None):
     if pbconfig.get('uses_gcs') == "True":
         try:
             uev_config = configparser.ConfigParser()
@@ -465,10 +465,17 @@ def get_versionator_gsuri(fallback=None):
             baseurl = uev_config.get("ueversionator", "baseurl", fallback=fallback)
             if baseurl:
                 domain = urlparse(baseurl).hostname
-                return f"gs://{domain}/"
+                return domain
         except Exception as e:
             pblog.exception(str(e))
     return None
+
+@lru_cache()
+def get_versionator_gsuri(fallback=None):
+    domain = get_versionator_gs_base(fallback)
+    if not domain:
+        return None
+    return f"gs://{domain}/"
 
 
 @lru_cache
@@ -1147,3 +1154,39 @@ def clean_binaries_folder(clean_pdbs):
         for binaries_path in binaries_paths:
             for pdb in base_path.glob(f"{binaries_path}/{get_platform_name()}/*{get_sym_ext(True)}"):
                 pdb.unlink()
+
+
+def build_installed_build():
+    if not is_source_install():
+        pbtools.error_state("Engine builds are only supported for source installs.", fatal_error=False)
+
+    engine_path = get_engine_base_path()
+
+    # query build version so we can bump it up
+    build_version_path = engine_path / "Engine" / "Build" / "Build.version"
+
+    with open(build_version_path) as f:
+        build_version = json.load(f)
+
+    changelist = build_version["Changelist"] + 1
+    code_changelist = build_version["CompatibleChangelist"] + 1
+
+    # clean up old archives
+    local_build_archives = engine_path / "LocalBuilds" / "Archives"
+    if local_build_archives.exists():
+        local_build_archives.rmdir()
+
+    # build the installed engine
+    pbtools.run_stream(
+        [str(get_uat_path()), "BuildGraph", "-Target=Archive Installed Build Win64", "-Script=Engine/Build/InstalledEngineBuild.xml", "-NoP4", "-NoCodeSign", "-Set:EditorTarget=editor", "-Set:HostPlatformEditorOnly=true", "-Set:WithLinuxAArch64=false", "-Set:WithFeaturePacks=false", "-Set:WithDDC=false", "-Set:WithFullDebugInfo=false"],
+        env={
+            "IsBuildMachine": "1",
+            "CI": "1",
+            "GCS_URL": get_versionator_gs_base(),
+            "uebp_CL": str(changelist),
+            "uebp_CodeCL": str(code_changelist),
+        }
+        logfunc=lambda x: pbtools.checked_stream_log(x, error="Error: ", warning="Warning: ")
+    )
+
+    pbtools.run_stream(["gsutil", "-m", "-o", "GSUtil:parallel_composite_upload_threshold=100M", "cp", "*.7z", get_versionator_gsuri()], cwd=str(local_build_archives))

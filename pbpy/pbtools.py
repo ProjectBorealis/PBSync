@@ -96,14 +96,14 @@ def raised_stream_log(msg, error="error", warning="warning"):
         print(msg)
 
 
-def run_stream(cmd, env=None, logfunc=None):
+def run_stream(cmd, env=None, logfunc=None, cwd=None):
     if logfunc is None:
         logfunc = default_stream_log
 
     if os.name == "posix":
         cmd = " ".join(cmd) if isinstance(cmd, list) else cmd
 
-    proc = subprocess.Popen(cmd, text=True, shell=True, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
+    proc = subprocess.Popen(cmd, text=True, shell=True, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env, cwd=cwd)
     returncode = None
     while True:
         # TODO: handle encoding

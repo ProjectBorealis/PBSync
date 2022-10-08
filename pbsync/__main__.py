@@ -446,6 +446,7 @@ build_hooks = {
     "development": partial(pbunreal.build_game, "Development"),
     "internal": partial(pbunreal.build_game, "Test"),
     "game": pbunreal.build_game,
+    "installedbuild": pbunreal.build_installed_build,
     "package": pbunreal.package_binaries,
     "release": pbgh.generate_release,
     "inspect": pbunreal.inspect_source,
