@@ -1174,7 +1174,7 @@ def build_installed_build():
     # clean up old archives
     local_build_archives = engine_path / "LocalBuilds" / "Archives"
     if local_build_archives.exists():
-        local_build_archives.rmdir()
+        shutil.rmtree(local_build_archives)
 
     # build the installed engine
     pbtools.run_stream(
