@@ -28,11 +28,16 @@ def compare_with_current_branch_name(compared_branch):
 
 
 @lru_cache
+def get_binaries_mode():
+    return pbconfig.get_user("project", "binaries", "on")
+
+
+@lru_cache
 def is_on_expected_branch():
-    binaries_mode = pbconfig.get_user("project", "binaries", "on")
+    binaries_mode = get_binaries_mode()
     if binaries_mode == "force":
         return True
-    elif binaries_mode == "local":
+    elif binaries_mode == "local" or binaries_mode == "build":
         return False
     return compare_with_current_branch_name(pbconfig.get("expected_branch_name"))
 

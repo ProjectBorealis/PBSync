@@ -261,9 +261,13 @@ def get_engine_version_with_prefix():
     return None
 
 
+use_source_dir = True
+
+
 @lru_cache()
 def get_engine_install_root(prompt=True):
-    root = pbconfig.get_user("ue4v-user", "download_dir")
+    source_dir = pbconfig.get_user("ue4v-user", "source_dir") if use_source_dir else None
+    root = source_dir or pbconfig.get_user("ue4v-user", "download_dir")
     if root is None and prompt:
         curdir = Path().resolve()
 
@@ -1013,7 +1017,10 @@ def upload_cloud_ddc():
     command_runner.RunNamedCommand('rsync', args=["-Cir", shared_ddc, f"{gcs_uri}/VT"], collect_analytics=False, skip_update_check=True, parallel_operations=True)
 
 
-def build_source():
+def build_source(for_distribution=True):
+    if for_distribution:
+        global use_source_dir
+        use_source_dir = False
     base = get_engine_base_path()
     ubt = base / "Engine" / "Build" / "BatchFiles"
     platform = get_platform_name()

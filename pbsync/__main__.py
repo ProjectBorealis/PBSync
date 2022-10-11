@@ -326,6 +326,11 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             pblog.info(f"Current branch does not need auto synchronization: {pbgit.get_current_branch_name()}.")
             pbtools.maintain_repo()
 
+        binaries_mode = pbgit.get_binaries_mode()
+        if binaries_mode == "build":
+            pbunreal.generate_project_files()
+            pbunreal.build_source(for_distribution=False)
+
         symbols_needed = pbunreal.is_versionator_symbols_enabled()
         pbunreal.clean_binaries_folder(not symbols_needed)
 
