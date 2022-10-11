@@ -1035,9 +1035,7 @@ def build_source(for_distribution=True):
         ubt = ubt / "Build.bat"
     proc = pbtools.run_stream([ubt, platform, "Development", f"-project={str(get_uproject_path())}", "-TargetType=Editor"], logfunc=lambda x: pbtools.checked_stream_log(x, error="error ", warning="warning "))
     if not use_source_dir:
-        use_source_dir = True
-        pblog.info("Restoring original engine.")
-        download_engine(bundle_name, symbols_needed)
+        pblog.warning("You will need to run --sync engine in a new session to restore your original engine.")
     if proc.returncode:
         pbtools.error_state("Build failed.")
 
