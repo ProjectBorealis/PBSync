@@ -55,12 +55,12 @@ def parse_environment(stdout, env_out):
             os.environ[k] = v.strip('"')
 
 
-def run(cmd, env=None):
+def run(cmd, env=None, cwd=None):
     if os.name == "posix":
         cmd = " ".join(cmd) if isinstance(cmd, list) else cmd
 
     env = handle_env(env)
-    return subprocess.run(cmd, shell=True, env=env)
+    return subprocess.run(cmd, shell=True, env=env, cwd=cwd)
 
 
 def run_with_output(cmd, env=None, env_out=None):
@@ -569,6 +569,9 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
                 run_stream([pbgit.get_git_executable(), "submodule", "update", "--init", "--", "Plugins"])
             else:
                 shutil.rmtree("Plugins", ignore_errors=True)
+
+            # update git lfs
+            run_stream([pbgit.get_lfs_executable(), "pull"])
 
 
         # see if the update was successful
