@@ -361,9 +361,9 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
         pbunreal.sync_ddc_vt()
 
-        pblog.info("Finishing LFS read flag fix...")
+        pblog.info("Finishing LFS locks cleanup...")
         fix_attr_thread.join()
-        pblog.info("Finished LFS read flag fix.")
+        pblog.info("Finished LFS locks cleanup.")
 
         launch_pref = pbconfig.get_user("project", "launch", "none") if is_ci else pbconfig.get_user("project", "launch", "editor")
         if launch_pref == "vs":

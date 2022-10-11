@@ -1140,7 +1140,7 @@ def inspect_source(all=False):
     shutil.rmtree(str(resharper_dir))
 
 
-clean_binaries_globs = [f"*-*-*{get_dll_ext()}", f"*-*-*{get_sym_ext(True)}", "*.patch_*"]
+clean_binaries_globs = [f"*-*-*{get_dll_ext()}", f"*-*-*{get_sym_ext(True)}", "*.patch_*", "*.ilk"]
 
 
 def clean_binaries_folder(clean_pdbs):
