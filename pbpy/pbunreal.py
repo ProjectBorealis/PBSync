@@ -1018,9 +1018,14 @@ def upload_cloud_ddc():
 
 
 def build_source(for_distribution=True):
+    global use_source_dir
+    bundle_name = pbconfig.get("uev_ci_bundle") if pbconfig.get("is_ci") else pbconfig.get("uev_default_bundle")
+    bundle_name = pbconfig.get_user("project", "bundle", default=bundle_name)
+    symbols_needed = is_versionator_symbols_enabled()
     if for_distribution:
-        global use_source_dir
         use_source_dir = False
+        pblog.info("Setting installed engine for distribution binaries.")
+        download_engine(bundle_name, symbols_needed)
     base = get_engine_base_path()
     ubt = base / "Engine" / "Build" / "BatchFiles"
     platform = get_platform_name()
@@ -1029,6 +1034,10 @@ def build_source(for_distribution=True):
     else:
         ubt = ubt / "Build.bat"
     proc = pbtools.run_stream([ubt, platform, "Development", f"-project={str(get_uproject_path())}", "-TargetType=Editor"], logfunc=lambda x: pbtools.checked_stream_log(x, error="error ", warning="warning "))
+    if not use_source_dir:
+        use_source_dir = True
+        pblog.info("Restoring original engine.")
+        download_engine(bundle_name, symbols_needed)
     if proc.returncode:
         pbtools.error_state("Build failed.")
 
