@@ -42,16 +42,6 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
     sync_val = sync_val.lower()
 
     if sync_val == "all" or sync_val == "force" or sync_val == "partial":
-        # Firstly, check our remote connection before doing anything
-        remote_state, remote_url = pbgit.check_remote_connection()
-        if not remote_state:
-            error_state(
-                f"Remote connection was not successful. Please verify that you have an internet connection. Current git remote URL: {remote_url}")
-        else:
-            pblog.info("Remote connection is up")
-
-        pblog.info("------------------")
-
         pblog.info(f"Executing {sync_val} sync command")
         pblog.info(f"PBpy Library Version: {pbpy_version.ver}")
         pblog.info(f"PBSync Program Version: {pbsync_version.ver}")
@@ -252,6 +242,16 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
         if needs_git_update:
             error_state()
+
+        pblog.info("------------------")
+
+        # Check our remote connection before doing anything
+        remote_state, remote_url = pbgit.check_remote_connection()
+        if not remote_state:
+            error_state(
+                f"Remote connection was not successful. Please verify that you have an internet connection. Current git remote URL: {remote_url}")
+        else:
+            pblog.info("Remote connection is up")
 
         pblog.info("------------------")
 

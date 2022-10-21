@@ -1210,3 +1210,11 @@ def build_installed_build():
 
     if proc.returncode:
         pbtools.error_state("Failed to upload installed engine.")
+
+    download_dir = pbconfig.get_user("ue4v-user", "download_dir")
+    if download_dir:
+        download_dir = Path(download_dir)
+        if not download_dir.exists():
+            download_dir.mkdir(parents=True)
+        for file in local_build_archives.glob("*.7z"):
+            shutil.copy(file, download_dir)
