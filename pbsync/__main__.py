@@ -628,7 +628,7 @@ def main(argv):
                 optional = False
             else:
                 el = default
-                optional = default == ""
+                optional = default is not None
             if el or optional:
                 config_map[key] = el
             else:
