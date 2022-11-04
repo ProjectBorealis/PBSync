@@ -622,10 +622,11 @@ def main(argv):
             el = root.findall(tag)
             if el:
                 el = [e.text if e.text else "" for e in root.findall(tag)]
-                if len(el) == 1:
+                size = len(el)
+                optional = size > 0
+                if size == 1:
                     # if there is just one key, use it
                     el = el[0]
-                optional = False
             else:
                 el = default
                 optional = default is not None
