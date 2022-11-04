@@ -13,8 +13,11 @@ user_config = None
 def get(key):
     if key is None or config is None or config.get(str(key)) is None:
         pbtools.error_state(f"Invalid config get request: {key}", hush=True)
+    val = config.get(str(key))
+    if val == "":
+        pbtools.error_state(f"{key} is not set in config", hush=True)
 
-    return config.get(str(key))
+    return val
 
 
 @lru_cache()

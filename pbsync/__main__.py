@@ -583,50 +583,54 @@ def main(argv):
     # Parser function object for PBSync config file
     def pbsync_config_parser_func(root):
         config_args_map = {
-            'supported_git_version': ('git/version', None),
-            'supported_lfs_version': ('git/lfsversion', None),
-            'supported_gcm_version': ('git/gcmversion', None),
-            'expected_branch_name': ('git/expectedbranch', None if args.debugbranch is None else str(args.debugbranch)),
-            'git_url': ('git/url', None),
-            'branches': ('git/branches/branch', None),
-            'log_file_path': ('log/file', None),
-            'user_config': ('project/userconfig', None),
-            'ci_config': ('project/ciconfig', None),
-            'uev_default_bundle': ('versionator/defaultbundle', None),
-            'uev_ci_bundle': ('versionator/cibundle', None),
-            'engine_base_version': ('project/enginebaseversion', None),
-            'uproject_name': ('project/uprojectname', None),
-            'defaultgame_path': ('project/defaultgameinipath', None),
-            'package_pdbs': ('project/packagepdbs', None),
-            'ddc_key': ('project/ddckey', None),
-            'publish_publisher': ('publish/publisher', None),
-            'publish_stagedir': ('publish/stagedir', None),
-            'dispatch_config': ('dispatch/config', None),
-            'butler_project': ('butler/project', None),
-            'butler_manifest': ('butler/manifest', None),
-            'resharper_version': ('resharper/version', None),
-            'engine_prefix': ('versionator/engineprefix', None),
-            'engine_type': ('versionator/enginetype', None),
-            'uses_gcs': ('versionator/uses_gcs', None),
-            'git_instructions': ('msg/git_instructions', None),
-            'support_channel': ('msg/support_channel', None),
+            'supported_git_version': ('git/version', None, None),
+            'supported_lfs_version': ('git/lfsversion', None, None),
+            'supported_gcm_version': ('git/gcmversion', None, None),
+            'expected_branch_name': ('git/expectedbranch', None if args.debugbranch is None else str(args.debugbranch), "main"),
+            'git_url': ('git/url', None, None),
+            'branches': ('git/branches/branch', None, ["main"]),
+            'log_file_path': ('log/file', None, "pbsync_log.txt"),
+            'user_config': ('project/userconfig', None, ".user-sync"),
+            'ci_config': ('project/ciconfig', None, ".ci-sync"),
+            'uev_default_bundle': ('versionator/defaultbundle', None, "editor"),
+            'uev_ci_bundle': ('versionator/cibundle', None, "engine"),
+            'engine_base_version': ('project/enginebaseversion', None, ""),
+            'uproject_name': ('project/uprojectname', None, None),
+            'defaultgame_path': ('project/defaultgameinipath', None, "Config/DefaultGame.ini"),
+            'package_pdbs': ('project/packagepdbs', None, False),
+            'ddc_key': ('project/ddckey', None, ""),
+            'publish_publisher': ('publish/publisher', None, ""),
+            'publish_stagedir': ('publish/stagedir', None, "Saved/StagedBuilds"),
+            'dispatch_config': ('dispatch/config', None, ""),
+            'butler_project': ('butler/project', None, ""),
+            'butler_manifest': ('butler/manifest', None, ""),
+            'resharper_version': ('resharper/version', None, ""),
+            'engine_prefix': ('versionator/engineprefix', None, ""),
+            'engine_type': ('versionator/enginetype', None, None),
+            'uses_gcs': ('versionator/uses_gcs', None, False),
+            'git_instructions': ('msg/git_instructions', None, "https://github.com/ProjectBorealis/PBCore/wiki/Prerequisites"),
+            'support_channel': ('msg/support_channel', None, None),
         }
 
         missing_keys = []
         config_map = {}
         for key, val in config_args_map.items():
-            tag, override = val
+            tag, override, default = val
             if override:
                 config_map[key] = override
                 continue
             el = root.findall(tag)
             if el:
-                if len(el) > 1:
-                    # if there are multiple keys, use all non-empty ones
-                    config_map[key] = [e.text if e.text else "" for e in el]
-                else:
+                el = [e.text if e.text else "" for e in root.findall(tag)]
+                if len(el) == 1:
                     # if there is just one key, use it
-                    config_map[key] = el[0].text if el[0].text else ""
+                    el = el[0]
+                optional = False
+            else:
+                el = default
+                optional = default == ""
+            if el or optional:
+                config_map[key] = el
             else:
                 missing_keys.append(tag)
 

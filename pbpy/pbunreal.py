@@ -1019,13 +1019,15 @@ def upload_cloud_ddc():
 
 def build_source(for_distribution=True):
     global use_source_dir
-    bundle_name = pbconfig.get("uev_ci_bundle") if pbconfig.get("is_ci") else pbconfig.get("uev_default_bundle")
-    bundle_name = pbconfig.get_user("project", "bundle", default=bundle_name)
-    symbols_needed = is_versionator_symbols_enabled()
-    if for_distribution:
-        use_source_dir = False
-        pblog.info("Setting installed engine for distribution binaries.")
-        download_engine(bundle_name, symbols_needed)
+    engine_version = get_engine_version()
+    if engine_version:
+        bundle_name = pbconfig.get("uev_ci_bundle") if pbconfig.get("is_ci") else pbconfig.get("uev_default_bundle")
+        bundle_name = pbconfig.get_user("project", "bundle", default=bundle_name)
+        symbols_needed = is_versionator_symbols_enabled()
+        if for_distribution:
+            use_source_dir = False
+            pblog.info("Setting installed engine for distribution binaries.")
+            download_engine(bundle_name, symbols_needed)
     base = get_engine_base_path()
     ubt = base / "Engine" / "Build" / "BatchFiles"
     platform = get_platform_name()
