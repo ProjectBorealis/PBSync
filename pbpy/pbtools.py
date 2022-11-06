@@ -603,7 +603,7 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
     elif "successfully rebased and updated" in out:
         handle_success()
     elif it_has_any(out, "failed to merge in the changes", "could not apply", "overwritten by merge"):
-        handle_error(f"Aborting the rebase. Changes on one of your commits will be overridden by incoming changes. Please request help in {pbconfig.get('support_channel')} to resolve conflicts, and please do not run UpdateProject until the issue is resolved.")
+        handle_error(f"Aborting the pull. Changes on one of your commits will be overridden by incoming changes. Please request help in {pbconfig.get('support_channel')} to resolve conflicts, and please do not run UpdateProject until the issue is resolved.")
     elif it_has_any(out, "unmerged files", "merge_head exists"):
         error_state(f"You are in the middle of a merge. Please request help in {pbconfig.get('support_channel')} to resolve it, and please do not run UpdateProject until the issue is resolved.", fatal_error=True)
     elif "unborn" in out:
