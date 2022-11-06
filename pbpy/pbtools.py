@@ -460,13 +460,15 @@ def do_lfs_checkout(files):
 
 
 def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
-    branch_name = pbgit.get_current_branch_name()
-    configured_branches = pbconfig.get("branches")
-    if type(configured_branches) is not list:
-        configured_branches = [configured_branches]
-    if branch_name not in configured_branches:
-        pblog.info(f"Branch {branch_name} is not an auto-synced branch. Skipping pull.")
-        return
+    on_expected_branch = pbgit.is_on_expected_branch()
+    if not on_expected_branch:
+        branch_name = pbgit.get_current_branch_name()
+        configured_branches = pbconfig.get("branches")
+        if type(configured_branches) is not list:
+            configured_branches = [configured_branches]
+        if branch_name not in configured_branches:
+            pblog.info(f"Branch {branch_name} is not an auto-synced branch. Skipping pull.")
+            return
 
     def should_attempt_auto_resolve():
         return retry_count <= max_retries

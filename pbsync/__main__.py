@@ -292,12 +292,13 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
             project_version = pbunreal.get_project_version()
             is_custom_version = pbunreal.is_using_custom_version()
+            needs_binaries_pull = pbgh.is_pull_binaries_required()
             if project_version is not None:
                 if is_custom_version:
                     pblog.info(f"User selected project version: {project_version}")
                 else:
                     pblog.info(f"Current project version: {project_version}")
-            else:
+            elif needs_binaries_pull:
                 error_state(f"Something went wrong while fetching project version. Please request help in {pbconfig.get('support_channel')}.")
 
             checksum_json_path = pbconfig.get("checksum_file")
@@ -305,7 +306,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                 # checkout old checksum file from tag
                 pbgit.sync_file(checksum_json_path, project_version)
 
-            if pbgh.is_pull_binaries_required():
+            if needs_binaries_pull:
                 pblog.info("Binaries are not up to date, pulling new binaries...")
                 ret = pbgh.pull_binaries(project_version)
                 if ret == 0:
@@ -440,12 +441,13 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
         engine_version = pbunreal.get_engine_version_with_prefix()
         symbols_needed = pbunreal.is_versionator_symbols_enabled()
-        if pbunreal.download_engine(requested_bundle_name, symbols_needed):
-            pblog.info(f"Engine build {requested_bundle_name}-{engine_version} successfully registered")
-            if pbconfig.get("is_ci"):
-                pbunreal.clean_old_engine_installations(keep=3)
-        else:
-            error_state(f"Something went wrong while registering engine build {requested_bundle_name}-{engine_version}")
+        if engine_version is not None:
+            if pbunreal.download_engine(requested_bundle_name, symbols_needed):
+                pblog.info(f"Engine build {requested_bundle_name}-{engine_version} successfully registered")
+                if pbconfig.get("is_ci"):
+                    pbunreal.clean_old_engine_installations(keep=3)
+            else:
+                error_state(f"Something went wrong while registering engine build {requested_bundle_name}-{engine_version}")
 
 
 build_hooks = {

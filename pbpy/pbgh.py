@@ -186,16 +186,20 @@ def pull_binaries(version_number: str, pass_checksum=False):
 
 def generate_release():
     version = pbunreal.get_latest_project_version()
+    if version is None:
+        pbtools.error_state("Failed to get project version!")
     target_branch = pbconfig.get("expected_branch_name")
     proc = pbtools.run_with_combined_output([pbgit.get_git_executable(), "rev-parse", version, "--"])
     if proc.returncode == 0:
         pblog.error("Tag already exists. Not creating a release.")
-        pblog.info("Please use --autoversion {release,update,hotfix} if you'd like to make a new version.")
+        pblog.info("Please use --autoversion {major,minor,patch} if you'd like to make a new version.")
         return
     proc =  pbtools.run_with_combined_output([pbgit.get_git_executable(), "tag", version])
     pblog.info(proc.stdout)
     proc =  pbtools.run_with_combined_output([pbgit.get_git_executable(), "push", "origin", version])
     pblog.info(proc.stdout)
+    if not os.path.exists(chglog_executable_path):
+        pbtools.error(f"git-chglog executable not found at {chglog_executable_path}")
     proc = pbtools.run_with_combined_output([
         chglog_executable_path,
         "-c", chglog_config_path,
@@ -212,7 +216,8 @@ def generate_release():
         creds = None
     else:
         creds = get_token_env()
-    
+    if not os.path.exists(gh_executable_path):
+        pbtools.error(f"gh CLI executable not found at {gh_executable_path}")
     proc = pbtools.run_with_combined_output([
         gh_executable_path,
         "release",

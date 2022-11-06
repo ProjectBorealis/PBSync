@@ -158,17 +158,24 @@ def get_project_version():
     return get_latest_project_version()
 
 
-def set_project_version(version_string):
+def set_project_version(version_string, new_project_version):
     temp_path = "tmpProj.txt"
     # Create a temp file, do the changes there, and replace it with actual file
     try:
         with open(pbconfig.get('defaultgame_path')) as ini_file:
             with open(temp_path, "wt") as fout:
-                for ln in ini_file:
-                    if project_version_key in ln:
-                        fout.write(f"ProjectVersion={version_string}\n")
-                    else:
-                        fout.write(ln)
+                if new_project_version:
+                    for ln in ini_file:
+                        if "[/Script/EngineSettings.GeneralProjectSettings]" in ln:
+                            fout.write(f"{ln}{project_version_key}{version_string}\n")
+                        else:
+                            fout.write(ln)
+                else:
+                    for ln in ini_file:
+                        if project_version_key in ln:
+                            fout.write(f"{project_version_key}{version_string}\n")
+                        else:
+                            fout.write(ln)
         os.remove(pbconfig.get('defaultgame_path'))
         move(temp_path, pbconfig.get('defaultgame_path'))
     except Exception as e:
@@ -199,10 +206,12 @@ def set_engine_version(version_string):
 def project_version_increase(increase_type):
     increase_type = increase_type.lower()
     project_version = get_project_version()
+    new_project_version = False
     if project_version is None:
-        return False
+        project_version = "0.0.0"
+        new_project_version = True
 
-    # Split hotfix, update and release versions into an array
+    # Split patch, minor and major versions into an array
     version_split = project_version.split('.')
 
     if len(version_split) != 3:
@@ -218,7 +227,7 @@ def project_version_increase(increase_type):
         return False
 
     print(f"Project version will be increased to {new_version}")
-    return set_project_version(new_version)
+    return set_project_version(new_version, new_project_version)
 
 
 @lru_cache()
@@ -348,7 +357,8 @@ def get_engine_install_root(prompt=True):
 
 @lru_cache()
 def is_source_install():
-    root = get_engine_install_root()
+    engine_version = get_engine_version()
+    root = get_engine_install_root(prompt=engine_version is not None)
     if root is None:
         return False
     return (Path(root) / ".git").exists()
