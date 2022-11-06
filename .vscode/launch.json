@@ -29,8 +29,8 @@
         {
             "id": "autoversionSelection",
             "description": "Please choose version increase type",
-            "default": "hotfix",
-            "options": ["hotfix", "update", "release"],
+            "default": "patch",
+            "options": ["patch", "minor", "major"],
             "type": "pickString"
         },
         {

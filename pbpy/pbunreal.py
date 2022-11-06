@@ -208,11 +208,11 @@ def project_version_increase(increase_type):
     if len(version_split) != 3:
         print("Incorrect project version detected")
         return False
-    if increase_type == "hotfix":
+    if increase_type == "patch":
         new_version = f"{version_split[0] }.{version_split[1]}.{str(int(version_split[2]) + 1)}"
-    elif increase_type == "update":
+    elif increase_type == "minor":
         new_version = f"{version_split[0] }.{str(int(version_split[1]) + 1)}.0"
-    elif increase_type == "release":
+    elif increase_type == "major":
         new_version = f"{str(int(version_split[2]) + 1)}.0.0"
     else:
         return False
@@ -620,14 +620,25 @@ gb_multiplier = 1000 * 1000 * 1000
 gb_div = 1.0 / gb_multiplier
 
 
+def parse_reg_query(proc):
+    query = proc.stdout.splitlines()
+    for res in query:
+        if res.startswith("    "):
+            key, rtype, value = res.split("    ")[1:]
+            yield key, rtype, value
+
+
 def register_engine(version, path):
     if os.name == "nt":
-        query = pbtools.run_with_combined_output(["reg", "query", reg_path, "/f", path, "/e", "/t", "REG_SZ"]).stdout.splitlines()
-        for res in query:
-            if res.startswith("    "):
-                key, rtype, value = res.split("    ")[1:]
-                pbtools.run(["reg", "delete", reg_path, "/v", key, "/f"])
+        # query if this path is used elsewhere, if so, we delete it
+        for key, rtype, value in parse_reg_query(pbtools.run_with_combined_output(["reg", "query", reg_path, "/f", path, "/e", "/t", "REG_SZ"])):
+            pbtools.run(["reg", "delete", reg_path, "/v", key, "/f"])
+        # check if we are changing the path
+        for key, rtype, value in parse_reg_query(pbtools.run_with_combined_output(["reg", "query", reg_path, "/v", version, "/t", "REG_SZ"])):
+            if value == path:
+                return False
         pbtools.run(["reg", "add", reg_path, "/f", "/v", version, "/t", "REG_SZ", "/d", path])
+        return True
 
 g_command_runner = None
 
@@ -671,10 +682,10 @@ def download_engine(bundle_name=None, download_symbols=False):
             pbtools.run([pbgit.get_git_executable(), "-C", str(root), "switch", base_branch])
         pbtools.run([pbgit.get_git_executable(), "-C", str(root), "pull"])
         pbtools.run([pbgit.get_git_executable(), "-C", str(root), "submodule", "update", "--init", "--remote", "--recursive"])
-        register_engine(engine_id, root)
-        if not check_ue_file_association():
+        registered = register_engine(engine_id, root)
+        if registered or not check_ue_file_association():
             run_unreal_setup()
-        if not get_sln_path().exists():
+        if registered or not get_sln_path().exists():
             generate_project_files()
         return True
     

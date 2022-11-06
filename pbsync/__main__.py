@@ -552,7 +552,7 @@ def main(argv):
     parser.add_argument(
         "--repository", help="gcloud repository url for --printversion latest-engine and --sync engine commands")
     parser.add_argument("--autoversion", help="Automatic version update for project version",
-                        choices=["hotfix", "update", "release"])
+                        choices=["patch", "minor", "major"])
     parser.add_argument("--build", help="Does build task according to the specified argument.", action='append', choices=list(build_hooks.keys()))
     parser.add_argument("--clean", help="""Do cleanup according to specified argument. If engine is provided, old engine installations will be cleared
     If workspace is provided, workspace will be reset with latest changes from current branch (not revertible)""", choices=["engine", "workspace"])
