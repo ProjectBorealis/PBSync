@@ -605,7 +605,7 @@ def run_unreal_setup():
     pblog.info("Registering Unreal Engine file associations")
     selector_path = get_unreal_version_selector_path()
     cmdline = [selector_path, "/fileassociations"]
-    pblog.info("Requesting admin permission to install Unreal Engine Prerequisites...")
+    pblog.info("Requesting admin permission to register Unreal Engine file associations...")
     if not pbuac.isUserAdmin():
         time.sleep(1)
         try:

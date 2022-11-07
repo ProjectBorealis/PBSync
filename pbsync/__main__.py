@@ -414,7 +414,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
     elif sync_val == "engineversion":
         repository_val = pbunreal.get_versionator_gsuri(repository_val)
         if repository_val is None:
-                error_state("--repository <URL> argument should be provided with --sync engine command")
+                error_state("--repository <URL> argument should be provided with --sync engineversion command")
         engine_version = pbunreal.get_latest_available_engine_version(str(repository_val))
         if engine_version is None:
             error_state("Error while fetching latest engine version")
