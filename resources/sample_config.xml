@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <config>
     <project>
-        <enginebaseversion>4.27</enginebaseversion>
+        <enginebaseversion>5.0</enginebaseversion>
         <uprojectname>SampleProject.uproject</uprojectname>
         <defaultgameinipath>Config/DefaultGame.ini</defaultgameinipath>
         <userconfig>.user-sync</userconfig>
@@ -10,9 +10,9 @@
         <ddckey>0</ddckey>
     </project>
     <git>
-        <version>2.33.0.vfs.0.0</version>
-        <lfsversion>3.0.1</lfsversion>
-        <gcmversion>2.0.779</gcmversion>
+        <version>2.37.1.vfs.0.1</version>
+        <lfsversion>3.2.0</lfsversion>
+        <gcmversion>2.0.785</gcmversion>
         <expectedbranch>promoted</expectedbranch>
         <url>https://github.com/user/repo.git</url>
         <branches>
@@ -24,14 +24,14 @@
         <defaultbundle>editor</defaultbundle>
         <cibundle>ci-engine</cibundle>
         <engineprefix>SP</engineprefix>
-        <enginetype>ue4</enginetype>
+        <enginetype>ue5</enginetype>
         <uses_gcs>True</uses_gcs>
     </versionator>
     <log>
         <file>pbsync_log.txt</file>
     </log>
     <publish>
-        <publisher>dispatch</publisher>
+        <publisher>butler</publisher>
         <stagedir>Saved/StagedBuilds</stagedir>
     </publish>
     <butler>
@@ -42,10 +42,10 @@
         <config>Dispatch/DispatchConfig.json</config>
     </dispatch>
     <resharper>
-        <version>2021.2.1</version>
+        <version>2022.2.3</version>
     </resharper>
     <msg>
-        <git_instructions>https://gitforwindows.org/</git_instructions>
+        <git_instructions>https://github.com/ProjectBorealis/PBCore/wiki/Prerequisites</git_instructions>
         <support_channel>the support channel</support_channel>
     </msg>
 </config>
