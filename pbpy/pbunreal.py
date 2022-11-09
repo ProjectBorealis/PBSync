@@ -427,6 +427,10 @@ def sync_ddc_vt():
     if pbconfig.get('uses_gcs') != "True":
         pblog.error("Syncing DDC VT data requires GCS.")
         return False
+    ddc_key = pbconfig.get('ddc_key')
+    if not ddc_key:
+        pblog.error("Syncing DDC VT data requires a ddc_key configured.")
+        return False
     pblog.info("Syncing DDC VT data...")
     shared_ddc = Path("DerivedDataCache/VT")
     shared_ddc.mkdir(parents=True, exist_ok=True)
@@ -435,7 +439,7 @@ def sync_ddc_vt():
     if os.name == 'nt':
         shared_ddc = f"{long_path}{shared_ddc}"
     gcs_bucket = get_ddc_gsuri()
-    gcs_uri = f"{gcs_bucket}{pbconfig.get('ddc_key')}"
+    gcs_uri = f"{gcs_bucket}{ddc_key}"
     command_runner = init_gcs()
     command_runner.RunNamedCommand('rsync', args=["-Cir", f"{gcs_uri}/VT", shared_ddc], collect_analytics=False, skip_update_check=True, parallel_operations=True)
     pblog.success("Synced DDC VT data.")
@@ -1036,10 +1040,12 @@ def upload_cloud_ddc():
     # long path support
     if os.name == 'nt':
         shared_ddc = f"{long_path}{shared_ddc}"
-    gcs_bucket = get_ddc_gsuri()
-    gcs_uri = f"{gcs_bucket}{pbconfig.get('ddc_key')}"
-    command_runner = init_gcs()
-    command_runner.RunNamedCommand('rsync', args=["-Cir", shared_ddc, f"{gcs_uri}/VT"], collect_analytics=False, skip_update_check=True, parallel_operations=True)
+    ddc_key = pbconfig.get('ddc_key')
+    if ddc_key and pbconfig.get('uses_gcs') == "True":
+        gcs_bucket = get_ddc_gsuri()
+        gcs_uri = f"{gcs_bucket}{pbconfig.get('ddc_key')}"
+        command_runner = init_gcs()
+        command_runner.RunNamedCommand('rsync', args=["-Cir", shared_ddc, f"{gcs_uri}/VT"], collect_analytics=False, skip_update_check=True, parallel_operations=True)
 
 
 def build_source(for_distribution=True):
