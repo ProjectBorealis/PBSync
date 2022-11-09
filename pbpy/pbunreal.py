@@ -447,7 +447,11 @@ def clean_old_engine_installations(keep=1):
     p = re.compile(regex_pattern)
     if current_version is not None:
         engine_install_root = get_engine_install_root()
-        if is_source_install():
+        # if the user has defined a source dir, find the download_dir instead
+        source_dir = pbconfig.get_user("ue4v-user", "source_dir") if use_source_dir else None
+        if source_dir is not None:
+            engine_install_root = pbconfig.get_user("ue4v-user", "download_dir")
+        elif is_source_install():
             return True
         if engine_install_root is not None and os.path.isdir(engine_install_root):
             pblog.info(f"Keeping the last {keep} engine versions and removing the rest.")
