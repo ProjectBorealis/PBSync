@@ -419,8 +419,6 @@ def maintain_repo():
         fetch_base = [pbgit.get_git_executable(), "fetch", "--no-tags", "origin"]
         # sync other branches, but we already synced our own in UpdateProject.bat
         configured_branches = pbconfig.get("branches")
-        if type(configured_branches) is not list:
-            configured_branches = [configured_branches]
         branches = []
         if configured_branches:
             for branch in configured_branches:
@@ -463,8 +461,6 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
     branch_name = pbgit.get_current_branch_name()
     on_expected_branch = pbgit.is_on_expected_branch()
     configured_branches = pbconfig.get("branches")
-    if type(configured_branches) is not list:
-        configured_branches = [configured_branches]
     if not on_expected_branch and branch_name not in configured_branches:
         pblog.info(f"Branch {branch_name} is not an auto-synced branch. Skipping pull.")
         return

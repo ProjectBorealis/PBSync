@@ -538,16 +538,15 @@ PUBLISHERS = {
 }
 
 
-def publish_handler(publish_val, pubexe):
-    publisher = pbconfig.get('publish_publisher')
-    if not pubexe:
-        pubexe = publisher
-    fn = PUBLISHERS.get(publisher)
-    if not fn:
-        error_state(f"Unknown publisher: {publisher}")
-    result = fn(publish_val.lower(), pubexe)
-    if result:
-       error_state(f"Something went wrong while publishing a new build. Error code {result}")
+def publish_handler(publish_val):
+    publishers = pbconfig.get('publish_publishers')
+    for publisher in publishers:
+        fn = PUBLISHERS.get(publisher)
+        if not fn:
+            error_state(f"Unknown publisher: {publisher}")
+        result = fn(publish_val.lower(), publisher)
+        if result != 0:
+            error_state(f"Something went wrong while publishing a new build. Error code {result}")
 
 
 def main(argv):
@@ -567,8 +566,6 @@ def main(argv):
     parser.add_argument("--config", help=f"Path of config XML file. If not provided, ./{default_config_name} is used as default", default=default_config_name)
     parser.add_argument("--publish", help="Publishes a playable build with provided build type",
                         choices=["internal", "playtester"], const="internal", nargs="?")
-    parser.add_argument(
-        "--pubexe", help="Required publisher executable path for --publish command", default="")
     parser.add_argument(
         "--bundle", help="Engine bundle name for --sync engine command. If not provided, engine download will use the default bundle supplied by the config file")
     parser.add_argument(
@@ -591,39 +588,39 @@ def main(argv):
     # Parser function object for PBSync config file
     def pbsync_config_parser_func(root):
         config_args_map = {
-            'supported_git_version': ('git/version', None, None),
-            'supported_lfs_version': ('git/lfsversion', None, None),
-            'supported_gcm_version': ('git/gcmversion', None, None),
-            'expected_branch_name': ('git/expectedbranch', None if args.debugbranch is None else str(args.debugbranch), "main"),
-            'git_url': ('git/url', None, None),
-            'branches': ('git/branches/branch', None, ["main"]),
-            'log_file_path': ('log/file', None, "pbsync_log.txt"),
-            'user_config': ('project/userconfig', None, ".user-sync"),
-            'ci_config': ('project/ciconfig', None, ".ci-sync"),
-            'uev_default_bundle': ('versionator/defaultbundle', None, "editor"),
-            'uev_ci_bundle': ('versionator/cibundle', None, "engine"),
-            'engine_base_version': ('project/enginebaseversion', None, ""),
-            'uproject_name': ('project/uprojectname', None, None),
-            'defaultgame_path': ('project/defaultgameinipath', None, "Config/DefaultGame.ini"),
-            'package_pdbs': ('project/packagepdbs', None, False),
-            'ddc_key': ('project/ddckey', None, ""),
-            'publish_publisher': ('publish/publisher', None, ""),
-            'publish_stagedir': ('publish/stagedir', None, "Saved/StagedBuilds"),
-            'dispatch_config': ('dispatch/config', None, ""),
-            'butler_project': ('butler/project', None, ""),
-            'butler_manifest': ('butler/manifest', None, ""),
-            'resharper_version': ('resharper/version', None, ""),
-            'engine_prefix': ('versionator/engineprefix', None, ""),
-            'engine_type': ('versionator/enginetype', None, None),
-            'uses_gcs': ('versionator/uses_gcs', None, False),
-            'git_instructions': ('msg/git_instructions', None, "https://github.com/ProjectBorealis/PBCore/wiki/Prerequisites"),
-            'support_channel': ('msg/support_channel', None, None),
+            'supported_git_version': ('git/version', None, None, True),
+            'supported_lfs_version': ('git/lfsversion', None, None, True),
+            'supported_gcm_version': ('git/gcmversion', None, None, True),
+            'expected_branch_names': ('git/expectedbranch', None if args.debugbranch is None else [str(args.debugbranch)], ["main"], True),
+            'git_url': ('git/url', None, None, True),
+            'branches': ('git/branches/branch', None, ["main"], False),
+            'log_file_path': ('log/file', None, "pbsync_log.txt", True),
+            'user_config': ('project/userconfig', None, ".user-sync", True),
+            'ci_config': ('project/ciconfig', None, ".ci-sync", True),
+            'uev_default_bundle': ('versionator/defaultbundle', None, "editor", True),
+            'uev_ci_bundle': ('versionator/cibundle', None, "engine", True),
+            'engine_base_version': ('project/enginebaseversion', None, "", True),
+            'uproject_name': ('project/uprojectname', None, None, True),
+            'defaultgame_path': ('project/defaultgameinipath', None, "Config/DefaultGame.ini", True),
+            'package_pdbs': ('project/packagepdbs', None, False, True),
+            'ddc_key': ('project/ddckey', None, "", True),
+            'publish_publishers': ('publish/publisher', None, [""], False),
+            'publish_stagedir': ('publish/stagedir', None, "Saved/StagedBuilds", True),
+            'dispatch_config': ('dispatch/config', None, "", True),
+            'butler_project': ('butler/project', None, "", True),
+            'butler_manifest': ('butler/manifest', None, "", True),
+            'resharper_version': ('resharper/version', None, "", True),
+            'engine_prefix': ('versionator/engineprefix', None, "", True),
+            'engine_type': ('versionator/enginetype', None, None, True),
+            'uses_gcs': ('versionator/uses_gcs', None, False, True),
+            'git_instructions': ('msg/git_instructions', None, "https://github.com/ProjectBorealis/PBCore/wiki/Prerequisites", True),
+            'support_channel': ('msg/support_channel', None, None, True),
         }
 
         missing_keys = []
         config_map = {}
         for key, val in config_args_map.items():
-            tag, override, default = val
+            tag, override, default, is_single = val
             if override:
                 config_map[key] = override
                 continue
@@ -632,7 +629,7 @@ def main(argv):
                 el = [e.text if e.text else "" for e in root.findall(tag)]
                 size = len(el)
                 optional = size > 0
-                if size == 1:
+                if size == 1 and is_single:
                     # if there is just one key, use it
                     el = el[0]
             else:
@@ -676,7 +673,7 @@ def main(argv):
     if not (args.build is None):
         build_handler(args.build)
     if not (args.publish is None):
-        publish_handler(args.publish, args.pubexe)
+        publish_handler(args.publish)
 
     pbconfig.shutdown()
 

@@ -188,7 +188,7 @@ def generate_release():
     version = pbunreal.get_latest_project_version()
     if version is None:
         pbtools.error_state("Failed to get project version!")
-    target_branch = pbconfig.get("expected_branch_name")
+    target_branch = pbconfig.get("expected_branch_names")[0]
     proc = pbtools.run_with_combined_output([pbgit.get_git_executable(), "rev-parse", version, "--"])
     if proc.returncode == 0:
         pblog.error("Tag already exists. Not creating a release.")
