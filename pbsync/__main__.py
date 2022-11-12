@@ -330,7 +330,9 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         symbols_needed = pbunreal.is_versionator_symbols_enabled()
         pbunreal.clean_binaries_folder(not symbols_needed)
 
-        fix_attr_thread = threading.Thread(target=pbgit.fix_lfs_ro_attr)
+        configured_branches = pbconfig.get("branches")
+        should_unlock_unmodified = pbgit.get_current_branch_name() in configured_branches
+        fix_attr_thread = threading.Thread(target=pbgit.fix_lfs_ro_attr, args=(should_unlock_unmodified))
         fix_attr_thread.start()
 
         pblog.info("------------------")

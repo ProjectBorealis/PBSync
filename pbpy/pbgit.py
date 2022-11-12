@@ -174,8 +174,9 @@ def read_write(file):
             return err_str
 
 
-def fix_lfs_ro_attr():
-    unlock_unmodified()
+def fix_lfs_ro_attr(should_unlock_unmodified):
+    if should_unlock_unmodified:
+        unlock_unmodified()
     lockables = get_lockables()
     locked = get_locked()
     not_locked = lockables - locked
