@@ -107,7 +107,7 @@ def run_stream(cmd, env=None, logfunc=None, cwd=None):
     proc = subprocess.Popen(cmd, text=True, shell=True, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env, cwd=cwd)
     returncode = None
     while True:
-        # TODO: handle encoding
+        # TODO: handle encoding?
         try:
             for line in iter(lambda: proc.stdout.readline(), ''):
                 logfunc(line)
@@ -472,6 +472,33 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         # wait a little bit if retrying (exponential)
         time.sleep(0.25 * (1 << retry_count))
 
+    def handle_success():
+        pblog.success("Success! You are now on the latest changes without any conflicts.")
+
+    def handle_error(msg=None):
+        error_state(msg, fatal_error=True)
+
+    index_lock = Path(".git/index.lock")
+    if index_lock.exists():
+        success = False
+        try:
+            assert os.name == "nt"
+            # rename to itself
+            index_lock.rename(".git/index.lock")
+            index_lock.unlink(missing_ok=True)
+            success = True
+        except OSError:
+            if should_attempt_auto_resolve():
+                pblog.error("Git is currently being used by another process. Retrying...")
+                retry_count += 1
+                resolve_conflicts_and_pull(retry_count, 2)
+                return
+        except AssertionError:
+            # just fall back to full error
+            pass
+        if not success:
+            handle_error(f"Git is currently being used by another process. Please try again later or request help in {pbconfig.get('support_channel')} to resolve it, and please do not run UpdateProject until the issue is resolved.")
+
     out = get_combined_output([pbgit.get_git_executable(), "status", "--porcelain=2", "--branch"])
 
     if not it_has_any(out, "-0"):
@@ -485,6 +512,10 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
 
         res_out = ""
         def res_log(log):
+            nonlocal res_out
+            log = log.rstrip()
+            if not log:
+                return
             pblog.info(log)
             res_out += log
 
@@ -572,9 +603,6 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
             else:
                 shutil.rmtree("Plugins", ignore_errors=True)
 
-            # update git lfs
-            run_stream([pbgit.get_lfs_executable(), "pull"])
-
 
         # see if the update was successful
         code = result.returncode
@@ -582,12 +610,6 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         error = code != 0
     else:
         error = False
-
-    def handle_success():
-        pblog.success("Success! You are now on the latest changes without any conflicts.")
-
-    def handle_error(msg=None):
-        error_state(msg, fatal_error=True)
 
     if not error:
         handle_success()
@@ -599,7 +621,7 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         handle_success()
     elif it_has_any(out, "failed to merge in the changes", "could not apply", "overwritten by merge"):
         handle_error(f"Aborting the pull. Changes on one of your commits will be overridden by incoming changes. Please request help in {pbconfig.get('support_channel')} to resolve conflicts, and please do not run UpdateProject until the issue is resolved.")
-    elif it_has_any(out, "unmerged files", "merge_head exists"):
+    elif it_has_any(out, "unmerged files", "merge_head exists", "middle of"):
         error_state(f"You are in the middle of a merge. Please request help in {pbconfig.get('support_channel')} to resolve it, and please do not run UpdateProject until the issue is resolved.", fatal_error=True)
     elif "unborn" in out:
         if should_attempt_auto_resolve():

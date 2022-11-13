@@ -59,6 +59,7 @@ def get_lfs_executable():
 def get_gcm_executable(recursed=False):
     gcm_exec = pbtools.get_one_line_output([get_git_executable(), "config", "--get", "credential.helper"]).replace("\\", "")
     # no helper installed
+    # TODO: remove -core suffix once deprecated
     if not gcm_exec:
         # try setting GCM
         if not recursed:
@@ -68,7 +69,7 @@ def get_gcm_executable(recursed=False):
     if "manager-core" == gcm_exec:
         return [get_git_executable(), "credential-manager-core"]
     # helper installed, but not GCM
-    if "git-credential-manager-core" not in gcm_exec:
+    if "git-credential-manager" not in gcm_exec:
         if not recursed:
             pbtools.run(["git", "config", "credential.helper", "manager-core"])
             return get_gcm_executable(recursed=True)

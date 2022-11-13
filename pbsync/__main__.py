@@ -237,7 +237,15 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                             needs_git_update = False
                         os.remove(download_path)
 
-            if needs_git_update:
+            if not needs_git_update:
+                # this handles a case where GCM is installed by Git itself, and blocks GCM from installing the new one
+                needs_git_update = pbgit.get_gcm_version() != supported_gcm_version
+                if needs_git_update:
+                    # remove the old credential helper (it may get stuck, and GCM won't be able to install)
+                    pbtools.run_with_combined_output([pbgit.get_git_executable(), "config", "--unset-all", "credential.helper"])
+                    pbtools.run_with_combined_output([pbgit.get_git_executable(), "config", "--global", "--unset-all", "credential.helper"])
+                    pblog.error("Git Credential Manager failed due to an installation conflict, please launch UpdateProject again to finalize the installation.")
+            else:
                 pblog.error("Please install the supported Git Credential Manager version from https://github.com/GitCredentialManager/git-credential-manager/releases")
 
         if needs_git_update:
@@ -332,7 +340,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
         configured_branches = pbconfig.get("branches")
         should_unlock_unmodified = pbgit.get_current_branch_name() in configured_branches
-        fix_attr_thread = threading.Thread(target=pbgit.fix_lfs_ro_attr, args=(should_unlock_unmodified))
+        fix_attr_thread = threading.Thread(target=pbgit.fix_lfs_ro_attr, args=(should_unlock_unmodified,))
         fix_attr_thread.start()
 
         pblog.info("------------------")

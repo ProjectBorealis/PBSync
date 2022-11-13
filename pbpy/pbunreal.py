@@ -473,6 +473,10 @@ def clean_old_engine_installations(keep=1):
                     except Exception as e:
                         pblog.exception(str(e))
                         print(f"Something went wrong while removing engine folder {str(full_path)}. Please try removing it manually.")
+            # also remove lingering 7z files
+            for archive in Path(engine_install_root).glob("*.7z"):
+                print(f"Removing unused engine archive: {str(full_path)}...")
+                archive.unlink()
             return True
 
     return False
@@ -641,6 +645,7 @@ gb_div = 1.0 / gb_multiplier
 def parse_reg_query(proc):
     query = proc.stdout.splitlines()
     for res in query:
+        print(res)
         if res.startswith("    "):
             key, rtype, value = res.split("    ")[1:]
             yield key, rtype, value
@@ -650,11 +655,10 @@ def register_engine(version, path):
     if os.name == "nt":
         # query if this path is used elsewhere, if so, we delete it
         for key, rtype, value in parse_reg_query(pbtools.run_with_combined_output(["reg", "query", reg_path, "/f", path, "/e", "/t", "REG_SZ"])):
-            pbtools.run(["reg", "delete", reg_path, "/v", key, "/f"])
-        # check if we are changing the path
-        for key, rtype, value in parse_reg_query(pbtools.run_with_combined_output(["reg", "query", reg_path, "/v", version, "/t", "REG_SZ"])):
-            if value == path:
+            # if we already have this version, no need to reregister it
+            if key == version:
                 return False
+            pbtools.run(["reg", "delete", reg_path, "/v", key, "/f"])
         pbtools.run(["reg", "add", reg_path, "/f", "/v", version, "/t", "REG_SZ", "/d", path])
         return True
 
@@ -716,7 +720,8 @@ def download_engine(bundle_name=None, download_symbols=False):
         verification_file = get_bundle_verification_file(bundle_name)
         editor_verification = get_bundle_verification_file("editor")
         engine_verification = get_bundle_verification_file("engine")
-        base_path = Path(root) / Path(version)
+        root_path = Path(root)
+        base_path = root_path / Path(version)
         symbols_path = base_path / Path(f"{editor_verification}{get_sym_ext()}")
         needs_symbols = download_symbols and not symbols_path.exists()
         exe_path = base_path / Path(f"{verification_file}{get_exe_ext()}")
@@ -764,11 +769,20 @@ def download_engine(bundle_name=None, download_symbols=False):
             if pbconfig.get('uses_gcs') == "True" and legacy_archives:
                 command_runner = init_gcs()
                 patterns = []
+                removal_patterns = []
                 if needs_exe:
                     patterns.append(f"{bundle_name}")
+                else:
+                    removal_patterns.append(f"{bundle_name}")
                 if needs_symbols:
                     patterns.append(f"{bundle_name}-symbols")
+                else:
+                    removal_patterns.append(f"{bundle_name}-symbols")
                 patterns = [f"{pattern}-{version}.7z" for pattern in patterns]
+                removal_patterns = [f"{pattern}-{version}.7z" for pattern in removal_patterns]
+                for pattern in removal_patterns:
+                    remove_file = root_path / Path(pattern)
+                    remove_file.unlink(missing_ok=True)
                 gcs_bucket = get_versionator_gsuri()
                 dst = f"file://{root}"
                 for pattern in patterns:
