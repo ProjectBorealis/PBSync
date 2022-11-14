@@ -22,9 +22,10 @@ https://gist.github.com/sylvainpelissier/ff072a6759082590a4fe8f7e070a4952
 
 """
 
-import sys
 import os
 import traceback
+
+from pbpy import pblog
 
 def isUserAdmin():
     """@return: True if the current user is an 'Admin' whatever that
@@ -42,7 +43,7 @@ def isUserAdmin():
             return ctypes.windll.shell32.IsUserAnAdmin()
         except:
             traceback.print_exc()
-            print("Admin check failed, assuming not an admin.")
+            pblog.warning("Admin check failed, assuming not an admin.")
             return False
     else:
         # Check for root on Posix

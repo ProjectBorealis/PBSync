@@ -215,7 +215,7 @@ def project_version_increase(increase_type):
     version_split = project_version.split('.')
 
     if len(version_split) != 3:
-        print("Incorrect project version detected")
+        pblog.error("Incorrect project version detected")
         return False
     if increase_type == "patch":
         new_version = f"{version_split[0] }.{version_split[1]}.{str(int(version_split[2]) + 1)}"
@@ -226,7 +226,7 @@ def project_version_increase(increase_type):
     else:
         return False
 
-    print(f"Project version will be increased to {new_version}")
+    pblog.info(f"Project version will be increased to {new_version}")
     return set_project_version(new_version, new_project_version)
 
 
@@ -466,17 +466,20 @@ def clean_old_engine_installations(keep=1):
                 # Also do not remove files. Only remove folders
                 full_path = os.path.join(engine_install_root, folder)
                 if folder != current_version and p.match(folder) is not None and os.path.isdir(full_path):
-                    print(f"Removing old engine installation: {str(full_path)}...")
+                    pblog.info(f"Removing old engine installation: {str(full_path)}...")
                     try:
                         rmtree(full_path, ignore_errors=True)
-                        print("Removal was successful!")
                     except Exception as e:
                         pblog.exception(str(e))
-                        print(f"Something went wrong while removing engine folder {str(full_path)}. Please try removing it manually.")
+                        pblog.error(f"Something went wrong while removing engine folder {str(full_path)}. Please try removing it manually.")
             # also remove lingering 7z files
             for archive in Path(engine_install_root).glob("*.7z"):
-                print(f"Removing unused engine archive: {str(full_path)}...")
-                archive.unlink()
+                pblog.info(f"Removing unused engine archive: {str(archive)}...")
+                try:
+                    archive.unlink()
+                except Exception as e:
+                    pblog.exception(str(e))
+                    pblog.error(f"Something went wrong while removing archive folder {str(archive)}. Please try removing it manually.")
             return True
 
     return False
@@ -645,7 +648,6 @@ gb_div = 1.0 / gb_multiplier
 def parse_reg_query(proc):
     query = proc.stdout.splitlines()
     for res in query:
-        print(res)
         if res.startswith("    "):
             key, rtype, value = res.split("    ")[1:]
             yield key, rtype, value
