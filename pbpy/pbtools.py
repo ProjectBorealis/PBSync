@@ -459,7 +459,7 @@ def do_lfs_checkout(files):
 
 def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
     branch_name = pbgit.get_current_branch_name()
-    on_expected_branch = pbgit.is_on_expected_branch()
+    on_expected_branch = pbgit.is_on_expected_branch(for_binaries=False)
     configured_branches = pbconfig.get("branches")
     if not on_expected_branch and branch_name not in configured_branches:
         pblog.info(f"Branch {branch_name} is not an auto-synced branch. Skipping pull.")

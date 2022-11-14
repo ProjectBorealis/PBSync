@@ -33,12 +33,13 @@ def get_binaries_mode():
 
 
 @lru_cache
-def is_on_expected_branch():
-    binaries_mode = get_binaries_mode()
-    if binaries_mode == "force":
-        return True
-    elif binaries_mode == "local" or binaries_mode == "build":
-        return False
+def is_on_expected_branch(for_binaries=True):
+    if for_binaries:
+        binaries_mode = get_binaries_mode()
+        if binaries_mode == "force":
+            return True
+        elif binaries_mode == "local" or binaries_mode == "build":
+            return False
     for expected_branch in pbconfig.get("expected_branch_names"):
         if compare_with_current_branch_name(expected_branch):
             return True

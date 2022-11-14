@@ -329,7 +329,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             # restore checksum file
             if is_custom_version:
                 pbgit.sync_file(checksum_json_path, "HEAD")
-        elif pbconfig.get_user("project", "autosync", default=True):
+        elif pbconfig.get_user_config().getboolean("project", "autosync", fallback=True) or pbgit.is_on_expected_branch(for_binaries=False):
             pbtools.resolve_conflicts_and_pull()
         else:
             pblog.info(f"Current branch does not need auto synchronization: {pbgit.get_current_branch_name()}.")
@@ -363,7 +363,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
                 error_state(f"Something went wrong while registering engine build {bundle_name}-{engine_version}. Please request help in {pbconfig.get('support_channel')}.")
 
             # Clean old engine installations
-            if pbconfig.get_user("ue4v-user", "clean", True):
+            if pbconfig.get_user_config().getboolean("ue4v-user", "clean", fallback=True):
                 if pbunreal.clean_old_engine_installations():
                     pblog.info("Successfully cleaned old engine installations.")
                 else:
