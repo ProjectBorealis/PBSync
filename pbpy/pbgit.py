@@ -66,8 +66,12 @@ def get_gcm_executable(recursed=False):
             pbtools.run(["git", "config", "credential.helper", "manager-core"])
             return get_gcm_executable(recursed=True)
         return None
+    # old style
     if "manager-core" == gcm_exec:
         return [get_git_executable(), "credential-manager-core"]
+    # new style
+    if "manager" == gcm_exec:
+        return [get_git_executable(), "credential-manager"]
     # helper installed, but not GCM
     if "git-credential-manager" not in gcm_exec:
         if not recursed:
