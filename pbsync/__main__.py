@@ -329,7 +329,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
             # restore checksum file
             if is_custom_version:
                 pbgit.sync_file(checksum_json_path, "HEAD")
-        elif pbconfig.get_user_config().getboolean("project", "autosync", fallback=True) or pbgit.is_on_expected_branch(for_binaries=False):
+        elif pbconfig.get_user_config().getboolean("project", "autosync", fallback=True):
             pbtools.resolve_conflicts_and_pull()
         else:
             pblog.info(f"Current branch does not need auto synchronization: {pbgit.get_current_branch_name()}.")
