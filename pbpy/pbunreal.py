@@ -372,9 +372,10 @@ def uses_longtail():
 def get_latest_available_engine_version(bucket_url):
     if pbconfig.get('uses_gcs') != "True":
         return None
+    if uses_longtail():
+        return None
     output = pbtools.get_combined_output(["gsutil", "ls", bucket_url])
-    bundle_name = pbconfig.get("uev_ci_bundle") if pbconfig.get("is_ci") else pbconfig.get("uev_default_bundle")
-    bundle_name = pbconfig.get_user("project", "bundle", default=bundle_name)
+    bundle_name = get_bundle()
 
     # e.g, "engine-4.24-PB"
     regex_prefix = f"{bundle_name}-{pbconfig.get('engine_base_version')}-{get_engine_version_prefix()}"
@@ -584,21 +585,23 @@ def get_bundle_verification_file(bundle_name):
 
 @lru_cache()
 def get_engine_base_path():
-    if is_source_install():
-        return Path(get_engine_install_root())
-    version = get_engine_version()
-    if version is not None:
-        root = get_engine_install_root()
-        if root is not None:
-            version = get_engine_version_with_prefix()
-            return Path(root) / Path(version)
-    else:
+    root = get_engine_install_root()
+    if root is None:
         installed_path = Path("C:\\ProgramData\\Epic\\UnrealEngineLauncher\\LauncherInstalled.dat")
         with open(str(installed_path)) as f:
             installed = json.load(f)
             for install in installed["InstallationList"]:
                 if install["NamespaceId"] == "ue" and not install["AppVersion"].endswith("UserContent-Windows") and install["AppVersion"].startswith(get_engine_association()):
                     return Path(install["InstallLocation"])
+    root_path = Path(root)
+    if is_source_install():
+        return root_path
+    if uses_longtail():
+        return root_path / get_bundle()
+    version = get_engine_version()
+    if version is not None:
+        version = get_engine_version_with_prefix()
+        return root_path / version
     return None
 
 
@@ -695,6 +698,12 @@ def init_gcs():
 
     return g_command_runner
 
+@lru_cache()
+def get_bundle():
+    bundle_name = pbconfig.get("uev_ci_bundle") if pbconfig.get("is_ci") else pbconfig.get("uev_default_bundle")
+    bundle_name = pbconfig.get_user("project", "bundle", default=bundle_name)
+    return bundle_name
+
 def download_engine(bundle_name=None, download_symbols=False):
     version = get_engine_version_with_prefix()
     legacy_archives = not uses_longtail()
@@ -726,25 +735,27 @@ def download_engine(bundle_name=None, download_symbols=False):
         # create install dir if doesn't exist
         os.makedirs(root, exist_ok=True)
 
-        verification_file = get_bundle_verification_file(bundle_name)
-        editor_verification = get_bundle_verification_file("editor")
-        engine_verification = get_bundle_verification_file("engine")
         root_path = Path(root)
-        base_path = root_path / Path(version)
-        symbols_path = base_path / Path(f"{editor_verification}{get_sym_ext()}")
-        needs_symbols = download_symbols and not symbols_path.exists()
-        exe_path = base_path / Path(f"{verification_file}{get_exe_ext()}")
-        needs_exe = not exe_path.exists()
-        game_exe_path = None
-        # handle downgrading to non-engine bundles
-        if "engine" not in bundle_name:
-            game_exe_path = base_path / Path(f"{engine_verification}{get_exe_ext()}")
-            if game_exe_path.exists():
-                needs_exe = True
-                needs_symbols = download_symbols
-                shutil.rmtree(str(base_path), ignore_errors=True)
-
-        if not legacy_archives:
+        base_path = get_engine_base_path()
+        needs_exe = True
+        needs_symbols = download_symbols
+        if legacy_archives:
+            verification_file = get_bundle_verification_file(bundle_name)
+            editor_verification = get_bundle_verification_file("editor")
+            engine_verification = get_bundle_verification_file("engine")
+            symbols_path = base_path / Path(f"{editor_verification}{get_sym_ext()}")
+            needs_symbols = download_symbols and not symbols_path.exists()
+            exe_path = base_path / Path(f"{verification_file}{get_exe_ext()}")
+            needs_exe = not exe_path.exists()
+            game_exe_path = None
+            # handle downgrading to non-engine bundles
+            if "engine" not in bundle_name:
+                game_exe_path = base_path / Path(f"{engine_verification}{get_exe_ext()}")
+                if game_exe_path.exists():
+                    needs_exe = True
+                    needs_symbols = download_symbols
+                    shutil.rmtree(str(base_path), ignore_errors=True)
+        else:
             pblog.success("Using new Longtail incremental delivery method for engine update.")
 
         if needs_exe or needs_symbols:
@@ -833,7 +844,7 @@ def download_engine(bundle_name=None, download_symbols=False):
         # TODO: maybe cache out Saved and Intermediate folders?
         # current legacy archive behavior obviously doesn't keep them for new installs, but we could now
         # have to copy them out and then copy them back in
-        pbtools.run_stream([longtail_path, "get", "--source-path", f"{gcs_bucket}/lt/{bundle_name}/index/{version}.json", "--target-path", str(root_path / Path(bundle_name)), "--cache-path", "Saved/longtail/cache/{bundle_name}"], env={"GOOGLE_APPLICATION_CREDENTIALS": "Build/credentials.json"})
+        pbtools.run_stream([longtail_path, "get", "--source-path", f"{gcs_bucket}/lt/{bundle_name}/index/{version}.json", "--target-path", str(base_path), "--cache-path", "Saved/longtail/cache/{bundle_name}"], env={"GOOGLE_APPLICATION_CREDENTIALS": "Build/credentials.json"})
         # TODO: similarly, have to copy PDBs out into a store so longtail doesn't touch the engine and delete everything but symbols
         if download_symbols:
             pblog.warning("Symbols download not supported with incremental delivery at this time.")

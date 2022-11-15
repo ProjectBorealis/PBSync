@@ -37,7 +37,7 @@ def config_handler(config_var, config_parser_func):
         error_state(f"{str(config_var)} config file is not valid or not found. Please check the integrity of the file", hush=True, term=True)
 
 
-def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None):
+def sync_handler(sync_val: str, repository_val=None):
 
     sync_val = sync_val.lower()
 
@@ -354,8 +354,7 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
         if engine_version is not None:
             pblog.info("Registering current engine build if it exists. Otherwise, the build will be downloaded...")
 
-            bundle_name = pbconfig.get("uev_ci_bundle") if pbconfig.get("is_ci") else pbconfig.get("uev_default_bundle")
-            bundle_name = pbconfig.get_user("project", "bundle", default=bundle_name)
+            bundle_name = pbunreal.get_bundle()
 
             if pbunreal.download_engine(bundle_name, symbols_needed):
                 pblog.info(f"Engine build {bundle_name}-{engine_version} successfully registered")
@@ -451,19 +450,17 @@ def sync_handler(sync_val: str, repository_val=None, requested_bundle_name=None)
 
     elif sync_val == "engine":
         # Pull engine build with ueversionator and register it
-        if requested_bundle_name is None:
-            requested_bundle_name = pbconfig.get("uev_ci_bundle") if pbconfig.get("is_ci") else pbconfig.get("uev_default_bundle")
-            requested_bundle_name = pbconfig.get_user("project", "bundle", default=requested_bundle_name)
+        bundle_name = pbunreal.get_bundle()
 
         engine_version = pbunreal.get_engine_version_with_prefix()
         symbols_needed = pbunreal.is_versionator_symbols_enabled()
         if engine_version is not None:
-            if pbunreal.download_engine(requested_bundle_name, symbols_needed):
-                pblog.info(f"Engine build {requested_bundle_name}-{engine_version} successfully registered")
+            if pbunreal.download_engine(bundle_name, symbols_needed):
+                pblog.info(f"Engine build {bundle_name}-{engine_version} successfully registered")
                 if pbconfig.get("is_ci"):
                     pbunreal.clean_old_engine_installations(keep=3)
             else:
-                error_state(f"Something went wrong while registering engine build {requested_bundle_name}-{engine_version}")
+                error_state(f"Something went wrong while registering engine build {bundle_name}-{engine_version}")
 
 
 build_hooks = {
@@ -577,8 +574,6 @@ def main(argv):
     parser.add_argument("--publish", help="Publishes a playable build with provided build type",
                         choices=["internal", "playtester"], const="internal", nargs="?")
     parser.add_argument(
-        "--bundle", help="Engine bundle name for --sync engine command. If not provided, engine download will use the default bundle supplied by the config file")
-    parser.add_argument(
         "--debugpath", help="If provided, PBSync will run in provided path")
     parser.add_argument(
         "--debugbranch", help="If provided, PBSync will use provided branch as expected branch")
@@ -678,7 +673,7 @@ def main(argv):
     if not (args.clean is None):
         clean_handler(args.clean)
     if not (args.sync is None):
-        sync_handler(args.sync, args.repository, args.bundle)
+        sync_handler(args.sync, args.repository)
     if not (args.autoversion is None):
         autoversion_handler(args.autoversion)
     if not (args.build is None):

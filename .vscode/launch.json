@@ -41,13 +41,6 @@
             "type": "pickString"
         },
         {
-            "id": "bundleSelection",
-            "description": "Please choose what engine bundle you want to use",
-            "default": "editor",
-            "options": ["editor", "ciengine"],
-            "type": "pickString"
-        },
-        {
             "id": "commit",
             "description": "Commit contains moves to migrate assets using",
             "type": "promptString"
@@ -87,7 +80,7 @@
         },
         {
             "name": "Pull Engine Build",
-            "args": ["--sync", "engine", "--bundle", "${input:bundleSelection}", "--debugpath", "${input:debugPath}"],
+            "args": ["--sync", "engine", "--debugpath", "${input:debugPath}"],
             "type": "python",
             "justMyCode": false,
             "request": "launch",
