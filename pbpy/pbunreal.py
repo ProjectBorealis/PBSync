@@ -844,7 +844,7 @@ def download_engine(bundle_name=None, download_symbols=False):
         # TODO: maybe cache out Saved and Intermediate folders?
         # current legacy archive behavior obviously doesn't keep them for new installs, but we could now
         # have to copy them out and then copy them back in
-        pbtools.run_stream([longtail_path, "get", "--source-path", f"{gcs_bucket}/lt/{bundle_name}/index/{version}.json", "--target-path", str(base_path), "--cache-path", "Saved/longtail/cache/{bundle_name}"], env={"GOOGLE_APPLICATION_CREDENTIALS": "Build/credentials.json"})
+        pbtools.run_stream([longtail_path, "get", "--source-path", f"{gcs_bucket}/lt/{bundle_name}/index/{version}.json", "--target-path", str(base_path), "--cache-path", "Saved/longtail/cache/{bundle_name}"], env={"GOOGLE_APPLICATION_CREDENTIALS": "Build/credentials.json"}, logfunc=pbtools.raised_stream_log)
         # TODO: similarly, have to copy PDBs out into a store so longtail doesn't touch the engine and delete everything but symbols
         if download_symbols:
             pblog.warning("Symbols download not supported with incremental delivery at this time.")
@@ -1266,11 +1266,10 @@ def build_installed_build():
 
     # build the installed engine
     proc = pbtools.run_stream(
-        [str(get_uat_path()), "BuildGraph", "-Target=Archive Installed Build Win64", "-Script=Engine/Build/InstalledEngineBuild.xml", "-NoP4", "-NoCodeSign", "-Set:EditorTarget=editor", "-Set:HostPlatformEditorOnly=true", "-Set:WithLinuxAArch64=false", "-Set:WithFeaturePacks=false", "-Set:WithDDC=false", "-Set:WithFullDebugInfo=false"],
+        [str(get_uat_path()), "BuildGraph", f"-Target=Make Installed Build {get_platform_name()}", "-Script=Engine/Build/InstalledEngineBuild.xml", "-NoP4", "-NoCodeSign", "-Set:EditorTarget=editor", "-Set:HostPlatformEditorOnly=true", "-Set:WithLinuxAArch64=false", "-Set:WithFeaturePacks=false", "-Set:WithDDC=false", "-Set:WithFullDebugInfo=false"],
         env={
             "IsBuildMachine": "1",
             "CI": "1",
-            "GCS_URL": get_versionator_gs_base(),
             "uebp_CL": str(changelist),
             "uebp_CodeCL": str(code_changelist),
         },
@@ -1280,29 +1279,38 @@ def build_installed_build():
     if proc.returncode:
         pbtools.error_state("Failed to build installed engine.")
 
+    with open(build_version_path) as f:
+        build_version = json.load(f)
+    version = build_version["BranchName"].replace("++UE4+", "")
+
     if pbconfig.get('uses_gcs') == "True":
         if uses_longtail():
             bundle_name = pbconfig.get("uev_default_bundle")
-            with open(build_version_path) as f:
-                build_version = json.load(f)
-            version = build_version["BranchName"].replace("++UE4+", "")
+            project_path = get_uproject_path().parent
             proc = pbtools.run_stream([
-                longtail_path, "put",
-                "--source-path", "Engine",
-                "--target-path", f"{get_versionator_gsuri()}/lt/{bundle_name}/index/{version}.json"],
-                cwd=str(local_builds_path),
-                env={"GOOGLE_APPLICATION_CREDENTIALS": "Build/credentials.json"}
+                str(project_path / longtail_path), "put",
+                "--source-path", "Windows",
+                "--target-path", f"{get_versionator_gsuri()}lt/{bundle_name}/index/{version}.json",
+                "--compression-algorithm", "zstd_max"
+                ],
+                cwd=str(local_builds_path / "Engine"),
+                env={"GOOGLE_APPLICATION_CREDENTIALS": str(project_path / "Build" / "credentials.json")},
+                logfunc=pbtools.raised_stream_log
             )
         else:
             proc = pbtools.run_stream(["gsutil", "-m", "-o", "GSUtil:parallel_composite_upload_threshold=100M", "cp", "*.7z", get_versionator_gsuri()], cwd=str(local_build_archives))
 
-    if proc.returncode:
-        pbtools.error_state("Failed to upload installed engine.")
+            download_dir = pbconfig.get_user("ue4v-user", "download_dir")
+            if download_dir:
+                download_dir = Path(download_dir)
+                if not download_dir.exists():
+                    download_dir.mkdir(parents=True)
+                for file in local_build_archives.glob("*.7z"):
+                    shutil.copy(file, download_dir)
 
-    download_dir = pbconfig.get_user("ue4v-user", "download_dir")
-    if download_dir:
-        download_dir = Path(download_dir)
-        if not download_dir.exists():
-            download_dir.mkdir(parents=True)
-        for file in local_build_archives.glob("*.7z"):
-            shutil.copy(file, download_dir)
+        if proc.returncode:
+            pbtools.error_state("Failed to upload installed engine.")
+
+    if not set_engine_version(version):
+        pbtools.error_state("Error while updating engine version in .uproject file")
+    pblog.info(f"Successfully changed engine version as {str(version)}")
