@@ -364,6 +364,11 @@ def is_source_install():
     return (Path(root) / ".git").exists()
 
 
+@lru_cache()
+def uses_longtail():
+    return pbconfig.get("uses_longtail")
+
+
 def get_latest_available_engine_version(bucket_url):
     if pbconfig.get('uses_gcs') != "True":
         return None
@@ -664,6 +669,7 @@ def register_engine(version, path):
         pbtools.run(["reg", "add", reg_path, "/f", "/v", version, "/t", "REG_SZ", "/d", path])
         return True
 
+longtail_path = ".github\\longtail\\longtail.exe"
 g_command_runner = None
 
 def init_gcs():
@@ -691,6 +697,7 @@ def init_gcs():
 
 def download_engine(bundle_name=None, download_symbols=False):
     version = get_engine_version_with_prefix()
+    legacy_archives = not uses_longtail()
 
     if version is None:
         return True
@@ -737,10 +744,8 @@ def download_engine(bundle_name=None, download_symbols=False):
                 needs_symbols = download_symbols
                 shutil.rmtree(str(base_path), ignore_errors=True)
 
-        legacy_archives = True
-
         if not legacy_archives:
-            pblog.success("Using new remote sync method for engine update.")
+            pblog.success("Using new Longtail incremental delivery method for engine update.")
 
         if needs_exe or needs_symbols:
             if not is_ci and os.path.isdir(root):
@@ -789,7 +794,7 @@ def download_engine(bundle_name=None, download_symbols=False):
                 dst = f"file://{root}"
                 for pattern in patterns:
                     gcs_uri = f"{gcs_bucket}{pattern}"
-                    command_runner.RunNamedCommand('cp' if legacy_archives else 'rsync', args=["-n", gcs_uri, dst], collect_analytics=False, skip_update_check=True, parallel_operations=needs_exe and needs_symbols)
+                    command_runner.RunNamedCommand('cp', args=["-n", gcs_uri, dst], collect_analytics=False, skip_update_check=True, parallel_operations=needs_exe and needs_symbols)
 
     # Extract with ueversionator
     if (needs_exe or needs_symbols) and legacy_archives:
@@ -824,6 +829,14 @@ def download_engine(bundle_name=None, download_symbols=False):
         if pbtools.run(command_set).returncode != 0:
             return False
     else:
+        gcs_bucket = get_versionator_gsuri()
+        # TODO: maybe cache out Saved and Intermediate folders?
+        # current legacy archive behavior obviously doesn't keep them for new installs, but we could now
+        # have to copy them out and then copy them back in
+        pbtools.run_stream([longtail_path, "get", "--source-path", f"{gcs_bucket}/lt/{bundle_name}/index/{version}.json", "--target-path", str(root_path / Path(bundle_name)), "--cache-path", "Saved/longtail/cache/{bundle_name}"], env={"GOOGLE_APPLICATION_CREDENTIALS": "Build/credentials.json"})
+        # TODO: similarly, have to copy PDBs out into a store so longtail doesn't touch the engine and delete everything but symbols
+        if download_symbols:
+            pblog.warning("Symbols download not supported with incremental delivery at this time.")
         register_engine(engine_id, get_engine_base_path())
 
     # rsync patches
@@ -1235,7 +1248,8 @@ def build_installed_build():
     code_changelist = build_version["CompatibleChangelist"] + 1
 
     # clean up old archives
-    local_build_archives = engine_path / "LocalBuilds" / "Archives"
+    local_builds_path = engine_path / "LocalBuilds"
+    local_build_archives = local_builds_path / "Archives"
     if local_build_archives.exists():
         shutil.rmtree(local_build_archives)
 
@@ -1255,7 +1269,21 @@ def build_installed_build():
     if proc.returncode:
         pbtools.error_state("Failed to build installed engine.")
 
-    proc = pbtools.run_stream(["gsutil", "-m", "-o", "GSUtil:parallel_composite_upload_threshold=100M", "cp", "*.7z", get_versionator_gsuri()], cwd=str(local_build_archives))
+    if pbconfig.get('uses_gcs') == "True":
+        if uses_longtail():
+            bundle_name = pbconfig.get("uev_default_bundle")
+            with open(build_version_path) as f:
+                build_version = json.load(f)
+            version = build_version["BranchName"].replace("++UE4+", "")
+            proc = pbtools.run_stream([
+                longtail_path, "put",
+                "--source-path", "Engine",
+                "--target-path", f"{get_versionator_gsuri()}/lt/{bundle_name}/index/{version}.json"],
+                cwd=str(local_builds_path),
+                env={"GOOGLE_APPLICATION_CREDENTIALS": "Build/credentials.json"}
+            )
+        else:
+            proc = pbtools.run_stream(["gsutil", "-m", "-o", "GSUtil:parallel_composite_upload_threshold=100M", "cp", "*.7z", get_versionator_gsuri()], cwd=str(local_build_archives))
 
     if proc.returncode:
         pbtools.error_state("Failed to upload installed engine.")

@@ -623,6 +623,7 @@ def main(argv):
             'engine_prefix': ('versionator/engineprefix', None, "", True),
             'engine_type': ('versionator/enginetype', None, None, True),
             'uses_gcs': ('versionator/uses_gcs', None, False, True),
+            'uses_longtail': ('versionator/uses_longtail', None, False, True),
             'git_instructions': ('msg/git_instructions', None, "https://github.com/ProjectBorealis/PBCore/wiki/Prerequisites", True),
             'support_channel': ('msg/support_channel', None, None, True),
         }
@@ -631,7 +632,7 @@ def main(argv):
         config_map = {}
         for key, val in config_args_map.items():
             tag, override, default, is_single = val
-            if override:
+            if override is not None:
                 config_map[key] = override
                 continue
             el = root.findall(tag)
