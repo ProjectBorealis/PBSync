@@ -96,18 +96,31 @@ def raised_stream_log(msg, error="error", warning="warning"):
         print(msg)
 
 
+def progress_stream_log(msg, error="error", warning="warning"):
+    if error in msg:
+        pblog.error(msg)
+    elif warning in msg:
+        pblog.warning(msg)
+    else:
+        msg = msg.rstrip("\n")
+        print(f"{msg}", end="\r", flush=True)
+
+
 def run_stream(cmd, env=None, logfunc=None, cwd=None):
     if logfunc is None:
         logfunc = default_stream_log
 
+    startupinfo = None
+
     if os.name == "posix":
         cmd = " ".join(cmd) if isinstance(cmd, list) else cmd
+    elif os.name == "nt":
+        startupinfo = subprocess.STARTUPINFO(dwFlags=subprocess.CREATE_NEW_CONSOLE)
 
     env = handle_env(env)
-    proc = subprocess.Popen(cmd, text=True, shell=True, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env, cwd=cwd)
+    proc = subprocess.Popen(cmd, text=True, shell=True, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env, cwd=cwd, startupinfo=startupinfo, encoding="utf8")
     returncode = None
     while True:
-        # TODO: handle encoding?
         try:
             for line in iter(lambda: proc.stdout.readline(), ''):
                 logfunc(line)

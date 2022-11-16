@@ -844,7 +844,7 @@ def download_engine(bundle_name=None, download_symbols=False):
         # TODO: maybe cache out Saved and Intermediate folders?
         # current legacy archive behavior obviously doesn't keep them for new installs, but we could now
         # have to copy them out and then copy them back in
-        pbtools.run_stream([longtail_path, "get", "--source-path", f"{gcs_bucket}/lt/{bundle_name}/index/{version}.json", "--target-path", str(base_path), "--cache-path", "Saved/longtail/cache/{bundle_name}"], env={"GOOGLE_APPLICATION_CREDENTIALS": "Build/credentials.json"}, logfunc=pbtools.raised_stream_log)
+        pbtools.run_stream([longtail_path, "get", "--source-path", f"{gcs_bucket}/lt/{bundle_name}/{version}.json", "--target-path", str(base_path), "--cache-path", "Saved/longtail/cache/{bundle_name}"], env={"GOOGLE_APPLICATION_CREDENTIALS": "Build/credentials.json"}, logfunc=pbtools.progress_stream_log)
         # TODO: similarly, have to copy PDBs out into a store so longtail doesn't touch the engine and delete everything but symbols
         if download_symbols:
             pblog.warning("Symbols download not supported with incremental delivery at this time.")
@@ -1290,12 +1290,12 @@ def build_installed_build():
             proc = pbtools.run_stream([
                 str(project_path / longtail_path), "put",
                 "--source-path", "Windows",
-                "--target-path", f"{get_versionator_gsuri()}lt/{bundle_name}/index/{version}.json",
+                "--target-path", f"{get_versionator_gsuri()}lt/{bundle_name}/{version}.json",
                 "--compression-algorithm", "zstd_max"
                 ],
                 cwd=str(local_builds_path / "Engine"),
                 env={"GOOGLE_APPLICATION_CREDENTIALS": str(project_path / "Build" / "credentials.json")},
-                logfunc=pbtools.raised_stream_log
+                logfunc=pbtools.progress_stream_log
             )
         else:
             proc = pbtools.run_stream(["gsutil", "-m", "-o", "GSUtil:parallel_composite_upload_threshold=100M", "cp", "*.7z", get_versionator_gsuri()], cwd=str(local_build_archives))
