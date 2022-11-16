@@ -596,7 +596,7 @@ def main(argv):
             'supported_git_version': ('git/version', None, None, True),
             'supported_lfs_version': ('git/lfsversion', None, None, True),
             'supported_gcm_version': ('git/gcmversion', None, None, True),
-            'expected_branch_names': ('git/expectedbranch', None if args.debugbranch is None else [str(args.debugbranch)], ["main"], True),
+            'expected_branch_names': ('git/expectedbranch', None if args.debugbranch is None else [str(args.debugbranch)], ["main"], False),
             'git_url': ('git/url', None, None, True),
             'branches': ('git/branches/branch', None, ["main"], False),
             'log_file_path': ('log/file', None, "pbsync_log.txt", True),
