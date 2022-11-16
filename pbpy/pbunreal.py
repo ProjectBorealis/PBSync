@@ -845,6 +845,7 @@ def download_engine(bundle_name=None, download_symbols=False):
         # TODO: maybe cache out Saved and Intermediate folders?
         # current legacy archive behavior obviously doesn't keep them for new installs, but we could now
         # have to copy them out and then copy them back in
+        print("")
         pbtools.run_stream([longtail_path, "get", "--source-path", f"{gcs_bucket}/lt/{bundle_name}/{version}.json", "--target-path", str(base_path), "--cache-path", "Saved/longtail/cache/{bundle_name}"], env={"GOOGLE_APPLICATION_CREDENTIALS": "Build/credentials.json"}, logfunc=pbtools.progress_stream_log)
         # TODO: similarly, have to copy PDBs out into a store so longtail doesn't touch the engine and delete everything but symbols
         if download_symbols:
@@ -1288,6 +1289,7 @@ def build_installed_build():
         if uses_longtail():
             bundle_name = pbconfig.get("uev_default_bundle")
             project_path = get_uproject_path().parent
+            print("")
             proc = pbtools.run_stream([
                 str(project_path / longtail_path), "put",
                 "--source-path", "Windows",
