@@ -622,7 +622,7 @@ def get_unreal_version_selector_path():
 
 def run_unreal_setup():
     base_path = get_engine_base_path()
-    pblog.info("Installing Unreal Engine prerequisites")
+    pblog.info("Installing Unreal Engine prerequisites (requires admin permission)")
     prereq_exe = "UEPrereqSetup_x64" if is_ue5() else "UE4PrereqSetup_x64"
     prereq_path = base_path / Path(f"Engine/Extras/Redist/en-us/{prereq_exe}{get_exe_ext()}")
     pbtools.run([str(prereq_path), "/quiet"])
@@ -845,12 +845,15 @@ def download_engine(bundle_name=None, download_symbols=False):
         # TODO: maybe cache out Saved and Intermediate folders?
         # current legacy archive behavior obviously doesn't keep them for new installs, but we could now
         # have to copy them out and then copy them back in
+        proc = pbtools.run_stream([longtail_path, "get", "--source-path", f"{gcs_bucket}lt/{bundle_name}/{version}.json", "--target-path", str(base_path), "--cache-path", f"Saved/longtail/cache/{bundle_name}"], env={"GOOGLE_APPLICATION_CREDENTIALS": "Build/credentials.json"}, logfunc=pbtools.progress_stream_log)
         print("")
-        pbtools.run_stream([longtail_path, "get", "--source-path", f"{gcs_bucket}/lt/{bundle_name}/{version}.json", "--target-path", str(base_path), "--cache-path", "Saved/longtail/cache/{bundle_name}"], env={"GOOGLE_APPLICATION_CREDENTIALS": "Build/credentials.json"}, logfunc=pbtools.progress_stream_log)
+        if proc.returncode:
+            pbtools.error_state("Failed to download engine update.")
         # TODO: similarly, have to copy PDBs out into a store so longtail doesn't touch the engine and delete everything but symbols
         if download_symbols:
             pblog.warning("Symbols download not supported with incremental delivery at this time.")
-        register_engine(engine_id, get_engine_base_path())
+        if not register_engine(engine_id, get_engine_base_path()):
+            needs_exe = False
 
     # rsync patches
     if pbconfig.get('uses_gcs') == "True" and legacy_archives:
@@ -1289,7 +1292,6 @@ def build_installed_build():
         if uses_longtail():
             bundle_name = pbconfig.get("uev_default_bundle")
             project_path = get_uproject_path().parent
-            print("")
             proc = pbtools.run_stream([
                 str(project_path / longtail_path), "put",
                 "--source-path", "Windows",
@@ -1300,6 +1302,7 @@ def build_installed_build():
                 env={"GOOGLE_APPLICATION_CREDENTIALS": str(project_path / "Build" / "credentials.json")},
                 logfunc=pbtools.progress_stream_log
             )
+            print("")
         else:
             proc = pbtools.run_stream(["gsutil", "-m", "-o", "GSUtil:parallel_composite_upload_threshold=100M", "cp", "*.7z", get_versionator_gsuri()], cwd=str(local_build_archives))
 
