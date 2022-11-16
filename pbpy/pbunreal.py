@@ -593,6 +593,7 @@ def get_engine_base_path():
             for install in installed["InstallationList"]:
                 if install["NamespaceId"] == "ue" and not install["AppVersion"].endswith("UserContent-Windows") and install["AppVersion"].startswith(get_engine_association()):
                     return Path(install["InstallLocation"])
+        return None
     root_path = Path(root)
     if is_source_install():
         return root_path
