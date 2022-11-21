@@ -8,8 +8,8 @@ from pbpy import pblog, pbtools, pbconfig
 def publish_build(branch_type, dispath_exec_path, publish_stagedir, dispatch_config):
     # Test if our configuration values exist
     app_id = pbconfig.get_user('dispatch', 'app_id')
-    if app_id is None or app_id == "":
-        pblog.error("dispatch.app_id was not configured.")
+    if not app_id or not dispatch_config:
+        pblog.error("dispatch was not configured.")
         return False
 
     branch_id_key = f"{branch_type}_bid"
@@ -23,7 +23,7 @@ def publish_build(branch_type, dispath_exec_path, publish_stagedir, dispatch_con
     while True:
         proc = pbtools.run([dispath_exec_path, "build", "push", branch_id, dispatch_config, publish_stagedir, "-p"])
         result = proc.returncode
-        if result:
+        if result != 0:
             if not retry:
                 break
             # maybe we failed because of a login error. try refreshing login, and retry anyway.

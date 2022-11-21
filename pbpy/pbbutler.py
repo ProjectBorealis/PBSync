@@ -8,8 +8,8 @@ from pbpy import pblog, pbtools, pbunreal
 
 def publish_build(branch_type, butler_exec_path, publish_stagedir, butler_project, butler_manifest):
     # Test if our configuration values exist
-    if butler_project is None or butler_project == "":
-        pblog.error("butler/project was not configured.")
+    if not butler_project or not butler_manifest:
+        pblog.error("butler was not configured.")
         return False
 
     plat = platform.system()
@@ -22,11 +22,14 @@ def publish_build(branch_type, butler_exec_path, publish_stagedir, butler_projec
     else:
       plat = plat.lower()
 
-    shutil.copyfile(butler_manifest.format(plat), Path(publish_stagedir) / ".itch.toml")
+    manifest_path = Path(publish_stagedir) / ".itch.toml"
+
+    shutil.copyfile(butler_manifest.format(plat), manifest_path)
 
     channel = f"{branch_type}-{plat}"
 
     # Push and Publish the build
     proc = pbtools.run([butler_exec_path, "push", publish_stagedir, f"{butler_project}:{channel}", "--userversion", pbunreal.get_project_version()])
     result = proc.returncode
+    manifest_path.unlink()
     return result
