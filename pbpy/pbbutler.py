@@ -12,6 +12,9 @@ def publish_build(branch_type, butler_exec_path, publish_stagedir, butler_projec
         pblog.error("butler was not configured.")
         return False
 
+    if branch_type == "default":
+      branch_type = "internal"
+
     plat = platform.system()
     if plat == "Windows":
       plat = "win"

@@ -12,6 +12,9 @@ def publish_build(branch_type, dispath_exec_path, publish_stagedir, dispatch_con
         pblog.error("dispatch was not configured.")
         return False
 
+    if branch_type == "default":
+      branch_type = "internal"
+
     branch_id_key = f"{branch_type}_bid"
     branch_id = pbconfig.get_user('dispatch', branch_id_key)
     if branch_id is None or branch_id == "":
