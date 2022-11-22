@@ -622,13 +622,6 @@ def get_unreal_version_selector_path():
 
 def run_unreal_setup():
     base_path = get_engine_base_path()
-    steam_appid = pbconfig.get("steam_appid")
-    if steam_appid and steam_appid != "0":
-        editor_path = get_editor_path()
-        editor_dir = editor_path.parent
-        steam_appid_path = editor_dir / "steam_appid.txt"
-        with open(steam_appid_path, "w") as steam_appid_file:
-            steam_appid_file.write(str(steam_appid))
     pblog.info("Installing Unreal Engine prerequisites (requires admin permission)")
     prereq_exe = "UEPrereqSetup_x64" if is_ue5() else "UE4PrereqSetup_x64"
     prereq_path = base_path / Path(f"Engine/Extras/Redist/en-us/{prereq_exe}{get_exe_ext()}")
