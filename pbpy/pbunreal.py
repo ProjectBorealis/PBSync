@@ -841,6 +841,7 @@ def download_engine(bundle_name=None, download_symbols=False):
         if pbtools.run(command_set).returncode != 0:
             return False
     else:
+        ensure_ue_closed()
         gcs_bucket = get_versionator_gsuri()
         # TODO: maybe cache out Saved and Intermediate folders?
         # current legacy archive behavior obviously doesn't keep them for new installs, but we could now
