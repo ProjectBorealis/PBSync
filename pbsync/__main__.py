@@ -234,6 +234,8 @@ def sync_handler(sync_val: str, repository_val=None):
                             pblog.error("Git Credential Manager auto-update failed, please download and install manually.")
                             webbrowser.open(f"https://github.com/{repo}/releases/download/{version}/{download}")
                         else:
+                            # reconfigure credential manager to make sure we have the proper path
+                            pbtools.run(["git-credential-manager", "configure"])
                             needs_git_update = False
                         os.remove(download_path)
 
