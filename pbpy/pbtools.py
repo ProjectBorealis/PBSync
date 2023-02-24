@@ -660,6 +660,16 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
             return
         else:
             handle_error(f"Git file info could not be read. Please request help in {pbconfig.get('support_channel')} to resolve it, and please do not run UpdateProject until the issue is resolved.")
+    elif "The following untracked working tree files would be overwritten by reset" in out:
+        if should_attempt_auto_resolve():
+            pblog.error("Untracked files would be overwritten. Retrying...")
+            files = [l.strip() for l in out.splitlines()[1:]]
+            run_with_combined_output([pbgit.get_git_executable(), "add", "-A", "--", *files])
+            retry_count += 1
+            resolve_conflicts_and_pull(retry_count, 1)
+            return
+        else:
+            handle_error(f"Untracked files would be overwritten. Please request help in {pbconfig.get('support_channel')} to resolve it, and please do not run UpdateProject until the issue is resolved.")
     else:
         # We have no idea what the state of the repo is. Do nothing except bail.
         error_state(f"Aborting the repo update because of an unknown error. Request help in {pbconfig.get('support_channel')} to resolve it, and please do not run UpdateProject until the issue is resolved.", fatal_error=True)
