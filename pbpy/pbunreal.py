@@ -280,10 +280,11 @@ def get_engine_install_root(prompt=True):
     if root is None and prompt:
         curdir = Path().resolve()
 
-        # make sure we actually have a managed install
-        engine_ver = get_engine_version()
-
-        if pbconfig.get("is_ci") and engine_ver:
+        if pbconfig.get("is_ci"):
+            # make sure we actually have a managed install
+            engine_ver = get_engine_version()
+            if not engine_ver:
+              return None
             if os.name == "nt":
                 directory = (Path(curdir.anchor) / get_engine_type_folder()).resolve()
             else:
