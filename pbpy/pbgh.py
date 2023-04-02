@@ -4,6 +4,7 @@ import shutil
 import subprocess
 
 from zipfile import ZipFile
+from urllib.parse import urlparse
 from functools import lru_cache
 
 from pbpy import pblog
@@ -14,6 +15,7 @@ from pbpy import pbunreal
 
 gh_executable_path = ".github\\gh\\gh.exe"
 chglog_executable_path = ".github\\gh\\git-chglog.exe"
+glab_executable_path = ".github\\glab\\glab.exe"
 chglog_config_path = ".github\\chglog.yml"
 release_file = "RELEASE_MSG"
 binary_package_name = "Binaries.zip"
@@ -25,18 +27,34 @@ def get_token_env():
 
     if token:
         return {
-            "GITHUB_TOKEN": token
+            "GITHUB_TOKEN": token,
+            "GITLAB_TOKEN": token
         }
     else:
         pbtools.error_state(f"Credential retrieval failed. Please get help from {pbconfig.get('support_channel')}")
 
+@lru_cache()
+def get_cli_executable():
+    hostname = urlparse(pbconfig.get("git_url")).hostname
+
+    if hostname == 'github.com':
+        return gh_executable_path
+    elif hostname == 'gitlab.com':
+        return glab_executable_path
+    else:
+        # Fall back to gitlab path as that's most likely
+        # what our provider will be if we can't determine
+        return glab_executable_path
+
 
 def download_release_file(version, pattern=None, directory=None, repo=None):
-    if not os.path.isfile(gh_executable_path):
-        pblog.error(f"GH CLI executable not found at {gh_executable_path}")
+    cli_exec_path = get_cli_executable()
+
+    if not os.path.isfile(cli_exec_path):
+        pblog.error(f"CLI executable not found at {cli_exec_path}")
         return 1
 
-    args = [gh_executable_path, "release", "download", version]
+    args = [cli_exec_path, "release", "download", version]
 
     if directory:
         args.extend(["-D", directory])
@@ -101,7 +119,7 @@ def download_release_file(version, pattern=None, directory=None, repo=None):
 
 
 def is_pull_binaries_required():
-    if not os.path.isfile(gh_executable_path):
+    if not os.path.isfile(get_cli_executable()):
         return False
     checksum_json_path = pbconfig.get("checksum_file")
     if not os.path.exists(checksum_json_path):
@@ -110,6 +128,8 @@ def is_pull_binaries_required():
 
 
 def pull_binaries(version_number: str, pass_checksum=False):
+    cli_exec_path = get_cli_executable()
+
     if pass_checksum:
         checksum_json_path = None
     else:
@@ -119,8 +139,8 @@ def pull_binaries(version_number: str, pass_checksum=False):
             return 1
 
     if not pbtools.compare_hash_single(binary_package_name, checksum_json_path):
-        if not os.path.isfile(gh_executable_path):
-            pblog.error(f"GH CLI executable not found at {gh_executable_path}")
+        if not os.path.isfile(cli_exec_path):
+            pblog.error(f"CLI executable not found at {cli_exec_path}")
             return 1
 
         # Remove binary package if it exists, gh is not able to overwrite existing files
@@ -135,7 +155,7 @@ def pull_binaries(version_number: str, pass_checksum=False):
         creds = get_token_env()
 
         try:
-            proc = pbtools.run_with_combined_output([gh_executable_path, "release", "download", version_number, "-p", binary_package_name], env=creds)
+            proc = pbtools.run_with_combined_output([cli_exec_path, "release", "download", version_number, "-p", binary_package_name], env=creds)
             output = proc.stdout
             if proc.returncode == 0:
                 pass
@@ -186,6 +206,8 @@ def pull_binaries(version_number: str, pass_checksum=False):
 
 def generate_release():
     version = pbunreal.get_latest_project_version()
+    cli_exec_path = get_cli_executable()
+
     if version is None:
         pbtools.error_state("Failed to get project version!")
     target_branch = pbconfig.get("expected_branch_names")[0]
@@ -216,16 +238,24 @@ def generate_release():
         creds = None
     else:
         creds = get_token_env()
-    if not os.path.exists(gh_executable_path):
-        pbtools.error(f"gh CLI executable not found at {gh_executable_path}")
-    proc = pbtools.run_with_combined_output([
-        gh_executable_path,
+    if not os.path.exists(cli_exec_path):
+        pbtools.error(f"CLI executable not found at {cli_exec_path}")
+
+    cmds = [
+        cli_exec_path,
         "release",
         "create", version, binary_package_name,
         "-F", release_file,
-        "--target", target_branch,
-        "-t", version
-    ], env=creds)
+    ]
+
+    if cli_exec_path == gh_executable_path:
+        gh_cmds = [
+            "--target", target_branch,
+            "-t", version
+        ]
+        cmds.extend(gh_cmds)
+
+    proc = pbtools.run_with_combined_output(cmds, env=creds)
     if proc.returncode != 0:
         os.remove(release_file)
         pbtools.error_state(proc.stdout)
