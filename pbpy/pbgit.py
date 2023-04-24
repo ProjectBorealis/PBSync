@@ -173,7 +173,7 @@ def read_write(file):
         return None
     except OSError as e:
         err_str = str(e)
-        if "The system cannot find the file specified" in err_str:
+        if pbtools.it_has_any(err_str, "The system cannot find the file specified", "The system cannot find the path specified"):
             return f"You have a locked file which does not exist: {str(e.filename)}"
         else:
             return err_str
@@ -216,7 +216,7 @@ def unlock_unmodified():
     unlock = list(unlock)
     if not unlock:
         return True
-    args = [get_lfs_executable(), "unlock"]
+    args = [get_lfs_executable(), "unlock", "-f"]
     args.extend(unlock)
     return pbtools.run(args).returncode == 0
 
