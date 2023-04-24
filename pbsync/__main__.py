@@ -76,6 +76,8 @@ def sync_handler(sync_val: str, repository_val=None):
                             webbrowser.open(f"https://github.com/{repo}/releases/download/{version}/{download}")
                         else:
                             needs_git_update = False
+                            # reconfigure credential manager to make sure we have the proper path
+                            pbtools.run(["git-credential-manager", "configure"])
                         os.remove(download_path)
                 else:
                     proc = pbtools.run([pbgit.get_git_executable(), "update-microsoft-git"])
