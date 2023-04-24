@@ -634,8 +634,8 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         handle_success()
     elif it_has_any(out, "failed to merge in the changes", "could not apply", "overwritten by merge"):
         handle_error(f"Aborting the pull. Changes on one of your commits will be overridden by incoming changes. Please request help in {pbconfig.get('support_channel')} to resolve conflicts, and please do not run UpdateProject until the issue is resolved.")
-    elif it_has_any(out, "unmerged files", "merge_head exists", "middle of"):
-        error_state(f"You are in the middle of a merge. Please request help in {pbconfig.get('support_channel')} to resolve it, and please do not run UpdateProject until the issue is resolved.", fatal_error=True)
+    elif it_has_any(out, "unmerged files", "merge_head exists", "middle of", "mark resolution"):
+        handle_error(f"You are in the middle of a merge. Please request help in {pbconfig.get('support_channel')} to resolve it, and please do not run UpdateProject until the issue is resolved.")
     elif "unborn" in out:
         if should_attempt_auto_resolve():
             pblog.error("Unborn branch detected. Retrying...")
@@ -672,6 +672,6 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
             handle_error(f"Untracked files would be overwritten. Please request help in {pbconfig.get('support_channel')} to resolve it, and please do not run UpdateProject until the issue is resolved.")
     else:
         # We have no idea what the state of the repo is. Do nothing except bail.
-        error_state(f"Aborting the repo update because of an unknown error. Request help in {pbconfig.get('support_channel')} to resolve it, and please do not run UpdateProject until the issue is resolved.", fatal_error=True)
+        handle_error(f"Aborting the repo update because of an unknown error. Request help in {pbconfig.get('support_channel')} to resolve it, and please do not run UpdateProject until the issue is resolved.")
 
     maintain_repo()
