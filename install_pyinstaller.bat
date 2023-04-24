@@ -2,6 +2,8 @@
 git submodule update --init
 cd pyinstaller
 setlocal
-set PYINSTALLER_COMPILE_BOOTLOADER="1"
-python setup.py install
+cd bootloader
+python ./waf all
+cd ..
+pip install .
 cd ..
