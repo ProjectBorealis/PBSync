@@ -1145,7 +1145,6 @@ def build_game(configuration="Shipping"):
       "-stage",
       "-pak",
       "-compressed",
-      "-makebinaryconfig",
       "-iterate",
       "-distribution",
       "-package",
