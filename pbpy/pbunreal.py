@@ -1079,7 +1079,7 @@ def upload_cloud_ddc():
     # for some reason https://storage.googleapis.com doesn't work, so we have to settle for domain-named nesting...
     # we upload to a ServiceURL bucket.com -> storage.googleapis.com/bucket.com
     # but AWS takes a Bucket and ServiceURL, we use the bucket.com's "bucket": bucket.com/bucket.com -> storage.googleapis.com/bucket.com/bucket.com
-    proc = pbtools.run_stream([get_uat_path(), "UploadDDCToAWS", f"-Bucket={get_ddc_bucket()}", f"-CredentialsFile={credentials}", "-CredentialsKey=default", f"-CacheDir={cache}", f"-FilterDir={access_logs}", f"-Manifest={manifest}", f"-ServiceURL={get_ddc_url(upload=True)}"])
+    proc = pbtools.run_stream([get_uat_path(), "UploadDDCToAWS", f"-Bucket={get_ddc_bucket()}", f"-CredentialsFile={credentials}", "-CredentialsKey=default", f"-CacheDir={cache}", f"-FilterDir={access_logs}", f"-Manifest={manifest}", f"-ServiceURL={get_ddc_url(upload=True)}", "-utf8output"])
     if proc.returncode:
         pbtools.error_state("Upload failed.")
     shared_ddc = Path("DerivedDataCache/VT")
@@ -1128,7 +1128,33 @@ def clear_cook_cache():
 
 
 def build_game(configuration="Shipping"):
-    proc = pbtools.run_stream([str(get_uat_path()), "BuildCookRun", f"-project={str(get_uproject_path())}", f"-clientconfig={configuration}", "-NoP4", "-NoCodeSign", "-cook", "-build", "-stage", "-prereqs", "-pak", "-CrashReporter"], logfunc=lambda x: pbtools.checked_stream_log(x, error="Error: ", warning="Warning: "))
+    args = [
+      str(get_uat_path()),
+      f"-ScriptsForProject={str(get_uproject_path())}",
+      "BuildCookRun",
+      "-nop4",
+      f"-project={str(get_uproject_path())}",
+      f"-clientconfig={configuration}",
+      "-unattended",
+      "-NoCodeSign",
+      "-CrashReporter",
+      "-CookPartialGC",
+      "-NumCookersToSpawn=2",
+      "-build",
+      "-cook",
+      "-stage",
+      "-pak",
+      "-iostore",
+      "-makebinaryconfig",
+      "-iterate",
+      "-distribution",
+      "-package",
+      "-utf8output"
+    ]
+    publishers = pbconfig.get('publish_publishers')
+    if "steamcmd" in publishers:
+      args.extend(["-patchpaddingalign=1048576", "-blocksize=1048576"])
+    proc = pbtools.run_stream(args, logfunc=lambda x: pbtools.checked_stream_log(x, error="Error: ", warning="Warning: "))
     if proc.returncode:
         pbtools.error_state("Build failed.")
 
@@ -1276,7 +1302,7 @@ def build_installed_build():
 
     # build the installed engine
     proc = pbtools.run_stream(
-        [str(get_uat_path()), "BuildGraph", f"-Target=Make Installed Build {get_platform_name()}", "-Script=Engine/Build/InstalledEngineBuild.xml", "-NoP4", "-NoCodeSign", "-Set:EditorTarget=editor", "-Set:HostPlatformEditorOnly=true", "-Set:WithLinuxAArch64=false", "-Set:WithFeaturePacks=false", "-Set:WithDDC=false", "-Set:WithFullDebugInfo=false"],
+        [str(get_uat_path()), "BuildGraph", f"-Target=Make Installed Build {get_platform_name()}", "-Script=Engine/Build/InstalledEngineBuild.xml", "-NoP4", "-NoCodeSign", "-Set:EditorTarget=editor", "-Set:HostPlatformEditorOnly=true", "-Set:WithLinuxAArch64=false", "-Set:WithFeaturePacks=false", "-Set:WithDDC=false", "-Set:WithFullDebugInfo=false", "-utf8output"],
         env={
             "IsBuildMachine": "1",
             "CI": "1",
