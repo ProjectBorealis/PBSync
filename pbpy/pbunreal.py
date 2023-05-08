@@ -1144,6 +1144,7 @@ def build_game(configuration="Shipping"):
       "-cook",
       "-stage",
       "-pak",
+      "-iostore",
       "-compressed",
       "-iterate",
       "-distribution",
