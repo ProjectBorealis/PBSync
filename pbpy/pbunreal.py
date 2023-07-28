@@ -853,7 +853,7 @@ def download_engine(bundle_name=None, download_symbols=False):
         proc = pbtools.run_stream([longtail_path, "get", "--source-path", f"{gcs_bucket}lt/{bundle_name}/{version}.json", "--target-path", str(base_path), "--cache-path", f"Saved/longtail/cache/{bundle_name}"], env={"GOOGLE_APPLICATION_CREDENTIALS": "Build/credentials.json"}, logfunc=pbtools.progress_stream_log)
         print("")
         if proc.returncode:
-            pbtools.error_state(f"Failed to download engine update. Make sure your system time is synced. If this issue persists, please request help in ${pbconfig.get('support_channel')}.")
+            pbtools.error_state(f"Failed to download engine update. Make sure your system time is synced. If this issue persists, please request help in {pbconfig.get('support_channel')}.")
         # TODO: similarly, have to copy PDBs out into a store so longtail doesn't touch the engine and delete everything but symbols
         if download_symbols:
             pblog.warning("Symbols download not supported with incremental delivery at this time.")
