@@ -726,7 +726,7 @@ def download_engine(bundle_name=None, download_symbols=False):
         if not branch.startswith(base_branch):
             pbtools.run([pbgit.get_git_executable(), "-C", str(root), "switch", base_branch])
         pbtools.run([pbgit.get_git_executable(), "-C", str(root), "pull"])
-        pbtools.run([pbgit.get_git_executable(), "-C", str(root), "submodule", "update", "--init", "--remote", "--recursive"])
+        pbtools.run([pbgit.get_git_executable(), "-C", str(root), "submodule", "update", "--init", "--recursive"])
         registered = register_engine(engine_id, root)
         if registered or not check_ue_file_association():
             run_unreal_setup()
