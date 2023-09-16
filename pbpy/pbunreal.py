@@ -33,6 +33,7 @@ from pbpy import pbtools
 from pbpy import pblog
 from pbpy import pbgit
 from pbpy import pbuac
+from pbpy import pbinfo
 
 # Those variable values are not likely to be changed in the future, it's safe to keep them hardcoded
 uev_prefix = "uev:"
@@ -45,7 +46,7 @@ ddc_folder_name = "DerivedDataCache"
 
 engine_installation_folder_regex = [r"[0-9].[0-9]{2}.*-", r"-[0-9]{8}"]
 
-p4merge_path = ".github/p4merge/p4merge.exe"
+p4merge_path = "/p4merge/p4merge.exe"
 
 reg_path = r"HKCU\Software\Epic Games\Unreal Engine\Builds"
 
@@ -677,7 +678,7 @@ def register_engine(version, path):
         pbtools.run(["reg", "add", reg_path, "/f", "/v", version, "/t", "REG_SZ", "/d", path])
         return True
 
-longtail_path = ".github\\longtail\\longtail.exe"
+longtail_path = "\\longtail\\longtail.exe"
 g_command_runner = None
 
 def init_gcs():
@@ -850,7 +851,7 @@ def download_engine(bundle_name=None, download_symbols=False):
         # TODO: maybe cache out Saved and Intermediate folders?
         # current legacy archive behavior obviously doesn't keep them for new installs, but we could now
         # have to copy them out and then copy them back in
-        proc = pbtools.run_stream([longtail_path, "get", "--source-path", f"{gcs_bucket}lt/{bundle_name}/{version}.json", "--target-path", str(base_path), "--cache-path", f"Saved/longtail/cache/{bundle_name}"], env={"GOOGLE_APPLICATION_CREDENTIALS": "Build/credentials.json"}, logfunc=pbtools.progress_stream_log)
+        proc = pbtools.run_stream([pbinfo.format_repo_folder(longtail_path), "get", "--source-path", f"{gcs_bucket}lt/{bundle_name}/{version}.json", "--target-path", str(base_path), "--cache-path", f"Saved/longtail/cache/{bundle_name}"], env={"GOOGLE_APPLICATION_CREDENTIALS": "Build/credentials.json"}, logfunc=pbtools.progress_stream_log)
         print("")
         if proc.returncode:
             pbtools.error_state(f"Failed to download engine update. Make sure your system time is synced. If this issue persists, please request help in {pbconfig.get('support_channel')}.")
@@ -992,7 +993,7 @@ def update_source_control():
         else:
             pblog.warning(f"Credential retrieval failed. Please get help from {pbconfig.get('support_channel')}.")
     with ue_config("Saved/Config/Windows/EditorPerProjectUserSettings.ini") as editor_config:
-        p4merge = str(Path(p4merge_path).resolve())
+        p4merge = str(Path(pbinfo.format_repo_folder(p4merge_path)).resolve())
         editor_config["/Script/UnrealEd.EditorLoadingSavingSettings"]["TextDiffToolPath"] = f"(FilePath=\"{p4merge}\")"
 
 
@@ -1324,7 +1325,7 @@ def build_installed_build():
             bundle_name = pbconfig.get("uev_default_bundle")
             project_path = get_uproject_path().parent
             proc = pbtools.run_stream([
-                str(project_path / longtail_path), "put",
+                str(project_path / pbinfo.format_repo_folder(longtail_path)), "put",
                 "--source-path", "Windows",
                 "--target-path", f"{get_versionator_gsuri()}lt/{bundle_name}/{version}.json",
                 "--compression-algorithm", "zstd_max"

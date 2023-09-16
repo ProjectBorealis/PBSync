@@ -11,11 +11,12 @@ from pbpy import pbtools
 from pbpy import pbconfig
 from pbpy import pbgit
 from pbpy import pbunreal
+from pbpy import pbinfo
 
-gh_executable_path = ".github\\gh\\gh.exe"
-chglog_executable_path = ".github\\gh\\git-chglog.exe"
-glab_executable_path = ".github\\glab\\glab.exe"
-chglog_config_path = ".github\\chglog.yml"
+gh_executable_path = "\\git\\gh.exe"
+chglog_executable_path = "\\git\\git-chglog.exe"
+glab_executable_path = "\\git\\glab.exe"
+chglog_config_path = "\\chglog.yml"
 release_file = "RELEASE_MSG"
 binary_package_name = "Binaries.zip"
 
@@ -32,22 +33,24 @@ def get_token_env():
     else:
         pbtools.error_state(f"Credential retrieval failed. Please get help from {pbconfig.get('support_channel')}")
 
+
 @lru_cache()
 def get_cli_executable(git_url=None):
     hostname = urlparse(git_url if git_url else pbconfig.get("git_url")).hostname
 
     if hostname == 'github.com':
-        return gh_executable_path
+        return pbinfo.format_repo_folder(gh_executable_path)
     elif hostname == 'gitlab.com':
-        return glab_executable_path
+        return pbinfo.format_repo_folder(glab_executable_path)
     else:
         # Fall back to gitlab path as that's most likely
         # what our provider will be if we can't determine
-        return glab_executable_path
+        return pbinfo.format_repo_folder(glab_executable_path)
 
 
 def download_release_file(version, pattern=None, directory=None, repo=None):
     cli_exec_path = get_cli_executable(repo)
+    repo = urlparse(repo).path
 
     if not os.path.isfile(cli_exec_path):
         pblog.error(f"CLI executable not found at {cli_exec_path}")
@@ -219,11 +222,11 @@ def generate_release():
     pblog.info(proc.stdout)
     proc =  pbtools.run_with_combined_output([pbgit.get_git_executable(), "push", "origin", version])
     pblog.info(proc.stdout)
-    if not os.path.exists(chglog_executable_path):
-        pbtools.error(f"git-chglog executable not found at {chglog_executable_path}")
+    if not os.path.exists(pbinfo.format_repo_folder(chglog_executable_path)):
+        pbtools.error(f"git-chglog executable not found at {pbinfo.format_repo_folder(chglog_executable_path)}")
     proc = pbtools.run_with_combined_output([
-        chglog_executable_path,
-        "-c", chglog_config_path,
+        pbinfo.format_repo_folder(chglog_executable_path),
+        "-c", pbinfo.format_repo_folder(chglog_config_path),
         "-o", release_file,
         version
     ])

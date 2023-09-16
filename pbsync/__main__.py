@@ -58,7 +58,7 @@ def sync_handler(sync_val: str, repository_val=None):
             pblog.warning(f"Supported Git Version: {pbconfig.get('supported_git_version')}")
             pblog.warning(f"Current Git Version: {detected_git_version}")
             needs_git_update = True
-            repo = "microsoft/git"
+            repo = "https://github.com/microsoft/git"
             version = f"v{supported_git_version}"
             if "vfs" in detected_git_version and sys.platform == "win32" or sys.platform == "darwin":
                 pblog.info("Auto-updating Git...")
@@ -150,7 +150,7 @@ def sync_handler(sync_val: str, repository_val=None):
             pblog.warning(f"Current Git LFS Version: {detected_lfs_version}")
             version = f"v{supported_lfs_version}"
             needs_git_update = True
-            repo = "git-lfs/git-lfs"
+            repo = "https://github.com/git-lfs/git-lfs"
             if os.name == "nt":
                 pblog.info("Auto-updating Git LFS...")
                 directory = "Saved/PBSyncDownloads"
@@ -225,7 +225,7 @@ def sync_handler(sync_val: str, repository_val=None):
                     version = f"v{supported_gcm_version}"
                     directory = "Saved/PBSyncDownloads"
                     download = f"gcm-win-x86-{supported_gcm_version_raw}.exe"
-                    repo = "GitCredentialManager/git-credential-manager"
+                    repo = "https://github.com/GitCredentialManager/git-credential-manager"
                     if pbgh.download_release_file(version, download, directory=directory, repo=repo) != 0:
                         pblog.error("Git Credential Manager auto-update failed, please download and install manually.")
                         webbrowser.open(f"https://github.com/{repo}/releases/download/{version}/{download}")
