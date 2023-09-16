@@ -101,7 +101,10 @@ def download_release_file(version, pattern=None, directory=None, repo=None):
                 res = try_remove(file)
                 if res != 0:
                     return res
-            args.extend(["-p", file])
+            if "glab" in cli_exec_path:
+                args.extend(["-n", file])
+            else:
+                args.extend(["-p", file])
     else:
         pattern = "*"
 

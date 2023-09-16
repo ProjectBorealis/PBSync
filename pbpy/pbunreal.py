@@ -1184,7 +1184,7 @@ def package_binaries():
     clean_binaries_folder(pbconfig.get("package_pdbs") != "True")
 
     hashes = dict()
-    with zipfile.ZipFile("Binaries.zip", "a") as zipf:
+    with zipfile.ZipFile("Binaries.zip", "x") as zipf:
         for binaries_path in binaries_paths:
             for file in base_path.glob(f"{binaries_path}/**/*"):
                 if not file.is_file():
