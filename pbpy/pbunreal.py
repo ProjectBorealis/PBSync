@@ -276,6 +276,9 @@ use_source_dir = True
 
 @lru_cache()
 def get_engine_install_root(prompt=True):
+    engine_version = get_engine_version_with_prefix()
+    if not engine_version:
+        return None
     source_dir = pbconfig.get_user("ue4v-user", "source_dir") if use_source_dir else None
     root = source_dir or pbconfig.get_user("ue4v-user", "download_dir")
     if root is None and prompt:
@@ -1008,7 +1011,9 @@ def is_ue_closed():
     # cheap check for our engine
     version = get_engine_version()
     if version is not None:
-        root = get_engine_install_root(prompt=False)
+        root = get_engine_install_root()
+        if root is None:
+            root = get_engine_base_path()
         if root is not None:
             exe = Path(p.info["exe"])
             root = Path(root)
@@ -1109,7 +1114,9 @@ def build_source(for_distribution=True):
         if for_distribution:
             use_source_dir = False
             pblog.info("Setting installed engine for distribution binaries.")
-            download_engine(bundle_name, symbols_needed)
+            engine_version = get_engine_version_with_prefix()
+            if engine_version:
+                download_engine(bundle_name, symbols_needed)
     base = get_engine_base_path()
     ubt = base / "Engine" / "Build" / "BatchFiles"
     platform = get_platform_name()
