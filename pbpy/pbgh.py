@@ -1,7 +1,6 @@
 import os.path
 import os
 import shutil
-import subprocess
 
 from zipfile import ZipFile
 from urllib.parse import urlparse
@@ -34,8 +33,8 @@ def get_token_env():
         pbtools.error_state(f"Credential retrieval failed. Please get help from {pbconfig.get('support_channel')}")
 
 @lru_cache()
-def get_cli_executable():
-    hostname = urlparse(pbconfig.get("git_url")).hostname
+def get_cli_executable(git_url=None):
+    hostname = urlparse(git_url if git_url else pbconfig.get("git_url")).hostname
 
     if hostname == 'github.com':
         return gh_executable_path
@@ -48,7 +47,7 @@ def get_cli_executable():
 
 
 def download_release_file(version, pattern=None, directory=None, repo=None):
-    cli_exec_path = get_cli_executable()
+    cli_exec_path = get_cli_executable(repo)
 
     if not os.path.isfile(cli_exec_path):
         pblog.error(f"CLI executable not found at {cli_exec_path}")
