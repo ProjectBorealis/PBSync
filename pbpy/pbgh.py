@@ -62,8 +62,9 @@ def get_cli_executable(git_url=None):
 
 
 def download_release_file(version, pattern=None, directory=None, repo=None):
-    cli_exec_path = get_cli_executable(repo)
+    full_repo = repo
     repo = urlparse(repo).path[1:]
+    cli_exec_path = get_cli_executable(full_repo)
 
     if not os.path.isfile(cli_exec_path):
         pblog.error(f"CLI executable not found at {cli_exec_path}")
@@ -107,7 +108,7 @@ def download_release_file(version, pattern=None, directory=None, repo=None):
     if repo:
         args.extend(["-R", repo])
 
-    creds = get_token_env(repo)
+    creds = get_token_env(full_repo)
 
     try:
         proc = pbtools.run_with_combined_output(args, env=creds)
