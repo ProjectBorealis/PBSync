@@ -312,8 +312,9 @@ def setup_config():
 
 
 @lru_cache()
-def get_credentials():
-    repo_str = pbtools.get_one_line_output([get_git_executable(), "remote", "get-url", "origin"])
+def get_credentials(repo_str=None):
+    if not repo_str:
+        repo_str = pbtools.get_one_line_output([get_git_executable(), "remote", "get-url", "origin"])
     repo_url = urlparse(repo_str)
 
     creds = f"protocol={repo_url.scheme}\n"

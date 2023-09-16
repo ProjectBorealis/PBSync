@@ -22,14 +22,27 @@ binary_package_name = "Binaries.zip"
 
 
 @lru_cache()
-def get_token_env():
-    _, token = pbgit.get_credentials()
+def get_token_var(git_url=None):
+    hostname = urlparse(git_url if git_url else pbconfig.get("git_url")).hostname
+
+    if hostname == 'github.com':
+        return "GITHUB_TOKEN"
+    elif hostname == 'gitlab.com':
+        return "GITLAB_TOKEN"
+    else:
+        # Fall back to gitlab path as that's most likely
+        # what our provider will be if we can't determine
+        return "GITLAB_TOKEN"
+
+
+@lru_cache()
+def get_token_env(repo=None):
+    _, token = pbgit.get_credentials(repo=None)
 
     if token:
-        return {
-            "GITHUB_TOKEN": token,
-            "GITLAB_TOKEN": token
-        }
+        ret = {}
+        ret[get_token_var(repo)] = token
+        return ret
     else:
         pbtools.error_state(f"Credential retrieval failed. Please get help from {pbconfig.get('support_channel')}")
 
@@ -94,7 +107,7 @@ def download_release_file(version, pattern=None, directory=None, repo=None):
     if repo:
         args.extend(["-R", repo])
 
-    creds = get_token_env()
+    creds = get_token_env(repo)
 
     try:
         proc = pbtools.run_with_combined_output(args, env=creds)
