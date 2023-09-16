@@ -174,7 +174,7 @@ def pull_binaries(version_number: str, pass_checksum=False):
         creds = get_token_env()
 
         try:
-            proc = pbtools.run_with_combined_output([cli_exec_path, "release", "download", version_number, "-p", binary_package_name], env=creds)
+            proc = pbtools.run_with_combined_output([cli_exec_path, "release", "download", version_number, "-n" if "glab" in cli_exec_path else "-p", binary_package_name], env=creds)
             output = proc.stdout
             if proc.returncode == 0:
                 pass
