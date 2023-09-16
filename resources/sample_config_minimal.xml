@@ -16,7 +16,7 @@
     <versionator>
         <enginetype>ue5</enginetype>
     </versionator>
-	<msg>
+    <msg>
         <support_channel>the support channel</support_channel>
     </msg>
 </config>
