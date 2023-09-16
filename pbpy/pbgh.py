@@ -37,7 +37,7 @@ def get_token_var(git_url=None):
 
 @lru_cache()
 def get_token_env(repo=None):
-    _, token = pbgit.get_credentials(repo=None)
+    _, token = pbgit.get_credentials(repo)
 
     if token:
         ret = {}
