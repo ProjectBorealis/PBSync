@@ -50,7 +50,7 @@ def get_cli_executable(git_url=None):
 
 def download_release_file(version, pattern=None, directory=None, repo=None):
     cli_exec_path = get_cli_executable(repo)
-    repo = urlparse(repo).path
+    repo = urlparse(repo).path[1:]
 
     if not os.path.isfile(cli_exec_path):
         pblog.error(f"CLI executable not found at {cli_exec_path}")

@@ -58,14 +58,14 @@ def sync_handler(sync_val: str, repository_val=None):
             pblog.warning(f"Supported Git Version: {pbconfig.get('supported_git_version')}")
             pblog.warning(f"Current Git Version: {detected_git_version}")
             needs_git_update = True
-            repo = "https://github.com/microsoft/git"
+            repo = "microsoft/git"
             version = f"v{supported_git_version}"
             if "vfs" in detected_git_version and sys.platform == "win32" or sys.platform == "darwin":
                 pblog.info("Auto-updating Git...")
                 if sys.platform == "win32":
                     directory = "Saved/PBSyncDownloads"
                     download = f"Git-{supported_git_version}-64-bit.exe"
-                    if pbgh.download_release_file(version, download, directory=directory, repo=repo) != 0:
+                    if pbgh.download_release_file(version, download, directory=directory, repo=f"https://github.com/{repo}") != 0:
                         pblog.error("Git auto-update failed, please download and install manually.")
                         webbrowser.open(f"https://github.com/{repo}/releases/download/{version}/{download}")
                     else:
@@ -150,12 +150,12 @@ def sync_handler(sync_val: str, repository_val=None):
             pblog.warning(f"Current Git LFS Version: {detected_lfs_version}")
             version = f"v{supported_lfs_version}"
             needs_git_update = True
-            repo = "https://github.com/git-lfs/git-lfs"
+            repo = "git-lfs/git-lfs"
             if os.name == "nt":
                 pblog.info("Auto-updating Git LFS...")
                 directory = "Saved/PBSyncDownloads"
                 download = f"git-lfs-windows-{version}.exe"
-                result = pbgh.download_release_file(version, download, directory=directory, repo=repo)
+                result = pbgh.download_release_file(version, download, directory=directory, repo=repo=f"https://github.com/{repo}")
                 if result != 0:
                     pblog.error("Git LFS auto-update failed, please download and install manually.")
                     webbrowser.open(f"https://github.com/{repo}/releases/download/{version}/{download}")
@@ -225,8 +225,8 @@ def sync_handler(sync_val: str, repository_val=None):
                     version = f"v{supported_gcm_version}"
                     directory = "Saved/PBSyncDownloads"
                     download = f"gcm-win-x86-{supported_gcm_version_raw}.exe"
-                    repo = "https://github.com/GitCredentialManager/git-credential-manager"
-                    if pbgh.download_release_file(version, download, directory=directory, repo=repo) != 0:
+                    repo = "https://github.com/git-ecosystem/git-credential-manager"
+                    if pbgh.download_release_file(version, download, directory=directory, repo=f"https://github.com/{repo}") != 0:
                         pblog.error("Git Credential Manager auto-update failed, please download and install manually.")
                         webbrowser.open(f"https://github.com/{repo}/releases/download/{version}/{download}")
                     else:
