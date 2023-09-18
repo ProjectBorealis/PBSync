@@ -267,7 +267,7 @@ def generate_release():
         "-F", release_file,
     ]
 
-    if cli_exec_path == gh_executable_path:
+    if cli_exec_path == pbinfo.format_repo_folder(gh_executable_path):
         gh_cmds = [
             "--target", target_branch,
             "-t", version
