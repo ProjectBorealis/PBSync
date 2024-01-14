@@ -737,9 +737,9 @@ def download_engine(bundle_name=None, download_symbols=False):
         if registered or not get_sln_path().exists():
             generate_project_files()
         return True
-    
+
     is_ci = pbconfig.get("is_ci")
-    
+
     if root is not None:
         # create install dir if doesn't exist
         os.makedirs(root, exist_ok=True)
@@ -765,16 +765,17 @@ def download_engine(bundle_name=None, download_symbols=False):
                     needs_symbols = download_symbols
                     shutil.rmtree(str(base_path), ignore_errors=True)
         else:
+            needs_symbols = True
             pblog.success("Using new Longtail incremental delivery method for engine update.")
 
         if needs_exe or needs_symbols:
             if not is_ci and os.path.isdir(root):
-                required_free_gb = 8 # extracted
-                required_free_gb += 2 # archive
-                
+                required_free_gb = 30 # extracted
+                required_free_gb += 9 # archive
+
                 if needs_symbols:
-                    required_free_gb += 35 # extracted
-                    required_free_gb += 3 # archive
+                    required_free_gb += 80 # extracted
+                    required_free_gb += 23 # archive
 
                 required_free_space = required_free_gb * gb_multiplier
 
@@ -889,7 +890,6 @@ def download_engine(bundle_name=None, download_symbols=False):
                 break
             command_runner.RunNamedCommand('rsync', args=["-Cir", gcs_uri, dst], collect_analytics=False, skip_update_check=True, parallel_operations=True)
 
-
     # if not CI, run the setup tasks
     if root is not None and not is_ci and needs_exe:
         run_unreal_setup()
@@ -949,7 +949,6 @@ class MultiConfigParser(pbconfig.CustomConfigParser):
                         val = val[0]
                 val = self._interpolation.before_read(self, section, name, val)
                 options.force_set(name, val)
-
 
 
 @contextlib.contextmanager
@@ -1326,6 +1325,7 @@ def build_installed_build():
 
     with open(build_version_path) as f:
         build_version = json.load(f)
+    # UE4 has a branch prefix, UE5 does not
     version = build_version["BranchName"].replace("++UE4+", "")
 
     if pbconfig.get('uses_gcs') == "True":
