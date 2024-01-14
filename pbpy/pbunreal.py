@@ -770,12 +770,12 @@ def download_engine(bundle_name=None, download_symbols=False):
 
         if needs_exe or needs_symbols:
             if not is_ci and os.path.isdir(root):
-                required_free_gb = 30 # extracted
-                required_free_gb += 9 # archive
+                required_free_gb = 30 if legacy_archives else 22 # extracted
+                required_free_gb += 9 if legacy_archives else 7 # archive
 
                 if needs_symbols:
-                    required_free_gb += 80 # extracted
-                    required_free_gb += 23 # archive
+                    required_free_gb += 80 if legacy_archives else 57 # extracted
+                    required_free_gb += 23 if legacy_archives else 17 # archive
 
                 required_free_space = required_free_gb * gb_multiplier
 
