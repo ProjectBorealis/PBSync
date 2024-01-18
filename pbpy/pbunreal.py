@@ -859,17 +859,23 @@ def download_engine(bundle_name=None, download_symbols=False):
 
         root_path = Path(root)
         base_path = get_engine_base_path()
-        needs_exe = True
-        needs_symbols = download_symbols
+
+        if not legacy_archives:
+            download_symbols = True
+            pblog.success(
+                "Using new Longtail incremental delivery method for engine update."
+            )
+
+        verification_file = get_bundle_verification_file(bundle_name)
+        editor_verification = get_bundle_verification_file("editor")
+        engine_verification = get_bundle_verification_file("engine")
+        symbols_path = base_path / Path(f"{editor_verification}{get_sym_ext()}")
+        needs_symbols = download_symbols and not symbols_path.exists()
+        exe_path = base_path / Path(f"{verification_file}{get_exe_ext()}")
+        needs_exe = not exe_path.exists()
+
+        is_upgrade = False
         if legacy_archives:
-            verification_file = get_bundle_verification_file(bundle_name)
-            editor_verification = get_bundle_verification_file("editor")
-            engine_verification = get_bundle_verification_file("engine")
-            symbols_path = base_path / Path(f"{editor_verification}{get_sym_ext()}")
-            needs_symbols = download_symbols and not symbols_path.exists()
-            exe_path = base_path / Path(f"{verification_file}{get_exe_ext()}")
-            needs_exe = not exe_path.exists()
-            game_exe_path = None
             # handle downgrading to non-engine bundles
             if "engine" not in bundle_name:
                 game_exe_path = base_path / Path(
@@ -880,19 +886,29 @@ def download_engine(bundle_name=None, download_symbols=False):
                     needs_symbols = download_symbols
                     shutil.rmtree(str(base_path), ignore_errors=True)
         else:
-            needs_symbols = True
-            pblog.success(
-                "Using new Longtail incremental delivery method for engine update."
-            )
+            # if we already have the files we need, we're only doing an in-place upgrade.
+            is_upgrade = not needs_exe and not needs_symbols
+            # reset because for longtail we always try to download latest to check for updates
+            needs_exe = True
+            needs_symbols = download_symbols
 
         if needs_exe or needs_symbols:
             if not is_ci and os.path.isdir(root):
-                required_free_gb = 30 if legacy_archives else 22  # extracted
-                required_free_gb += 9 if legacy_archives else 7  # archive
+                # 1GB for in-place upgrade (scratch space?), maybe not correct but should be close enough
+                required_free_gb = (
+                    30 if legacy_archives else 1 if is_upgrade else 22
+                )  # extracted
+                required_free_gb += (
+                    9 if legacy_archives else 0 if is_upgrade else 7
+                )  # archive
 
                 if needs_symbols:
-                    required_free_gb += 80 if legacy_archives else 57  # extracted
-                    required_free_gb += 23 if legacy_archives else 17  # archive
+                    required_free_gb += (
+                        80 if legacy_archives else 0 if is_upgrade else 57
+                    )  # extracted
+                    required_free_gb += (
+                        23 if legacy_archives else 0 if is_upgrade else 17
+                    )  # archive
 
                 required_free_space = required_free_gb * gb_multiplier
 
