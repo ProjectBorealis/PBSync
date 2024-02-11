@@ -366,7 +366,7 @@ def sync_handler(sync_val: str, repository_val=None):
                 error_state(f"Something went wrong while registering engine build {bundle_name}-{engine_version}. Please request help in {pbconfig.get('support_channel')}.")
 
             # Clean old engine installations
-            if pbconfig.get_user_config().getboolean("ue4v-user", "clean", fallback=True):
+            if pbconfig.get_user_config().getboolean(pbunreal.uev_user_config, "clean", fallback=True):
                 if pbunreal.clean_old_engine_installations():
                     pblog.info("Successfully cleaned old engine installations.")
                 else:

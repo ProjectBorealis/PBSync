@@ -311,6 +311,9 @@ def remove_junction(destination):
 
 def check_error_state():
     # True: Error on last run, False: No errors
+    if not os.path.exists(error_file):
+        return False
+    
     try:
         with open(error_file) as error_state_file:
             error_code = error_state_file.readline(1)

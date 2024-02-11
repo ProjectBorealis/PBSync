@@ -43,6 +43,7 @@ uplugin_version_key = "VersionName"
 uproject_version_key = "EngineAssociation"
 project_version_key = "ProjectVersion="
 ddc_folder_name = "DerivedDataCache"
+uev_user_config = "ue4v-user"
 
 engine_installation_folder_regex = [r"[0-9].[0-9]{2}.*-", r"-[0-9]{8}"]
 
@@ -284,14 +285,14 @@ use_source_dir = True
 
 
 @lru_cache()
-def get_engine_install_root(prompt=True):
+def get_engine_install_root(prompt=True) -> str | None:
     engine_version = get_engine_version_with_prefix()
     if not engine_version:
         return None
     source_dir = (
-        pbconfig.get_user("ue4v-user", "source_dir") if use_source_dir else None
+        pbconfig.get_user(uev_user_config, "source_dir") if use_source_dir else None
     )
-    root = source_dir or pbconfig.get_user("ue4v-user", "download_dir")
+    root = source_dir or pbconfig.get_user(uev_user_config, "download_dir")
     if root is None and prompt:
         curdir = Path().resolve()
 
@@ -380,7 +381,7 @@ def get_engine_install_root(prompt=True):
             pblog.error(f"Invalid option {response}. Try again:\n")
         if directory:
             root = str(directory)
-            pbconfig.get_user_config()["ue4v-user"]["download_dir"] = root
+            pbconfig.get_user_config()[uev_user_config]["download_dir"] = root
     return root
 
 
@@ -511,10 +512,10 @@ def clean_old_engine_installations(keep=1):
         engine_install_root = get_engine_install_root()
         # if the user has defined a source dir, find the download_dir instead
         source_dir = (
-            pbconfig.get_user("ue4v-user", "source_dir") if use_source_dir else None
+            pbconfig.get_user(uev_user_config, "source_dir") if use_source_dir else None
         )
         if source_dir is not None:
-            engine_install_root = pbconfig.get_user("ue4v-user", "download_dir")
+            engine_install_root = pbconfig.get_user(uev_user_config, "download_dir")
         elif is_source_install():
             return True
         if engine_install_root is not None and os.path.isdir(engine_install_root):
@@ -613,7 +614,7 @@ def get_ddc_gsuri(fallback=None):
 @lru_cache()
 def is_versionator_symbols_enabled():
     symbols = pbconfig.get_user_config().getboolean(
-        "ue4v-user", "symbols", fallback=True if pbconfig.get("is_ci") else None
+        uev_user_config, "symbols", fallback=True if pbconfig.get("is_ci") else None
     )
     if symbols is not None:
         return symbols
@@ -622,12 +623,9 @@ def is_versionator_symbols_enabled():
     response = input(
         f"Do you want to download debugging symbols for accurate crash logging? You can change this setting later in the {pbconfig.get('user_config')} config file. [y/N] "
     )
-    if len(response) > 0 and response[0].lower() == "y":
-        pbconfig.get_user_config()["ue4v-user"]["symbols"] = "true"
-        return True
-    else:
-        pbconfig.get_user_config()["ue4v-user"]["symbols"] = "false"
-        return False
+    should_use_symbols = len(response) > 0 and response[0].lower() == "y"
+    pbconfig.get_user_config()[uev_user_config]["symbols"] = "true" if should_use_symbols else "false"
+    return should_use_symbols
 
 
 @lru_cache()
@@ -655,7 +653,7 @@ def get_bundle_verification_file(bundle_name):
 
 
 @lru_cache()
-def get_engine_base_path():
+def get_engine_base_path() -> Path | None:
     root = get_engine_install_root()
     if root is None:
         installed_path = Path(
@@ -1268,7 +1266,9 @@ def get_devenv_path():
 @lru_cache()
 def get_uat_path():
     base = get_engine_base_path()
-    return base / "Engine" / "Build" / "BatchFiles" / "RunUAT.bat"
+    if base is not None:
+        return base / "Engine" / "Build" / "BatchFiles" / "RunUAT.bat"
+    return None
 
 
 def fill_ddc():
@@ -1283,6 +1283,11 @@ def fill_ddc():
 
 
 def upload_cloud_ddc():
+    uat_path = get_uat_path()
+    if uat_path is None:
+        pbtools.error_state("Unable to determine location of Unreal Automation Tool.")
+        return
+    
     credentials = str(Path("Build/credentials").resolve())
     access_logs = str(Path("Saved/AccessLogs").resolve())
     cache = Path("DerivedDataCache")
@@ -1295,7 +1300,7 @@ def upload_cloud_ddc():
     # but AWS takes a Bucket and ServiceURL, we use the bucket.com's "bucket": bucket.com/bucket.com -> storage.googleapis.com/bucket.com/bucket.com
     proc = pbtools.run_stream(
         [
-            get_uat_path(),
+            uat_path,
             "UploadDDCToAWS",
             f"-Bucket={get_ddc_bucket()}",
             f"-CredentialsFile={credentials}",
@@ -1380,8 +1385,13 @@ def clear_cook_cache():
 
 
 def build_game(configuration="Shipping"):
+    uat_path = get_uat_path()
+    if uat_path is None:
+        pbtools.error_state("Unable to determine location of Unreal Automation Tool.")
+        return
+    
     args = [
-        str(get_uat_path()),
+        str(uat_path),
         f"-ScriptsForProject={str(get_uproject_path())}",
         "BuildCookRun",
         "-nop4",
@@ -1560,6 +1570,11 @@ def build_installed_build():
             "Engine builds are only supported for source installs.", fatal_error=False
         )
 
+    uat_path = get_uat_path()
+    if uat_path is None:
+        pbtools.error_state("Unable to determine location of Unreal Automation Tool.")
+        return
+
     engine_path = get_engine_base_path()
 
     # query build version so we can bump it up
@@ -1580,7 +1595,7 @@ def build_installed_build():
     # build the installed engine
     proc = pbtools.run_stream(
         [
-            str(get_uat_path()),
+            str(uat_path),
             "BuildGraph",
             f"-Target=Make Installed Build {get_platform_name()}",
             "-Script=Engine/Build/InstalledEngineBuild.xml",
@@ -1651,7 +1666,7 @@ def build_installed_build():
                 cwd=str(local_build_archives),
             )
 
-            download_dir = pbconfig.get_user("ue4v-user", "download_dir")
+            download_dir = pbconfig.get_user(uev_user_config, "download_dir")
             if download_dir:
                 download_dir = Path(download_dir)
                 if not download_dir.exists():

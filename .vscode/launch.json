@@ -71,6 +71,15 @@
             "console": "integratedTerminal"
         },
         {
+            "name": "Sync Engine Version",
+            "args": ["--sync", "engineversion", "--debugpath", "${input:debugPath}"],
+            "type": "python",
+            "justMyCode": false,
+            "request": "launch",
+            "module": "pbsync",
+            "console": "integratedTerminal"
+        },
+        {
             "name": "Pull Binaries",
             "args": ["--sync", "binaries", "--debugpath", "${input:debugPath}"],
             "type": "python",
@@ -127,6 +136,19 @@
         {
             "name": "Build Release",
             "args": ["--build", "release", "--debugpath", "${input:debugPath}"],
+            "type": "python",
+            "request": "launch",
+            "module": "pbsync",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Build Internal",
+            "args": [
+                "--build",
+                "internal",
+                "--debugpath",
+                "${input:debugPath}"
+            ],
             "type": "python",
             "request": "launch",
             "module": "pbsync",
