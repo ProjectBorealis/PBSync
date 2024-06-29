@@ -22,7 +22,7 @@ def publish_build(branch_type, steamcmd_exec_path, publish_stagedir, app_script,
       return False
     drm_command = base_steamcmd_command.copy()
     drm_output = Path("wrappedBin" + drm_exe_path.suffix) # save file to wrappedBin.exe temporarily
-    drm_command.extend(["+drm_wrap", str(drm_exe_path), str(drm_output), "drmtoolp", "0", "+quit"]) # the drm wrap command https://partner.steamgames.com/doc/features/drm
+    drm_command.extend(["+drm_wrap", drm_app_id, str(drm_exe_path), str(drm_output), "drmtoolp", "0", "+quit"]) # the drm wrap command https://partner.steamgames.com/doc/features/drm
     pblog.info("Wrapping game with steamworks DRM...")
     drm_proc = pbtools.run_with_output(drm_command)
     pbtools.remove_file(str(drm_exe_path)) # remove original file in any case
