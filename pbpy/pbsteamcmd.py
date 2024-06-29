@@ -30,7 +30,6 @@ def publish_build(branch_type, steamcmd_exec_path, publish_stagedir, app_script,
       return False
     
     shutil.move(drm_output, drm_exe_path)
-    return True
   
   command.extend(["+run_app_build", script_path, "+quit"])
   proc = pbtools.run(command)
