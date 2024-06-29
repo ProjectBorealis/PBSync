@@ -544,7 +544,7 @@ def autoversion_handler(autoversion_val):
 
 PUBLISHERS = {
     "dispatch": lambda publish_val, pubexe: pbdispatch.publish_build(publish_val, pubexe, pbconfig.get('publish_stagedir'), pbconfig.get('dispatch_config')),
-    "steamcmd": lambda publish_val, pubexe: pbsteamcmd.publish_build(publish_val, pubexe, pbconfig.get('publish_stagedir'), pbconfig.get("steamcmd_script")),
+    "steamcmd": lambda publish_val, pubexe: pbsteamcmd.publish_build(publish_val, pubexe, pbconfig.get('publish_stagedir'), pbconfig.get("steamcmd_script"), pbconfig.get("steamdrm_appid"), pbconfig.get("steamdrm_targetbinary")),
     "butler": lambda publish_val, pubexe: pbbutler.publish_build(publish_val, pubexe, pbconfig.get('publish_stagedir'), pbconfig.get('butler_project'), pbconfig.get('butler_manifest')),
 }
 
@@ -618,6 +618,8 @@ def main(argv):
             'butler_project': ('butler/project', None, "", True),
             'butler_manifest': ('butler/manifest', None, "", True),
             'steamcmd_script': ('steamcmd/script', None, "", True),
+            'steamdrm_appid': ('steamcmd/drm/appid', None, "", True),
+            'steamdrm_targetbinary': ('steamcmd/drm/targetbinary', None, "", True),
             'resharper_version': ('resharper/version', None, "", True),
             'engine_prefix': ('versionator/engineprefix', None, "", True),
             'engine_type': ('versionator/enginetype', None, None, True),

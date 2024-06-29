@@ -5,8 +5,9 @@ from functools import lru_cache
 
 from pbpy import pbtools
 
-# Singleton Config
+# Singleton Config and path to said config
 config = None
+config_filepath = None
 
 user_config = None
 
@@ -75,6 +76,7 @@ def shutdown():
 def generate_config(config_path, parser_func):
     # Generalized config generator. parser_func is responsible with returning a valid config object
     global config
+    global config_filepath
 
     if config_path is not None and os.path.isfile(config_path):
         tree = parse(config_path)
@@ -87,6 +89,7 @@ def generate_config(config_path, parser_func):
         # Read config xml
         try:
             config = parser_func(root)
+            config_filepath = config_path
         except Exception as e:
             print(f"Config exception: {e}")
             return False
