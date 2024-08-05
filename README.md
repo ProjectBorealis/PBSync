@@ -4,6 +4,10 @@ Advanced workspace synchronization tool for Unreal Engine projects hosted on git
 
 ## Development
 
+### Pipenv
+
+Before running any scripts, use `pipenv install` and then `pipenv shell`.
+
 ### Dependencies
 
 Run `dependencies.bat` on Windows or `dependencies.sh` on Linux.

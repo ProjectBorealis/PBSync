@@ -1,0 +1,24 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+black = "*"
+ruff = "*"
+pytest = "*"
+
+[packages]
+setuptools = "*"
+psutil = "*"
+coloredlogs = "*"
+colorama = "*"
+verboselogs = "*"
+crcmod = "*"
+tinyaes = "*"
+pywin32 = {version = "*", sys_platform = "== 'win32'"}
+pefile = {version = "*", sys_platform = "== 'win32'"}
+"pywin32-ctypes" = {version = "*", sys_platform = "== 'win32'"}
+
+[requires]
+python_version = "3.12"

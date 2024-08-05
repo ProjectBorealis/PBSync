@@ -1,7 +1,0 @@
-psutil
-coloredlogs
-colorama
-verboselogs
-crcmod
-pyinstaller
-tinyaes
