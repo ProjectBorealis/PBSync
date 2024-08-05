@@ -1,7 +1,6 @@
 import configparser
 import contextlib
 import glob
-import itertools
 import json
 import os
 import platform
@@ -895,48 +894,9 @@ class multi_dict(dict):
         super().__setitem__(key, value)
 
 
-class MultiConfigParser(pbconfig.CustomConfigParser):
-    def _write_section(self, fp, section_name, section_items, delimiter):
-        """Write a single section to the specified `fp'. Extended to write multi-value, single key."""
-        fp.write("[{}]\n".format(section_name))
-        for key, value in section_items:
-            value = self._interpolation.before_write(self, section_name, key, value)
-            if isinstance(value, list):
-                values = value
-            else:
-                values = [value]
-            for value in values:
-                if self._allow_no_value and value is None:
-                    value = ""
-                else:
-                    value = delimiter + str(value).replace("\n", "\n\t")
-                fp.write("{}{}\n".format(key, value))
-        fp.write("\n")
-
-    def _join_multiline_values(self):
-        """Handles newlines being parsed as bogus values."""
-        defaults = self.default_section, self._defaults
-        all_sections = itertools.chain((defaults,), self._sections.items())
-        for section, options in all_sections:
-            for name, val in options.items():
-                if isinstance(val, list):
-                    # check if this is a multi value
-                    length = len(val)
-                    if length > 1:
-                        last_entry = val[length - 1]
-                        # if the last entry is empty (newline!), clear it out
-                        if not last_entry:
-                            del val[-1]
-                    # restore it back to single value
-                    if len(val) == 1:
-                        val = val[0]
-                val = self._interpolation.before_read(self, section, name, val)
-                options.force_set(name, val)
-
-
 @contextlib.contextmanager
 def ue_config(path):
-    config = MultiConfigParser(
+    config = pbconfig.MultiConfigParser(
         allow_no_value=True,
         delimiters=("=",),
         strict=False,
@@ -1254,7 +1214,7 @@ def package_binaries():
 
 def inspect_source(all=False):
     if all:
-        modified_files_list = "Source\**\*"
+        modified_files_list = "Source/**/*"
     else:
         modified_paths = pbgit.get_modified_files()
         if len(modified_paths) < 1:
@@ -1281,7 +1241,7 @@ def inspect_source(all=False):
     pblog.info(f"Unpacking Resharper {version}")
     shutil.unpack_archive(str(zip_path), str(resharper_dir))
     resharper_exe = resharper_dir / Path("inspectcode.exe")
-    inspect_file = "Saved\InspectionResults.txt"
+    inspect_file = "Saved/InspectionResults.txt"
     pblog.info(f"Running Resharper {version}")
     proc = pbtools.run_stream(
         [

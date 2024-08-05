@@ -1,7 +1,8 @@
-import os
 import configparser
-from xml.etree.ElementTree import parse
+import itertools
+import os
 from functools import lru_cache
+from xml.etree.ElementTree import parse
 
 from pbpy import pbtools
 
@@ -33,6 +34,45 @@ class CustomConfigParser(configparser.ConfigParser):
         if key != self.default_section and not self.has_section(key):
             self.add_section(key)
         return super().__getitem__(key)
+
+
+class MultiConfigParser(CustomConfigParser):
+    def _write_section(self, fp, section_name, section_items, delimiter):
+        """Write a single section to the specified `fp'. Extended to write multi-value, single key."""
+        fp.write("[{}]\n".format(section_name))
+        for key, value in section_items:
+            value = self._interpolation.before_write(self, section_name, key, value)
+            if isinstance(value, list):
+                values = value
+            else:
+                values = [value]
+            for value in values:
+                if self._allow_no_value and value is None:
+                    value = ""
+                else:
+                    value = delimiter + str(value).replace("\n", "\n\t")
+                fp.write("{}{}\n".format(key, value))
+        fp.write("\n")
+
+    def _join_multiline_values(self):
+        """Handles newlines being parsed as bogus values."""
+        defaults = self.default_section, self._defaults
+        all_sections = itertools.chain((defaults,), self._sections.items())
+        for section, options in all_sections:
+            for name, val in options.items():
+                if isinstance(val, list):
+                    # check if this is a multi value
+                    length = len(val)
+                    if length > 1:
+                        last_entry = val[length - 1]
+                        # if the last entry is empty (newline!), clear it out
+                        if not last_entry:
+                            del val[-1]
+                    # restore it back to single value
+                    if len(val) == 1:
+                        val = val[0]
+                val = self._interpolation.before_read(self, section, name, val)
+                options.force_set(name, val)
 
 
 class CustomInterpolation(configparser.BasicInterpolation):
@@ -67,7 +107,8 @@ def shutdown():
         attributes = 0
         restore_hidden = False
         if os.name == "nt" and os.path.exists(user_filename):
-            import win32api, win32con
+            import win32api
+            import win32con
 
             attributes = win32api.GetFileAttributes(user_filename)
             restore_hidden = attributes & win32con.FILE_ATTRIBUTE_HIDDEN
