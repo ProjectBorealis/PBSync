@@ -9,7 +9,6 @@ pyinstaller --onefile ^
             --clean ^
             --console ^
             --runtime-tmpdir Saved ^
-            --key cd17c3ab10dba6bd ^
             -i resources/icon.ico ^
             --version-file version.rc ^
             -p . pbsync/__main__.py %*
