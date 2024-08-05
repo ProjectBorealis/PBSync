@@ -573,8 +573,6 @@ def sync_handler(sync_val: str, repository_val=None):
         pblog.info("Updating Unreal configuration settings")
         pbunreal.update_source_control()
 
-        pbunreal.sync_ddc_vt()
-
         pblog.info("Finishing LFS locks cleanup...")
         fix_attr_thread.join()
         pblog.info("Finished LFS locks cleanup.")
@@ -635,24 +633,6 @@ def sync_handler(sync_val: str, repository_val=None):
             # TODO
             # elif launch_pref == "debug":
             #    pbtools.run_non_blocking(f"\"{str(pbunreal.get_devenv_path())}\" \"{str(pbunreal.get_sln_path())}\" /DebugExe \"{str(pbunreal.get_editor_path())}\" \"{str(pbunreal.get_uproject_path())}\" -skipcompile")
-
-    elif sync_val == "engineversion":
-        repository_val = pbunreal.get_versionator_gsuri(repository_val)
-        if repository_val is None:
-            error_state(
-                "--repository <URL> argument should be provided with --sync engineversion command"
-            )
-        engine_version = pbunreal.get_latest_available_engine_version(
-            str(repository_val)
-        )
-        if engine_version is None:
-            error_state("Error while fetching latest engine version")
-        if not pbunreal.set_engine_version(engine_version):
-            error_state("Error while updating engine version in .uproject file")
-        pblog.info(f"Successfully changed engine version as {str(engine_version)}")
-
-    elif sync_val == "ddc":
-        pbunreal.sync_ddc_vt()
 
     elif sync_val == "binaries":
         project_version = pbunreal.get_project_version()
@@ -724,20 +704,7 @@ def clean_handler(clean_val):
 
 
 def printversion_handler(print_val, repository_val=None):
-    if print_val == "latest-engine":
-        repository_val = pbunreal.get_versionator_gsuri(repository_val)
-        if repository_val is None:
-            error_state(
-                "--repository <URL> argument should be provided with --print latest-engine command"
-            )
-        engine_version = pbunreal.get_latest_available_engine_version(
-            str(repository_val)
-        )
-        if engine_version is None:
-            error_state("Could not find latest engine version.")
-        print(engine_version, end="")
-
-    elif print_val == "current-engine":
+    if print_val == "current-engine":
         engine_version = pbunreal.get_engine_version()
         if engine_version is None:
             error_state("Could not find current engine version.")
@@ -816,7 +783,6 @@ def main(argv):
             "engineversion",
             "engine",
             "force",
-            "ddc",
         ],
         const="all",
         nargs="?",
@@ -906,7 +872,6 @@ def main(argv):
                 True,
             ),
             "package_pdbs": ("project/packagepdbs", None, False, True),
-            "ddc_key": ("project/ddckey", None, "", True),
             "publish_publishers": ("publish/publisher", None, [""], False),
             "publish_stagedir": ("publish/stagedir", None, "Saved/StagedBuilds", True),
             "dispatch_config": ("dispatch/config", None, "", True),

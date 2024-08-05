@@ -1,39 +1,21 @@
-import itertools
-import re
-import os
-import json
-import time
-import glob
 import configparser
 import contextlib
-import urllib.request
+import glob
+import itertools
+import json
+import os
 import platform
-import zipfile
-
-from shutil import move
-from shutil import rmtree
-from shutil import disk_usage
-from functools import lru_cache
+import re
 import shutil
-from urllib.parse import urlparse
+import time
+import urllib.request
+import zipfile
+from functools import lru_cache
 from pathlib import Path
-from gslib.command_runner import CommandRunner
-from gslib.commands.cp import CpCommand
-from gslib.commands.rsync import RsyncCommand
-from gslib.commands.ls import LsCommand
-from gslib.utils import boto_util
-from gslib.sig_handling import GetCaughtSignals
-from gslib.sig_handling import InitializeSignalHandling
-from gslib.sig_handling import RegisterSignalHandler
+from shutil import disk_usage, move, rmtree
+from urllib.parse import urlparse
 
-import gslib
-
-from pbpy import pbconfig
-from pbpy import pbtools
-from pbpy import pblog
-from pbpy import pbgit
-from pbpy import pbuac
-from pbpy import pbinfo
+from pbpy import pbconfig, pbgit, pbinfo, pblog, pbtools, pbuac
 
 # Those variable values are not likely to be changed in the future, it's safe to keep them hardcoded
 uev_prefix = "uev:"
@@ -52,32 +34,6 @@ p4merge_path = "/p4merge/p4merge.exe"
 reg_path = r"HKCU\Software\Epic Games\Unreal Engine\Builds"
 
 long_path = "\\\\?\\"
-
-
-# pylint: disable=unused-argument
-def _CleanupSignalHandler(signal_num, cur_stack_frame):
-    """Cleans up if process is killed with SIGINT, SIGQUIT or SIGTERM.
-
-    Note that this method is called after main() has been called, so it has
-    access to all the modules imported at the start of main().
-
-    Args:
-      signal_num: Unused, but required in the method signature.
-      cur_stack_frame: Unused, but required in the method signature.
-    """
-    _Cleanup()
-    if (
-        gslib.utils.parallelism_framework_util.CheckMultiprocessingAvailableAndInit().is_available
-    ):
-        gslib.command.TeardownMultiprocessingProcesses()
-
-
-def _Cleanup():
-    for fname in boto_util.GetCleanupFiles():
-        try:
-            os.unlink(fname)
-        except:  # pylint: disable=bare-except
-            pass
 
 
 @lru_cache()
@@ -399,28 +355,6 @@ def uses_longtail():
     return pbconfig.get("uses_longtail")
 
 
-def get_latest_available_engine_version(bucket_url):
-    if pbconfig.get("uses_gcs") != "True":
-        return None
-    if uses_longtail():
-        return None
-    output = pbtools.get_combined_output(["gsutil", "ls", bucket_url])
-    bundle_name = get_bundle()
-
-    # e.g, "engine-4.24-PB"
-    regex_prefix = f"{bundle_name}-{pbconfig.get('engine_base_version')}-{get_engine_version_prefix()}"
-    versions = re.findall(regex_prefix + "-[0-9]{8}", output)
-    if len(versions) == 0:
-        return None
-    # Find the latest version by sorting
-    versions.sort()
-
-    # Strip the build type prefix back
-    result = str(versions[len(versions) - 1])
-    result = result.replace(f"{bundle_name}-", "")
-    return result.rstrip()
-
-
 def check_ue_file_association():
     if os.name == "nt":
         file_assoc_result = pbtools.get_combined_output(["assoc", uproject_ext])
@@ -470,34 +404,6 @@ def generate_ddc_data():
     pbtools.error_state(
         f"Error occurred while reading project version for DDC data generation. Please get support from {pbconfig.get('support_channel')}"
     )
-
-
-def sync_ddc_vt():
-    if pbconfig.get("uses_gcs") != "True":
-        pblog.error("Syncing DDC VT data requires GCS.")
-        return False
-    ddc_key = pbconfig.get("ddc_key")
-    if not ddc_key:
-        pblog.error("Syncing DDC VT data requires a ddc_key configured.")
-        return False
-    pblog.info("Syncing DDC VT data...")
-    shared_ddc = Path("DerivedDataCache/VT")
-    shared_ddc.mkdir(parents=True, exist_ok=True)
-    shared_ddc = str(shared_ddc.resolve())
-    # long path support
-    if os.name == "nt":
-        shared_ddc = f"{long_path}{shared_ddc}"
-    gcs_bucket = get_ddc_gsuri()
-    gcs_uri = f"{gcs_bucket}{ddc_key}"
-    command_runner = init_gcs()
-    command_runner.RunNamedCommand(
-        "rsync",
-        args=["-Cir", f"{gcs_uri}/VT", shared_ddc],
-        collect_analytics=False,
-        skip_update_check=True,
-        parallel_operations=True,
-    )
-    pblog.success("Synced DDC VT data.")
 
 
 def clean_old_engine_installations(keep=1):
@@ -770,35 +676,6 @@ def register_engine(version, path):
 
 
 longtail_path = "\\longtail\\longtail.exe"
-g_command_runner = None
-
-
-def init_gcs():
-    global g_command_runner
-    if g_command_runner:
-        return g_command_runner
-    InitializeSignalHandling()
-    if (
-        gslib.utils.parallelism_framework_util.CheckMultiprocessingAvailableAndInit().is_available
-    ):
-        # These setup methods must be called, and, on Windows, they can only be
-        # called from within an "if __name__ == '__main__':" block.
-        gslib.command.InitializeMultiprocessingVariables()
-        gslib.boto_translation.InitializeMultiprocessingVariables()
-    else:
-        gslib.command.InitializeThreadingVariables()
-    g_command_runner = CommandRunner(
-        command_map={
-            "cp": CpCommand,
-            "rsync": RsyncCommand,
-            "ls": LsCommand,
-        }
-    )
-
-    for signal_num in GetCaughtSignals():
-        RegisterSignalHandler(signal_num, _CleanupSignalHandler)
-
-    return g_command_runner
 
 
 @lru_cache()
@@ -931,37 +808,6 @@ def download_engine(bundle_name=None, download_symbols=False):
                         pblog.error(f"Required space: {must_free:.2f}GB")
                         pbtools.error_state()
 
-            if pbconfig.get("uses_gcs") == "True" and legacy_archives:
-                command_runner = init_gcs()
-                patterns = []
-                removal_patterns = []
-                if needs_exe:
-                    patterns.append(f"{bundle_name}")
-                else:
-                    removal_patterns.append(f"{bundle_name}")
-                if needs_symbols:
-                    patterns.append(f"{bundle_name}-symbols")
-                else:
-                    removal_patterns.append(f"{bundle_name}-symbols")
-                patterns = [f"{pattern}-{version}.7z" for pattern in patterns]
-                removal_patterns = [
-                    f"{pattern}-{version}.7z" for pattern in removal_patterns
-                ]
-                for pattern in removal_patterns:
-                    remove_file = root_path / Path(pattern)
-                    remove_file.unlink(missing_ok=True)
-                gcs_bucket = get_versionator_gsuri()
-                dst = f"file://{root}"
-                for pattern in patterns:
-                    gcs_uri = f"{gcs_bucket}{pattern}"
-                    command_runner.RunNamedCommand(
-                        "cp",
-                        args=["-n", gcs_uri, dst],
-                        collect_analytics=False,
-                        skip_update_check=True,
-                        parallel_operations=needs_exe and needs_symbols,
-                    )
-
     # Extract with ueversionator
     if (needs_exe or needs_symbols) and legacy_archives:
         command_set = [f"ueversionator{get_exe_ext()}"]
@@ -1014,6 +860,7 @@ def download_engine(bundle_name=None, download_symbols=False):
             env={"GOOGLE_APPLICATION_CREDENTIALS": "Build/credentials.json"},
             logfunc=pbtools.progress_stream_log,
         )
+        # print out a newline
         print("")
         if proc.returncode:
             pbtools.error_state(
@@ -1026,43 +873,6 @@ def download_engine(bundle_name=None, download_symbols=False):
             )
         if not register_engine(engine_id, get_engine_base_path()):
             needs_exe = False
-
-    # rsync patches
-    if pbconfig.get("uses_gcs") == "True" and legacy_archives:
-        pblog.info("Remote syncing patches for engine.")
-        command_runner = init_gcs()
-
-        # Download folder
-        patterns = []
-        patterns.append(f"{bundle_name}-{version}/")
-        if download_symbols:
-            patterns.append(f"{bundle_name}-symbols-{version}/")
-        gcs_bucket = get_versionator_gsuri()
-        dst = get_engine_base_path()
-        # long path support
-        if os.name == "nt":
-            dst = f"{long_path}{dst}"
-        for pattern in patterns:
-            gcs_uri = f"{gcs_bucket}{pattern}"
-            try:
-                file_list_status = command_runner.RunNamedCommand(
-                    "ls",
-                    args=[gcs_uri],
-                    collect_analytics=False,
-                    skip_update_check=True,
-                    parallel_operations=True,
-                )
-                if file_list_status:
-                    break
-            except:
-                break
-            command_runner.RunNamedCommand(
-                "rsync",
-                args=["-Cir", gcs_uri, dst],
-                collect_analytics=False,
-                skip_update_check=True,
-                parallel_operations=True,
-            )
 
     # if not CI, run the setup tasks
     if root is not None and not is_ci and needs_exe:
@@ -1316,26 +1126,6 @@ def upload_cloud_ddc():
     )
     if proc.returncode:
         pbtools.error_state("Upload failed.")
-    shared_ddc = Path("DerivedDataCache/VT")
-    if not shared_ddc.exists():
-        pbtools.error_state("Virtual textures don't exist.")
-    shared_ddc.mkdir(parents=True, exist_ok=True)
-    shared_ddc = str(shared_ddc.resolve())
-    # long path support
-    if os.name == "nt":
-        shared_ddc = f"{long_path}{shared_ddc}"
-    ddc_key = pbconfig.get("ddc_key")
-    if ddc_key and pbconfig.get("uses_gcs") == "True":
-        gcs_bucket = get_ddc_gsuri()
-        gcs_uri = f"{gcs_bucket}{pbconfig.get('ddc_key')}"
-        command_runner = init_gcs()
-        command_runner.RunNamedCommand(
-            "rsync",
-            args=["-Cir", shared_ddc, f"{gcs_uri}/VT"],
-            collect_analytics=False,
-            skip_update_check=True,
-            parallel_operations=True,
-        )
 
 
 def build_source(for_distribution=True):
@@ -1653,6 +1443,7 @@ def build_installed_build():
                 },
                 logfunc=pbtools.progress_stream_log,
             )
+            # print out a new line
             print("")
         else:
             proc = pbtools.run_stream(

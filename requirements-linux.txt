@@ -2,7 +2,6 @@ psutil
 coloredlogs
 colorama
 verboselogs
-gsutil
 crcmod
 pyinstaller
 tinyaes

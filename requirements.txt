@@ -6,7 +6,6 @@ psutil
 coloredlogs
 colorama
 verboselogs
-gsutil
 crcmod
 pywin32
 

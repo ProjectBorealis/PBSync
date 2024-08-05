@@ -7,7 +7,6 @@
         <userconfig>.user-sync</userconfig>
         <ciconfig>.ci-sync</ciconfig>
         <packagepdbs>True</packagepdbs>
-        <ddckey>0</ddckey>
     </project>
     <git>
         <version>2.37.1.vfs.0.1</version>
