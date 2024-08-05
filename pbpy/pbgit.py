@@ -36,7 +36,7 @@ def is_on_expected_branch():
     binaries_mode = get_binaries_mode()
     if binaries_mode == "force":
         return True
-    elif binaries_mode == "local" or binaries_mode == "build":
+    elif binaries_mode == "local" or binaries_mode == "build" or binaries_mode == "off":
         return False
     for expected_branch in pbconfig.get("expected_branch_names"):
         if compare_with_current_branch_name(expected_branch):
@@ -210,10 +210,10 @@ def fix_lfs_ro_attr(should_unlock_unmodified):
 def unlock_unmodified():
     modified = get_modified_files(paths=False)
     pending = pbtools.get_combined_output(
-        [get_lfs_executable(), "push", "--dry-run", "--all", "origin"]
+        [get_lfs_executable(), "push", "--dry-run", "origin", "HEAD"]
     )
     pending = pending.splitlines()
-    pending = {line.rsplit(" => ", 1)[1] for line in pending}
+    pending = {line.rsplit(" => ", 1)[1] for line in pending if line}
     keep = modified | pending
     locked = get_locked()
     unlock = {file for file in locked if file not in keep}
