@@ -1,19 +1,16 @@
-import os
-import shutil
-import json
-import stat
-import multiprocessing
-import itertools
-import re
 import fnmatch
-
+import itertools
+import json
+import multiprocessing
+import os
+import re
+import shutil
+import stat
+from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urlparse
-from functools import lru_cache
 
-from pbpy import pblog
-from pbpy import pbconfig
-from pbpy import pbtools
+from pbpy import pbconfig, pblog, pbtools
 
 missing_version = "not installed"
 
@@ -213,7 +210,7 @@ def fix_lfs_ro_attr(should_unlock_unmodified):
 def unlock_unmodified():
     modified = get_modified_files(paths=False)
     pending = pbtools.get_combined_output(
-        [get_lfs_executable(), "push", "--dry-run", "origin"]
+        [get_lfs_executable(), "push", "--dry-run", "--all", "origin"]
     )
     pending = pending.splitlines()
     pending = {line.rsplit(" => ", 1)[1] for line in pending}
