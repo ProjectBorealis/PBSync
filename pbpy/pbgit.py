@@ -20,7 +20,9 @@ missing_version = "not installed"
 
 @lru_cache()
 def get_current_branch_name():
-    return pbtools.get_one_line_output([get_git_executable(), "branch", "--show-current"])
+    return pbtools.get_one_line_output(
+        [get_git_executable(), "branch", "--show-current"]
+    )
 
 
 def compare_with_current_branch_name(compared_branch):
@@ -57,7 +59,9 @@ def get_lfs_executable():
 
 @lru_cache()
 def get_gcm_executable(recursed=False):
-    gcm_exec = pbtools.get_one_line_output([get_git_executable(), "config", "--get", "credential.helper"]).replace("\\", "")
+    gcm_exec = pbtools.get_one_line_output(
+        [get_git_executable(), "config", "--get", "credential.helper"]
+    ).replace("\\", "")
     # no helper installed
     # TODO: remove -core suffix once deprecated
     if not gcm_exec:
@@ -82,7 +86,9 @@ def get_gcm_executable(recursed=False):
 
 
 def get_git_version():
-    installed_version_split = pbtools.get_one_line_output([get_git_executable(), "--version"]).split(" ")
+    installed_version_split = pbtools.get_one_line_output(
+        [get_git_executable(), "--version"]
+    ).split(" ")
 
     list_len = len(installed_version_split)
     if list_len == 0:
@@ -100,7 +106,9 @@ def get_git_version():
 def get_lfs_version(lfs_exec=None):
     if lfs_exec is None:
         lfs_exec = get_lfs_executable()
-    installed_version_split = pbtools.get_one_line_output([lfs_exec, "--version"]).split(" ")
+    installed_version_split = pbtools.get_one_line_output(
+        [lfs_exec, "--version"]
+    ).split(" ")
 
     if len(installed_version_split) == 0:
         return missing_version
@@ -144,14 +152,18 @@ def get_lockables():
 
 
 def get_locked(key="ours", include_new=True):
-    proc = pbtools.run_with_combined_output([get_lfs_executable(), "locks", "--verify", "--json"])
+    proc = pbtools.run_with_combined_output(
+        [get_lfs_executable(), "locks", "--verify", "--json"]
+    )
     if proc.returncode:
         return None
     locked_objects = json.loads(proc.stdout)[key]
     locked = set([l.get("path") for l in locked_objects])
     # also check untracked and added files
     if key == "ours" and include_new:
-        proc = pbtools.run_with_combined_output([get_git_executable(), "status", "--porcelain", "-uall"])
+        proc = pbtools.run_with_combined_output(
+            [get_git_executable(), "status", "--porcelain", "-uall"]
+        )
         if not proc.returncode:
             for line in proc.stdout.splitlines():
                 if line[0] == "?" or line[1] == "?" or line[0] == "A" or line[1] == "A":
@@ -173,7 +185,11 @@ def read_write(file):
         return None
     except OSError as e:
         err_str = str(e)
-        if pbtools.it_has_any(err_str, "The system cannot find the file specified", "The system cannot find the path specified"):
+        if pbtools.it_has_any(
+            err_str,
+            "The system cannot find the file specified",
+            "The system cannot find the path specified",
+        ):
             return f"You have a locked file which does not exist: {str(e.filename)}"
         else:
             return err_str
@@ -186,14 +202,19 @@ def fix_lfs_ro_attr(should_unlock_unmodified):
     locked = get_locked()
     not_locked = lockables - locked
     with multiprocessing.Pool(min(8, os.cpu_count())) as pool:
-        for message in itertools.chain(pool.imap_unordered(read_only, not_locked, 100), pool.imap_unordered(read_write, locked)):
+        for message in itertools.chain(
+            pool.imap_unordered(read_only, not_locked, 100),
+            pool.imap_unordered(read_write, locked),
+        ):
             if message:
                 pblog.warning(message)
 
 
 def unlock_unmodified():
     modified = get_modified_files(paths=False)
-    pending = pbtools.get_combined_output([get_lfs_executable(), "push", "--dry-run", "origin"])
+    pending = pbtools.get_combined_output(
+        [get_lfs_executable(), "push", "--dry-run", "origin"]
+    )
     pending = pending.splitlines()
     pending = {line.rsplit(" => ", 1)[1] for line in pending}
     keep = modified | pending
@@ -238,8 +259,14 @@ def is_lfs_file(file):
 
 
 def set_tracking_information(upstream_branch_name: str):
-    output = pbtools.get_combined_output([get_git_executable(), "branch", f"--set-upstream-to=origin/{upstream_branch_name}",
-                                      upstream_branch_name])
+    output = pbtools.get_combined_output(
+        [
+            get_git_executable(),
+            "branch",
+            f"--set-upstream-to=origin/{upstream_branch_name}",
+            upstream_branch_name,
+        ]
+    )
     pblog.info(output)
 
 
@@ -250,26 +277,40 @@ def stash_pop():
     pblog.info(output)
     lower_case_output = output.lower()
 
-    if pbtools.it_has_all(lower_case_output, "auto-merging", "conflict", "should have been pointers"):
-        pbtools.error_state(f"git stash pop failed. Some of your stashed local changes would be overwritten by incoming changes. Request help in {pbconfig.get('support_channel')} to resolve conflicts, and please do not run UpdateProject until the issue is resolved.", True)
+    if pbtools.it_has_all(
+        lower_case_output, "auto-merging", "conflict", "should have been pointers"
+    ):
+        pbtools.error_state(
+            f"git stash pop failed. Some of your stashed local changes would be overwritten by incoming changes. Request help in {pbconfig.get('support_channel')} to resolve conflicts, and please do not run UpdateProject until the issue is resolved.",
+            True,
+        )
     elif "dropped refs" in lower_case_output:
         return
     elif "no stash entries found" in lower_case_output:
         return
     else:
-        pbtools.error_state(f"git stash pop failed due to an unknown error. Request help in {pbconfig.get('support_channel')} to resolve possible conflicts, and please do not run UpdateProject until the issue is resolved.", True)
+        pbtools.error_state(
+            f"git stash pop failed due to an unknown error. Request help in {pbconfig.get('support_channel')} to resolve possible conflicts, and please do not run UpdateProject until the issue is resolved.",
+            True,
+        )
 
 
 def check_remote_connection():
-    current_url = pbtools.get_one_line_output([get_git_executable(), "remote", "get-url", "origin"])
+    current_url = pbtools.get_one_line_output(
+        [get_git_executable(), "remote", "get-url", "origin"]
+    )
     recent_url = pbconfig.get("git_url")
 
     if current_url != recent_url:
-        output = pbtools.get_combined_output([get_git_executable(), "remote", "set-url", "origin", recent_url])
+        output = pbtools.get_combined_output(
+            [get_git_executable(), "remote", "set-url", "origin", recent_url]
+        )
         current_url = recent_url
         pblog.info(output)
 
-    out = pbtools.run_with_output([get_git_executable(), "ls-remote", "-hq", "--refs"]).returncode
+    out = pbtools.run_with_output(
+        [get_git_executable(), "ls-remote", "-hq", "--refs"]
+    ).returncode
     return out == 0, current_url
 
 
@@ -277,18 +318,24 @@ def check_credentials():
     output = pbtools.get_one_line_output([get_git_executable(), "config", "user.name"])
     if output == "" or output is None:
         user_name = input("Please enter your GitHub username: ")
-        pbtools.run_with_output([get_git_executable(), "config", "user.name", user_name])
+        pbtools.run_with_output(
+            [get_git_executable(), "config", "user.name", user_name]
+        )
 
     output = pbtools.get_one_line_output([get_git_executable(), "config", "user.email"])
     if output == "" or output is None:
         user_mail = input("Please enter your GitHub email: ")
-        pbtools.run_with_output([get_git_executable(), "config", "user.email", user_mail])
+        pbtools.run_with_output(
+            [get_git_executable(), "config", "user.email", user_mail]
+        )
 
 
 def sync_file(file_path, sync_target=None):
     if sync_target is None:
         sync_target = f"origin/{get_current_branch_name()}"
-    proc = pbtools.run([get_git_executable(), "restore", "-qWSs", sync_target, "--", file_path])
+    proc = pbtools.run(
+        [get_git_executable(), "restore", "-qWSs", sync_target, "--", file_path]
+    )
     return proc.returncode
 
 
@@ -308,13 +355,17 @@ def abort_rebase():
 
 
 def setup_config():
-    pbtools.run_with_output([get_git_executable(), "config", "include.path", "../.gitconfig"])
+    pbtools.run_with_output(
+        [get_git_executable(), "config", "include.path", "../.gitconfig"]
+    )
 
 
 @lru_cache()
 def get_credentials(repo_str=None):
     if not repo_str:
-        repo_str = pbtools.get_one_line_output([get_git_executable(), "remote", "get-url", "origin"])
+        repo_str = pbtools.get_one_line_output(
+            [get_git_executable(), "remote", "get-url", "origin"]
+        )
     repo_url = urlparse(repo_str)
 
     creds = f"protocol={repo_url.scheme}\n"

@@ -22,7 +22,7 @@ def setup_logger(log_file_path):
 
     # Formatting
     format_string = "%(asctime)s [%(levelname)-5.5s]  %(message)s"
-    date_format = '%d-%b-%y %H:%M:%S'
+    date_format = "%d-%b-%y %H:%M:%S"
     log_formatter = logging.Formatter(format_string, datefmt=date_format)
 
     global root_log
@@ -42,7 +42,7 @@ def setup_logger(log_file_path):
         **coloredlogs.DEFAULT_LEVEL_STYLES,
         "trace": {"color": 246},
         "critical": {"background": "red"},
-        "debug": coloredlogs.DEFAULT_LEVEL_STYLES["info"]
+        "debug": coloredlogs.DEFAULT_LEVEL_STYLES["info"],
     }
     coloredlogs.DEFAULT_LOG_FORMAT = format_string
     coloredlogs.DEFAULT_LOG_LEVEL = log_level

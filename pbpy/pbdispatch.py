@@ -7,16 +7,16 @@ from pbpy import pblog, pbtools, pbconfig
 
 def publish_build(branch_type, dispath_exec_path, publish_stagedir, dispatch_config):
     # Test if our configuration values exist
-    app_id = pbconfig.get_user('dispatch', 'app_id')
+    app_id = pbconfig.get_user("dispatch", "app_id")
     if not app_id or not dispatch_config:
         pblog.error("dispatch was not configured.")
         return False
 
     if branch_type == "default":
-      branch_type = "internal"
+        branch_type = "internal"
 
     branch_id_key = f"{branch_type}_bid"
-    branch_id = pbconfig.get_user('dispatch', branch_id_key)
+    branch_id = pbconfig.get_user("dispatch", branch_id_key)
     if branch_id is None or branch_id == "":
         pblog.error(f"{branch_id_key} was not configured.")
         return False
@@ -24,7 +24,17 @@ def publish_build(branch_type, dispath_exec_path, publish_stagedir, dispatch_con
     # Push and Publish the build
     retry = True
     while True:
-        proc = pbtools.run([dispath_exec_path, "build", "push", branch_id, dispatch_config, publish_stagedir, "-p"])
+        proc = pbtools.run(
+            [
+                dispath_exec_path,
+                "build",
+                "push",
+                branch_id,
+                dispatch_config,
+                publish_stagedir,
+                "-p",
+            ]
+        )
         result = proc.returncode
         if result != 0:
             if not retry:

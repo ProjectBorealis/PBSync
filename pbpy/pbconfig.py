@@ -11,6 +11,7 @@ config_filepath = None
 
 user_config = None
 
+
 def get(key):
     if key is None or config is None or config.get(str(key)) is None:
         pbtools.error_state(f"Invalid config get request: {key}", hush=True)
@@ -23,7 +24,7 @@ def get(key):
 
 @lru_cache()
 def get_user_config_filename():
-    config_key = 'ci_config' if get("is_ci") else 'user_config'
+    config_key = "ci_config" if get("is_ci") else "user_config"
     return get(config_key)
 
 
@@ -35,7 +36,9 @@ class CustomConfigParser(configparser.ConfigParser):
 
 
 class CustomInterpolation(configparser.BasicInterpolation):
-    def before_get(self, parser, section: str, option: str, value: str, defaults) -> str:
+    def before_get(
+        self, parser, section: str, option: str, value: str, defaults
+    ) -> str:
         val = super().before_get(parser, section, option, value, defaults)
         if get("is_ci"):
             return os.getenv(val)
@@ -53,6 +56,7 @@ def get_user_config():
         init_user_config()
     return user_config
 
+
 def get_user(section, key, default=None):
     return get_user_config().get(section, key, fallback=default)
 
@@ -64,10 +68,13 @@ def shutdown():
         restore_hidden = False
         if os.name == "nt" and os.path.exists(user_filename):
             import win32api, win32con
+
             attributes = win32api.GetFileAttributes(user_filename)
             restore_hidden = attributes & win32con.FILE_ATTRIBUTE_HIDDEN
-            win32api.SetFileAttributes(user_filename, attributes & ~win32con.FILE_ATTRIBUTE_HIDDEN)
-        with open(user_filename, 'w') as user_config_file:
+            win32api.SetFileAttributes(
+                user_filename, attributes & ~win32con.FILE_ATTRIBUTE_HIDDEN
+            )
+        with open(user_filename, "w") as user_config_file:
             user_config.write(user_config_file)
         if restore_hidden:
             win32api.SetFileAttributes(user_filename, attributes)
@@ -95,7 +102,9 @@ def generate_config(config_path, parser_func):
             return False
 
         # Add CI information
-        config["is_ci"] = os.getenv('PBSYNC_CI') is not None or os.getenv('CI') is not None
+        config["is_ci"] = (
+            os.getenv("PBSYNC_CI") is not None or os.getenv("CI") is not None
+        )
         config["checksum_file"] = ".checksum"
 
         return True

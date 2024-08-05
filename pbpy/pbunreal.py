@@ -624,7 +624,9 @@ def is_versionator_symbols_enabled():
         f"Do you want to download debugging symbols for accurate crash logging? You can change this setting later in the {pbconfig.get('user_config')} config file. [y/N] "
     )
     should_use_symbols = len(response) > 0 and response[0].lower() == "y"
-    pbconfig.get_user_config()[uev_user_config]["symbols"] = "true" if should_use_symbols else "false"
+    pbconfig.get_user_config()[uev_user_config]["symbols"] = (
+        "true" if should_use_symbols else "false"
+    )
     return should_use_symbols
 
 
@@ -1287,7 +1289,7 @@ def upload_cloud_ddc():
     if uat_path is None:
         pbtools.error_state("Unable to determine location of Unreal Automation Tool.")
         return
-    
+
     credentials = str(Path("Build/credentials").resolve())
     access_logs = str(Path("Saved/AccessLogs").resolve())
     cache = Path("DerivedDataCache")
@@ -1389,7 +1391,7 @@ def build_game(configuration="Shipping"):
     if uat_path is None:
         pbtools.error_state("Unable to determine location of Unreal Automation Tool.")
         return
-    
+
     args = [
         str(uat_path),
         f"-ScriptsForProject={str(get_uproject_path())}",

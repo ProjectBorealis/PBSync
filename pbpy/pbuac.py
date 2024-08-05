@@ -27,6 +27,7 @@ import traceback
 
 from pbpy import pblog
 
+
 def isUserAdmin():
     """@return: True if the current user is an 'Admin' whatever that
     means (root on Unix), otherwise False.
@@ -35,9 +36,10 @@ def isUserAdmin():
     higher. The failure causes a traceback to be printed and this
     function to return False.
     """
-    
-    if os.name == 'nt':
+
+    if os.name == "nt":
         import ctypes
+
         # WARNING: requires Windows XP SP2 or higher!
         try:
             return ctypes.windll.shell32.IsUserAnAdmin()
@@ -48,6 +50,7 @@ def isUserAdmin():
     else:
         # Check for root on Posix
         return os.getuid() == 0
+
 
 def runAsAdmin(cmdLine=None, wait=True):
     """Attempt to relaunch the current script as an admin using the same
@@ -64,9 +67,9 @@ def runAsAdmin(cmdLine=None, wait=True):
     @WARNING: this function only works on Windows.
     """
 
-    if os.name != 'nt':
+    if os.name != "nt":
         raise RuntimeError("This function is only implemented on Windows.")
-    
+
     import win32con, win32event, win32process, pywintypes
     from win32com.shell.shell import ShellExecuteEx
     from win32com.shell import shellcon
@@ -75,11 +78,11 @@ def runAsAdmin(cmdLine=None, wait=True):
         raise ValueError("cmdLine is not a sequence.")
     cmd = '"%s"' % (cmdLine[0],)
     # XXX TODO: isn't there a function or something we can call to massage command line params?
-    params = " ".join(['%s' % (x,) for x in cmdLine[1:]])
+    params = " ".join(["%s" % (x,) for x in cmdLine[1:]])
     # cmdDir = ''
     showCmd = win32con.SW_SHOWNORMAL
-    lpVerb = 'runas'  # causes UAC elevation prompt.
-    
+    lpVerb = "runas"  # causes UAC elevation prompt.
+
     # print "Running", cmd, params
 
     # ShellExecute() doesn't seem to allow us to fetch the PID or handle
@@ -89,16 +92,18 @@ def runAsAdmin(cmdLine=None, wait=True):
     # procHandle = win32api.ShellExecute(0, lpVerb, cmd, params, cmdDir, showCmd)
 
     try:
-        procInfo = ShellExecuteEx(nShow=showCmd,
-                                  fMask=shellcon.SEE_MASK_NOCLOSEPROCESS,
-                                  lpVerb=lpVerb,
-                                  lpFile=cmd,
-                                  lpParameters=params)
+        procInfo = ShellExecuteEx(
+            nShow=showCmd,
+            fMask=shellcon.SEE_MASK_NOCLOSEPROCESS,
+            lpVerb=lpVerb,
+            lpFile=cmd,
+            lpParameters=params,
+        )
     except pywintypes.error:
         raise OSError
 
     if wait:
-        procHandle = procInfo['hProcess']
+        procHandle = procInfo["hProcess"]
         win32event.WaitForSingleObject(procHandle, win32event.INFINITE)
         rc = win32process.GetExitCodeProcess(procHandle)
     else:

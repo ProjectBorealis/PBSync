@@ -25,9 +25,9 @@ binary_package_name = "Binaries.zip"
 def get_token_var(git_url=None):
     hostname = urlparse(git_url if git_url else pbconfig.get("git_url")).hostname
 
-    if hostname == 'github.com':
+    if hostname == "github.com":
         return "GITHUB_TOKEN"
-    elif hostname == 'gitlab.com':
+    elif hostname == "gitlab.com":
         return "GITLAB_TOKEN"
     else:
         # Fall back to gitlab path as that's most likely
@@ -44,16 +44,18 @@ def get_token_env(repo=None):
         ret[get_token_var(repo)] = token
         return ret
     else:
-        pbtools.error_state(f"Credential retrieval failed. Please get help from {pbconfig.get('support_channel')}")
+        pbtools.error_state(
+            f"Credential retrieval failed. Please get help from {pbconfig.get('support_channel')}"
+        )
 
 
 @lru_cache()
 def get_cli_executable(git_url=None):
     hostname = urlparse(git_url if git_url else pbconfig.get("git_url")).hostname
 
-    if hostname == 'github.com':
+    if hostname == "github.com":
         return pbinfo.format_repo_folder(gh_executable_path)
-    elif hostname == 'gitlab.com':
+    elif hostname == "gitlab.com":
         return pbinfo.format_repo_folder(glab_executable_path)
     else:
         # Fall back to gitlab path as that's most likely
@@ -84,7 +86,9 @@ def download_release_file(version, pattern=None, directory=None, repo=None):
                 os.remove(path)
             except Exception as e:
                 pblog.exception(str(e))
-                pblog.error(f"Exception thrown while removing {path}. Please remove it manually.")
+                pblog.error(
+                    f"Exception thrown while removing {path}. Please remove it manually."
+                )
                 return -1
         return 0
 
@@ -119,19 +123,24 @@ def download_release_file(version, pattern=None, directory=None, repo=None):
         if proc.returncode == 0:
             pass
         elif pbtools.it_has_any(output, "release not found", "no assets"):
-            pblog.error(f"Release {version} not found. Please wait and try again later.")
+            pblog.error(
+                f"Release {version} not found. Please wait and try again later."
+            )
             return -1
         elif "The file exists" in output:
-            pblog.error(f"File {directory}/{pattern} was not able to be overwritten. Please remove it manually and run UpdateProject again.")
+            pblog.error(
+                f"File {directory}/{pattern} was not able to be overwritten. Please remove it manually and run UpdateProject again."
+            )
             return -1
         else:
-            pblog.error(f"Unknown error occurred while pulling release file {pattern} for release {version}")
+            pblog.error(
+                f"Unknown error occurred while pulling release file {pattern} for release {version}"
+            )
             pblog.error(f"Command output was: {output}")
             return 1
     except Exception as e:
         pblog.exception(str(e))
-        pblog.error(
-            f"Exception thrown while pulling release file {file} for {version}")
+        pblog.error(f"Exception thrown while pulling release file {file} for {version}")
         return 1
 
     return 0
@@ -168,30 +177,47 @@ def pull_binaries(version_number: str, pass_checksum=False):
                 os.remove(binary_package_name)
             except Exception as e:
                 pblog.exception(str(e))
-                pblog.error(f"Exception thrown while removing {binary_package_name}. Please remove it manually.")
+                pblog.error(
+                    f"Exception thrown while removing {binary_package_name}. Please remove it manually."
+                )
                 return -1
 
         creds = get_token_env()
 
         try:
-            proc = pbtools.run_with_combined_output([cli_exec_path, "release", "download", version_number, "-n" if "glab" in cli_exec_path else "-p", binary_package_name], env=creds)
+            proc = pbtools.run_with_combined_output(
+                [
+                    cli_exec_path,
+                    "release",
+                    "download",
+                    version_number,
+                    "-n" if "glab" in cli_exec_path else "-p",
+                    binary_package_name,
+                ],
+                env=creds,
+            )
             output = proc.stdout
             if proc.returncode == 0:
                 pass
             elif pbtools.it_has_any(output, "release not found", "no assets"):
-                pblog.error(f"Release {version_number} not found. Please wait and try again later.")
+                pblog.error(
+                    f"Release {version_number} not found. Please wait and try again later."
+                )
                 return -1
             elif "The file exists" in output:
-                pblog.error(f"File {binary_package_name} was not able to be overwritten. Please remove it manually and run UpdateProject again.")
+                pblog.error(
+                    f"File {binary_package_name} was not able to be overwritten. Please remove it manually and run UpdateProject again."
+                )
                 return -1
             else:
-                pblog.error(f"Unknown error occurred while pulling binaries for release {version_number}")
+                pblog.error(
+                    f"Unknown error occurred while pulling binaries for release {version_number}"
+                )
                 pblog.error(f"Command output was: {output}")
                 return 1
         except Exception as e:
             pblog.exception(str(e))
-            pblog.error(
-                f"Exception thrown while pulling binaries for {version_number}")
+            pblog.error(f"Exception thrown while pulling binaries for {version_number}")
             return 1
 
         if not pbtools.compare_hash_single(binary_package_name, checksum_json_path):
@@ -217,7 +243,9 @@ def pull_binaries(version_number: str, pass_checksum=False):
 
     except Exception as e:
         pblog.exception(str(e))
-        pblog.error(f"Exception thrown while extracting binary package for {version_number}")
+        pblog.error(
+            f"Exception thrown while extracting binary package for {version_number}"
+        )
         return 1
 
     return 0
@@ -230,29 +258,43 @@ def generate_release():
     if version is None:
         pbtools.error_state("Failed to get project version!")
     target_branch = pbconfig.get("expected_branch_names")[0]
-    proc = pbtools.run_with_combined_output([pbgit.get_git_executable(), "rev-parse", version, "--"])
+    proc = pbtools.run_with_combined_output(
+        [pbgit.get_git_executable(), "rev-parse", version, "--"]
+    )
     if proc.returncode == 0:
         pblog.error("Tag already exists. Not creating a release.")
-        pblog.info("Please use --autoversion {major,minor,patch} if you'd like to make a new version.")
+        pblog.info(
+            "Please use --autoversion {major,minor,patch} if you'd like to make a new version."
+        )
         return
-    proc =  pbtools.run_with_combined_output([pbgit.get_git_executable(), "tag", version])
+    proc = pbtools.run_with_combined_output(
+        [pbgit.get_git_executable(), "tag", version]
+    )
     pblog.info(proc.stdout)
-    proc =  pbtools.run_with_combined_output([pbgit.get_git_executable(), "push", "origin", version])
+    proc = pbtools.run_with_combined_output(
+        [pbgit.get_git_executable(), "push", "origin", version]
+    )
     pblog.info(proc.stdout)
     if not os.path.exists(pbinfo.format_repo_folder(chglog_executable_path)):
-        pbtools.error(f"git-chglog executable not found at {pbinfo.format_repo_folder(chglog_executable_path)}")
-    proc = pbtools.run_with_combined_output([
-        pbinfo.format_repo_folder(chglog_executable_path),
-        "-c", pbinfo.format_repo_folder(chglog_config_path),
-        "-o", release_file,
-        version
-    ])
+        pbtools.error(
+            f"git-chglog executable not found at {pbinfo.format_repo_folder(chglog_executable_path)}"
+        )
+    proc = pbtools.run_with_combined_output(
+        [
+            pbinfo.format_repo_folder(chglog_executable_path),
+            "-c",
+            pbinfo.format_repo_folder(chglog_config_path),
+            "-o",
+            release_file,
+            version,
+        ]
+    )
     if proc.returncode != 0:
         os.remove(release_file)
         pbtools.error_state(proc.stdout)
     else:
         pblog.info(proc.stdout)
-    
+
     if pbconfig.get("is_ci"):
         creds = None
     else:
@@ -263,15 +305,15 @@ def generate_release():
     cmds = [
         cli_exec_path,
         "release",
-        "create", version, binary_package_name,
-        "-F", release_file,
+        "create",
+        version,
+        binary_package_name,
+        "-F",
+        release_file,
     ]
 
     if cli_exec_path == pbinfo.format_repo_folder(gh_executable_path):
-        gh_cmds = [
-            "--target", target_branch,
-            "-t", version
-        ]
+        gh_cmds = ["--target", target_branch, "-t", version]
         cmds.extend(gh_cmds)
 
     proc = pbtools.run_with_combined_output(cmds, env=creds)

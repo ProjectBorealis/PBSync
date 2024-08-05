@@ -36,7 +36,7 @@ def handle_env_out(cmd, env_out):
         for env_var in env_out:
             if os.name == "posix":
                 cmd.extend(["&&", "echo", f"{env_var}=${env_var}"])
-            else:    
+            else:
                 cmd.extend(["&&", "set", env_var])
 
 
@@ -47,7 +47,7 @@ def parse_environment(stdout, env_out):
         # if not a valid line for environment echo, skip it
         if line.startswith("?") or line.startswith("Environment variable "):
             continue
-        k, _, v = line.partition('=')
+        k, _, v = line.partition("=")
         # v is empty if no partition (not a key=value) or no value set (key=)
         # must check to see if we actually requested this key
         # then, check if this was a set variable in posix
@@ -118,11 +118,22 @@ def run_stream(cmd, env=None, logfunc=None, cwd=None):
         startupinfo = subprocess.STARTUPINFO(dwFlags=subprocess.CREATE_NEW_CONSOLE)
 
     env = handle_env(env)
-    proc = subprocess.Popen(cmd, text=True, shell=True, bufsize=1, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env, cwd=cwd, startupinfo=startupinfo, encoding="utf8")
+    proc = subprocess.Popen(
+        cmd,
+        text=True,
+        shell=True,
+        bufsize=1,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        env=env,
+        cwd=cwd,
+        startupinfo=startupinfo,
+        encoding="utf8",
+    )
     returncode = None
     while True:
         try:
-            for line in iter(lambda: proc.stdout.readline(), ''):
+            for line in iter(lambda: proc.stdout.readline(), ""):
                 logfunc(line)
         except:
             continue
@@ -138,7 +149,9 @@ def run_with_stdin(cmd, input, env=None, env_out=None):
         cmd = " ".join(cmd) if isinstance(cmd, list) else cmd
 
     env = handle_env(env)
-    proc = subprocess.run(cmd, input=input, capture_output=True, text=True, shell=True, env=env)
+    proc = subprocess.run(
+        cmd, input=input, capture_output=True, text=True, shell=True, env=env
+    )
     parse_environment(proc.stdout, env_out)
     return proc
 
@@ -149,7 +162,14 @@ def run_with_combined_output(cmd, env=None, env_out=None):
         cmd = " ".join(cmd) if isinstance(cmd, list) else cmd
 
     env = handle_env(env)
-    proc = subprocess.run(cmd, text=True, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
+    proc = subprocess.run(
+        cmd,
+        text=True,
+        shell=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        env=env,
+    )
     parse_environment(proc.stdout, env_out)
     return proc
 
@@ -157,11 +177,26 @@ def run_with_combined_output(cmd, env=None, env_out=None):
 def run_non_blocking(*commands):
     if os.name == "nt":
         cmdline = " & ".join(commands)
-        subprocess.Popen(cmdline, shell=True, creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.Popen(
+            cmdline,
+            shell=True,
+            creationflags=subprocess.DETACHED_PROCESS
+            | subprocess.CREATE_NEW_PROCESS_GROUP,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
     elif os.name == "posix":
         forked_commands = [f"nohup {command}" for command in commands]
         cmdline = " || ".join(forked_commands)
-        subprocess.Popen(cmdline, shell=True, start_new_session=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.Popen(
+            cmdline,
+            shell=True,
+            start_new_session=True,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
 
 
 def run_non_blocking_ex(cmd, env=None):
@@ -171,9 +206,24 @@ def run_non_blocking_ex(cmd, env=None):
 
     env = handle_env(env)
     if os.name == "nt":
-        subprocess.Popen(cmd, shell=True, creationflags=subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.Popen(
+            cmd,
+            shell=True,
+            creationflags=subprocess.DETACHED_PROCESS
+            | subprocess.CREATE_NEW_PROCESS_GROUP,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
     elif os.name == "posix":
-        subprocess.Popen(cmd, shell=True, start_new_session=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        subprocess.Popen(
+            cmd,
+            shell=True,
+            start_new_session=True,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
 
 
 def get_combined_output(cmd, env=None, env_out=None):
@@ -195,12 +245,19 @@ def it_has_all(it, *args):
 def whereis(app):
     result = None
 
-    command = 'where'
+    command = "where"
     if os.name != "nt":
-        command = 'which'
+        command = "which"
 
     try:
-        result = subprocess.run(f"{command} {app}", text=True, shell=True, check=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT).stdout
+        result = subprocess.run(
+            f"{command} {app}",
+            text=True,
+            shell=True,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        ).stdout
     except CalledProcessError:
         pass
 
@@ -254,7 +311,7 @@ def compare_hash_all(hash_json_file_path, print_log=False, ignored_extension=".z
     for file_path in hash_dict:
         if file_path.endswith(ignored_extension):
             continue
-        
+
         current_hash = get_hash(file_path)
         if hash_dict[file_path] == current_hash:
             if print_log:
@@ -278,7 +335,7 @@ def make_json_from_dict(dictionary, json_file_path):
 
 def get_dict_from_json(json_file_path):
     try:
-        with open(json_file_path, 'rb') as json_file:
+        with open(json_file_path, "rb") as json_file:
             json_text = json_file.read()
             return json.loads(json_text)
     except Exception as e:
@@ -313,7 +370,7 @@ def check_error_state():
     # True: Error on last run, False: No errors
     if not os.path.exists(error_file):
         return False
-    
+
     try:
         with open(error_file) as error_state_file:
             error_code = error_state_file.readline(1)
@@ -345,11 +402,17 @@ def error_state(msg=None, fatal_error=False, hush=False, term=False):
         pblog.error(msg)
     if fatal_error:
         # Log status for more information during tech support
-        pblog.info(run_with_combined_output([pbgit.get_git_executable(), "status"]).stdout)
-        pblog.info(run_with_combined_output([pbgit.get_git_executable(), "reflog", "-10"]).stdout)
+        pblog.info(
+            run_with_combined_output([pbgit.get_git_executable(), "status"]).stdout
+        )
+        pblog.info(
+            run_with_combined_output(
+                [pbgit.get_git_executable(), "reflog", "-10"]
+            ).stdout
+        )
         # This is a fatal error, so do not let user run PBSync until issue is fixed
         if False:
-            with open(error_file, 'w') as error_state_file:
+            with open(error_file, "w") as error_state_file:
                 error_state_file.write("1")
     if not hush:
         pblog.info(f"Logs are saved in {pbconfig.get('log_file_path')}.")
@@ -374,20 +437,26 @@ def get_running_process(process_name):
 def chunks(lst, n):
     """Yield successive n-sized chunks from lst."""
     for i in range(0, len(lst), n):
-        yield lst[i:i + n]
+        yield lst[i : i + n]
 
 
 def wipe_workspace():
     current_branch = pbgit.get_current_branch_name()
-    response = input(f"This command will wipe your workspace and get latest changes from {current_branch}. Are you sure? [y/N] ")
+    response = input(
+        f"This command will wipe your workspace and get latest changes from {current_branch}. Are you sure? [y/N] "
+    )
 
     if len(response) < 1 or response[0].lower() != "y":
         return False
 
     pbgit.abort_all()
-    output = get_combined_output([pbgit.get_git_executable(), "fetch", "origin", current_branch])
+    output = get_combined_output(
+        [pbgit.get_git_executable(), "fetch", "origin", current_branch]
+    )
     pblog.info(output)
-    proc = run_with_combined_output([pbgit.get_git_executable(), "reset", "--hard", f"origin/{current_branch}"])
+    proc = run_with_combined_output(
+        [pbgit.get_git_executable(), "reset", "--hard", f"origin/{current_branch}"]
+    )
     result = proc.returncode
     pblog.info(proc.stdout)
     output = get_combined_output([pbgit.get_git_executable(), "clean", "-fd"])
@@ -400,16 +469,18 @@ def wipe_workspace():
 def maintain_repo():
     pblog.info("Starting repo maintenance...")
 
-    commands = [
-        f"{pbgit.get_lfs_executable()} prune -fc"
-    ]
+    commands = [f"{pbgit.get_lfs_executable()} prune -fc"]
 
     if os.name == "nt" and pbgit.get_git_executable() == "git":
-        proc = run_with_combined_output(["schtasks" "/query", "/TN", "Git for Windows Updater"])
+        proc = run_with_combined_output(
+            ["schtasks" "/query", "/TN", "Git for Windows Updater"]
+        )
         # if exists
         if proc.returncode == 0:
-            cmdline = ["schtasks", "/delete", "/F", "/TN", "\"Git for Windows Updater\""]
-            pblog.info("Requesting admin permission to delete the Git for Windows Updater...")
+            cmdline = ["schtasks", "/delete", "/F", "/TN", '"Git for Windows Updater"']
+            pblog.info(
+                "Requesting admin permission to delete the Git for Windows Updater..."
+            )
             if not pbuac.isUserAdmin():
                 time.sleep(1)
                 try:
@@ -419,15 +490,24 @@ def maintain_repo():
             else:
                 proc = run_with_combined_output(cmdline)
 
-    does_maintainence = get_one_line_output([pbgit.get_git_executable(), "config", "maintenance.prefetch.schedule"]) == "hourly"
+    does_maintainence = (
+        get_one_line_output(
+            [pbgit.get_git_executable(), "config", "maintenance.prefetch.schedule"]
+        )
+        == "hourly"
+    )
     if not does_maintainence:
         commands.insert(0, f"scalar register .")
 
     # fill in the git repo optionally
-    is_shallow = get_one_line_output([pbgit.get_git_executable(), "rev-parse", "--is-shallow-repository"])
+    is_shallow = get_one_line_output(
+        [pbgit.get_git_executable(), "rev-parse", "--is-shallow-repository"]
+    )
     # add in the front, so everything else can clean up after the fetch
     if is_shallow == "true":
-        pblog.info("Shallow clone detected. PBSync will fill in history in the background.")
+        pblog.info(
+            "Shallow clone detected. PBSync will fill in history in the background."
+        )
         commands.insert(0, f"{pbgit.get_git_executable()} fetch --unshallow")
     else:
         # repo was already fetched in UpdateProject for the current branch
@@ -449,9 +529,17 @@ def maintain_repo():
 
 lfs_fetch_thread = None
 
+
 def do_lfs_fetch(files):
     branch_name = pbgit.get_current_branch_name()
-    fetch = [pbgit.get_lfs_executable(), "fetch", "origin", f"origin/{branch_name}", "-I", ",".join(files)]
+    fetch = [
+        pbgit.get_lfs_executable(),
+        "fetch",
+        "origin",
+        f"origin/{branch_name}",
+        "-I",
+        ",".join(files),
+    ]
     run(fetch)
 
 
@@ -489,7 +577,9 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         time.sleep(0.25 * (1 << retry_count))
 
     def handle_success():
-        pblog.success("Success! You are now on the latest changes without any conflicts.")
+        pblog.success(
+            "Success! You are now on the latest changes without any conflicts."
+        )
 
     def handle_error(msg=None):
         error_state(msg, fatal_error=True)
@@ -505,7 +595,9 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
             success = True
         except OSError:
             if should_attempt_auto_resolve():
-                pblog.error("Git is currently being used by another process. Retrying...")
+                pblog.error(
+                    "Git is currently being used by another process. Retrying..."
+                )
                 retry_count += 1
                 resolve_conflicts_and_pull(retry_count, 2)
                 return
@@ -513,13 +605,19 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
             # just fall back to full error
             pass
         if not success:
-            handle_error(f"Git is currently being used by another process. Please try again later or request help in {pbconfig.get('support_channel')} to resolve it, and please do not run UpdateProject until the issue is resolved.")
+            handle_error(
+                f"Git is currently being used by another process. Please try again later or request help in {pbconfig.get('support_channel')} to resolve it, and please do not run UpdateProject until the issue is resolved."
+            )
 
-    out = get_combined_output([pbgit.get_git_executable(), "status", "--porcelain=2", "--branch"])
+    out = get_combined_output(
+        [pbgit.get_git_executable(), "status", "--porcelain=2", "--branch"]
+    )
 
     if not it_has_any(out, "-0"):
         pbunreal.ensure_ue_closed()
-        pblog.info("Please wait while getting the latest changes from the repository. It may take a while...")
+        pblog.info(
+            "Please wait while getting the latest changes from the repository. It may take a while..."
+        )
 
         if False:
             # reset plugin submodules
@@ -527,6 +625,7 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
                 shutil.rmtree("Plugins", ignore_errors=True)
 
         res_out = ""
+
         def res_log(log):
             nonlocal res_out
             log = log.rstrip()
@@ -538,7 +637,14 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         use_new_sync = False
         if use_new_sync:
             # Check what files we are going to change
-            diff_proc = run_with_combined_output([pbgit.get_git_executable(), "diff", "--name-only", f"HEAD...origin/{branch_name}"])
+            diff_proc = run_with_combined_output(
+                [
+                    pbgit.get_git_executable(),
+                    "diff",
+                    "--name-only",
+                    f"HEAD...origin/{branch_name}",
+                ]
+            )
             if diff_proc.returncode == 0:
                 changed_files = diff_proc.stdout.splitlines()
             else:
@@ -558,20 +664,43 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
                     pool.map(do_lfs_fetch, fetch_batched)
 
             # Get the latest files, but skip smudge so we can super charge a LFS pull as one batch
-            cmdline = [pbgit.get_git_executable(), "-c", "filter.lfs.smudge=", "-c", "filter.lfs.process=", "-c", "filter.lfs.required=false"]
+            cmdline = [
+                pbgit.get_git_executable(),
+                "-c",
+                "filter.lfs.smudge=",
+                "-c",
+                "filter.lfs.process=",
+                "-c",
+                "filter.lfs.required=false",
+            ]
             # if we can fast forward merge, do that instead of a rebase (faster, safer)
             if it_has_any(out, "+0"):
-                pblog.info("Fast forwarding workspace to the latest changes from the repository...")
+                pblog.info(
+                    "Fast forwarding workspace to the latest changes from the repository..."
+                )
                 cmdline.extend(["merge", "--ff-only"])
             else:
-                pblog.info("Rebasing workspace with the latest changes from the repository...")
+                pblog.info(
+                    "Rebasing workspace with the latest changes from the repository..."
+                )
                 cmdline.extend(["rebase", "--autostash"])
             cmdline.append(f"origin/{branch_name}")
             result = run_with_combined_output(cmdline)
 
             # update plugin submodules
-            if run_with_combined_output([pbgit.get_git_executable(), "ls-files", "--", "Plugins"]).stdout:
-                run_with_combined_output([pbgit.get_git_executable(), "submodule", "update", "--init", "--", "Plugins"])
+            if run_with_combined_output(
+                [pbgit.get_git_executable(), "ls-files", "--", "Plugins"]
+            ).stdout:
+                run_with_combined_output(
+                    [
+                        pbgit.get_git_executable(),
+                        "submodule",
+                        "update",
+                        "--init",
+                        "--",
+                        "Plugins",
+                    ]
+                )
             else:
                 shutil.rmtree("Plugins", ignore_errors=True)
 
@@ -584,7 +713,16 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
                 pass
 
             # Update index without FS monitor
-            run([pbgit.get_git_executable(), "config", "-f", ".gitconfig", "core.useBuiltinFSMonitor", "false"])
+            run(
+                [
+                    pbgit.get_git_executable(),
+                    "config",
+                    "-f",
+                    ".gitconfig",
+                    "core.useBuiltinFSMonitor",
+                    "false",
+                ]
+            )
 
             # split it out to multiprocess
             with multiprocessing.Pool(processes) as pool:
@@ -594,31 +732,61 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
 
             os.remove(".git/index.lock")
 
-            update_index = [pbgit.get_git_executable(), "update-index", "-q", "--refresh", "--unmerged", "--"]
+            update_index = [
+                pbgit.get_git_executable(),
+                "update-index",
+                "-q",
+                "--refresh",
+                "--unmerged",
+                "--",
+            ]
             update_index.extend(changed_files)
             run(update_index)
 
             # Revert back to using FS monitor
-            run([pbgit.get_git_executable(), "config", "-f", ".gitconfig", "core.useBuiltinFSMonitor", "true"])
+            run(
+                [
+                    pbgit.get_git_executable(),
+                    "config",
+                    "-f",
+                    ".gitconfig",
+                    "core.useBuiltinFSMonitor",
+                    "true",
+                ]
+            )
         else:
             # Get the latest files
             cmdline = [pbgit.get_git_executable()]
             # if we can fast forward merge, do that instead of a rebase (faster, safer)
             if it_has_any(out, "+0"):
-                pblog.info("Fast forwarding workspace to the latest changes from the repository...")
+                pblog.info(
+                    "Fast forwarding workspace to the latest changes from the repository..."
+                )
                 cmdline.extend(["merge", "--ff-only"])
             else:
-                pblog.info("Rebasing workspace with the latest changes from the repository...")
+                pblog.info(
+                    "Rebasing workspace with the latest changes from the repository..."
+                )
                 cmdline.extend(["rebase", "--autostash"])
             cmdline.append(f"origin/{branch_name}")
             result = run_stream(cmdline, logfunc=res_log)
 
             # update plugin submodules
-            if run_with_combined_output([pbgit.get_git_executable(), "ls-files", "--", "Plugins"]).stdout:
-                run_stream([pbgit.get_git_executable(), "submodule", "update", "--init", "--", "Plugins"])
+            if run_with_combined_output(
+                [pbgit.get_git_executable(), "ls-files", "--", "Plugins"]
+            ).stdout:
+                run_stream(
+                    [
+                        pbgit.get_git_executable(),
+                        "submodule",
+                        "update",
+                        "--init",
+                        "--",
+                        "Plugins",
+                    ]
+                )
             else:
                 shutil.rmtree("Plugins", ignore_errors=True)
-
 
         # see if the update was successful
         code = result.returncode
@@ -635,10 +803,18 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
         handle_success()
     elif "successfully rebased and updated" in out:
         handle_success()
-    elif it_has_any(out, "failed to merge in the changes", "could not apply", "overwritten by merge"):
-        handle_error(f"Aborting the pull. Changes on one of your commits will be overridden by incoming changes. Please request help in {pbconfig.get('support_channel')} to resolve conflicts, and please do not run UpdateProject until the issue is resolved.")
-    elif it_has_any(out, "unmerged files", "merge_head exists", "middle of", "mark resolution"):
-        handle_error(f"You are in the middle of a merge. Please request help in {pbconfig.get('support_channel')} to resolve it, and please do not run UpdateProject until the issue is resolved.")
+    elif it_has_any(
+        out, "failed to merge in the changes", "could not apply", "overwritten by merge"
+    ):
+        handle_error(
+            f"Aborting the pull. Changes on one of your commits will be overridden by incoming changes. Please request help in {pbconfig.get('support_channel')} to resolve conflicts, and please do not run UpdateProject until the issue is resolved."
+        )
+    elif it_has_any(
+        out, "unmerged files", "merge_head exists", "middle of", "mark resolution"
+    ):
+        handle_error(
+            f"You are in the middle of a merge. Please request help in {pbconfig.get('support_channel')} to resolve it, and please do not run UpdateProject until the issue is resolved."
+        )
     elif "unborn" in out:
         if should_attempt_auto_resolve():
             pblog.error("Unborn branch detected. Retrying...")
@@ -646,7 +822,9 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
             resolve_conflicts_and_pull(retry_count)
             return
         else:
-            handle_error(f"You are on an unborn branch. Please request help in {pbconfig.get('support_channel')} to resolve it, and please do not run UpdateProject until the issue is resolved.")
+            handle_error(
+                f"You are on an unborn branch. Please request help in {pbconfig.get('support_channel')} to resolve it, and please do not run UpdateProject until the issue is resolved."
+            )
     elif it_has_any(out, "no remote", "no such remote", "refspecs without repo"):
         if should_attempt_auto_resolve():
             pblog.error("Remote repository not found. Retrying...")
@@ -654,7 +832,9 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
             resolve_conflicts_and_pull(retry_count, 2)
             return
         else:
-            handle_error(f"The remote repository could not be found. Please request help in {pbconfig.get('support_channel')} to resolve it, and please do not run UpdateProject until the issue is resolved.")
+            handle_error(
+                f"The remote repository could not be found. Please request help in {pbconfig.get('support_channel')} to resolve it, and please do not run UpdateProject until the issue is resolved."
+            )
     elif "cannot open" in out:
         if should_attempt_auto_resolve():
             pblog.error("Git file info could not be read. Retrying...")
@@ -662,19 +842,30 @@ def resolve_conflicts_and_pull(retry_count=0, max_retries=1):
             resolve_conflicts_and_pull(retry_count, 3)
             return
         else:
-            handle_error(f"Git file info could not be read. Please request help in {pbconfig.get('support_channel')} to resolve it, and please do not run UpdateProject until the issue is resolved.")
-    elif "The following untracked working tree files would be overwritten by reset" in out:
+            handle_error(
+                f"Git file info could not be read. Please request help in {pbconfig.get('support_channel')} to resolve it, and please do not run UpdateProject until the issue is resolved."
+            )
+    elif (
+        "The following untracked working tree files would be overwritten by reset"
+        in out
+    ):
         if should_attempt_auto_resolve():
             pblog.error("Untracked files would be overwritten. Retrying...")
             files = [l.strip() for l in out.splitlines()[1:]]
-            run_with_combined_output([pbgit.get_git_executable(), "add", "-A", "--", *files])
+            run_with_combined_output(
+                [pbgit.get_git_executable(), "add", "-A", "--", *files]
+            )
             retry_count += 1
             resolve_conflicts_and_pull(retry_count, 1)
             return
         else:
-            handle_error(f"Untracked files would be overwritten. Please request help in {pbconfig.get('support_channel')} to resolve it, and please do not run UpdateProject until the issue is resolved.")
+            handle_error(
+                f"Untracked files would be overwritten. Please request help in {pbconfig.get('support_channel')} to resolve it, and please do not run UpdateProject until the issue is resolved."
+            )
     else:
         # We have no idea what the state of the repo is. Do nothing except bail.
-        handle_error(f"Aborting the repo update because of an unknown error. Request help in {pbconfig.get('support_channel')} to resolve it, and please do not run UpdateProject until the issue is resolved.")
+        handle_error(
+            f"Aborting the repo update because of an unknown error. Request help in {pbconfig.get('support_channel')} to resolve it, and please do not run UpdateProject until the issue is resolved."
+        )
 
     maintain_repo()
