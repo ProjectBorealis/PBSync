@@ -5,33 +5,32 @@ name: Python Build
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build:
-
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v3
-      with:
-        submodules: recursive
-    - name: Set up Python 3.11
-      uses: actions/setup-python@v4
-      with:
-        python-version: 3.11
-    - name: Dependencies
-      run: |
-        .\dependencies.bat
-    - name: Install PyInstaller
-      run: |
-        .\install_pyinstaller.bat
-    - name: Build
-      run: |
-        .\build.bat
-    - uses: actions/upload-artifact@v3
-      with:
-        name: PBSync.windows
-        path: dist/PBSync.exe
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.12
+      - name: Dependencies
+        run: |
+          .\dependencies.bat
+      - name: Install PyInstaller
+        run: |
+          .\install_pyinstaller.bat
+      - name: Build
+        run: |
+          .\build.bat
+      - uses: actions/upload-artifact@v3
+        with:
+          name: PBSync.windows
+          path: dist/PBSync.exe
