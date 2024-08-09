@@ -885,7 +885,7 @@ def main(argv):
             "steamcmd_script": ("steamcmd/script", None, "", True),
             "steamdrm_appid": ("steamcmd/drm/appid", None, "", True),
             "steamdrm_targetbinary": ("steamcmd/drm/targetbinary", None, "", True),
-            "steamdrm_useonprem": ("steamcmd/drm/useonprem", None, True, True),
+            "steamdrm_useonprem": ("steamcmd/drm/useonprem", None, False, True),
             "resharper_version": ("resharper/version", None, "", True),
             "engine_prefix": ("versionator/engineprefix", None, "", True),
             "engine_type": ("versionator/enginetype", None, None, True),
