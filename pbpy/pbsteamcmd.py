@@ -1,7 +1,78 @@
+import os
+import re
 import shutil
+import traceback
+import urllib.request
 from pathlib import Path
 
+from steam.client import SteamClient
+
 from pbpy import pbconfig, pblog, pbtools
+
+drm_upload_regex = re.compile(
+    r"https:\/\/partnerupload\.steampowered\.com\/upload\/(\d+)"
+)
+
+
+class SteamWorker:
+    def __init__(self):
+        self.logged_on_once = False
+
+        self.steam = worker = SteamClient()
+        worker.set_credential_location("./Saved/SteamCreds")
+
+        @worker.on("error")
+        def handle_error(result):
+            print("Logon result:", traceback.format_exc())
+
+        @worker.on("connected")
+        def handle_connected():
+            print("Connected to", worker.current_server_addr)
+
+        @worker.on("channel_secured")
+        def send_login():
+            if self.logged_on_once and self.steam.relogin_available:
+                self.steam.relogin()
+
+        @worker.on("logged_on")
+        def handle_after_logon():
+            self.logged_on_once = True
+
+            print("⎯" * 30)
+            print("Logged on as:", worker.user.name)
+            print("Community profile:", worker.steam_id.community_url)
+            print("Last logon:", worker.user.last_logon)
+            print("Last logoff:", worker.user.last_logoff)
+            print("⎯" * 30)
+
+        @worker.on("disconnected")
+        def handle_disconnect():
+            print("Disconnected.")
+
+            if self.logged_on_once:
+                print("Reconnecting...")
+                worker.reconnect(maxdelay=30)
+
+        @worker.on("reconnect")
+        def handle_reconnect(delay):
+            print(
+                f"Reconnect in {delay}...",
+            )
+
+    def login(self, username, password, no_2fa):
+        two_factor_code = None if no_2fa else input("Enter 2FA code: ")
+        if two_factor_code or os.path.exists(self.steam._get_sentry_path(username)):
+            self.steam.login(username, password, two_factor_code=two_factor_code)
+        else:
+            self.steam.cli_login(username, password)
+
+    def close(self):
+        if self.steam.logged_on:
+            self.logged_on_once = False
+            print("Logout")
+            self.steam.logout()
+        if self.steam.connected:
+            self.steam.disconnect()
 
 
 def publish_build(
@@ -26,14 +97,43 @@ def publish_build(
         pbconfig.get_user("steamcmd", "password"),
     ]
 
+    drm_active = False
+    drm_id = None
+    drm_download_failed = False
+
     def steam_log(log):
+        nonlocal drm_id
+        nonlocal drm_download_failed
         log = log.rstrip()
         if not log:
             return
+        if drm_active:
+            if log.startswith("Uploading") and "partnerupload" in log:
+                search = drm_upload_regex.search(log)
+                drm_id = search.group(1)
+            if log == "DRM wrap failed with EResult 3 (No Connection)":
+                drm_download_failed = True
         pblog.info("[steamcmd] " + log)
 
     # if drm wrapping is configured
     nondrm_bytes = None
+
+    result = 0
+
+    def push_app():
+        nonlocal result
+        script_path = (Path() / app_script.format(branch_type)).resolve()
+        build_cmd = base_steamcmd_command.copy()
+        build_cmd.extend(["+run_app_build", script_path, "+quit"])
+        proc = pbtools.run_stream(build_cmd, logfunc=steam_log)
+        result = proc.returncode
+
+        if drm_exe_path and drm_exe_path.is_file():
+            # remove drm wrapped file and write the original file, so that a subsequent build will re-build a non-wrapped executable
+            pbtools.remove_file(drm_exe_path)
+            with open(drm_exe_path, "wb") as orig_file:
+                orig_file.write(nondrm_bytes)
+
     if drm_app_id and drm_exe_path:
         drm_exe_path = Path(drm_exe_path)
         if not drm_exe_path.is_absolute():
@@ -61,36 +161,61 @@ def publish_build(
             ]
         )  # the drm wrap command https://partner.steamgames.com/doc/features/drm
         pblog.info("Wrapping game with Steamworks DRM...")
+        drm_active = True
         drm_proc = pbtools.run_stream(drm_command, logfunc=steam_log)
-        if drm_proc.returncode != 0:
-            if drm_output.exists():
-                pbtools.remove_file(str(drm_output))
-            pbtools.error_state(
-                f"DRM wrapping failed: exit code {drm_proc.returncode}",
-                hush=True,
-                term=True,
-            )
-            return False
+        drm_active = False
 
-        with open(drm_exe_path, "wb") as orig_file:
-            nondrm_bytes = orig_file.read()
-        pbtools.remove_file(str(drm_exe_path))  # remove original file on success
-        shutil.move(
-            str(drm_output), str(drm_exe_path)
-        )  # move drm-wrapped file to location of original
+        def handle_drm_file():
+            nonlocal nondrm_bytes
+            with open(drm_exe_path, "wb") as orig_file:
+                nondrm_bytes = orig_file.read()
+            pbtools.remove_file(str(drm_exe_path))  # remove original file on success
+            shutil.move(
+                str(drm_output), str(drm_exe_path)
+            )  # move drm-wrapped file to location of original
+            push_app()
+
+        if drm_proc.returncode != 0:
+            if drm_download_failed and drm_id:
+                steamclient = SteamWorker()
+                steamclient.login(
+                    pbconfig.get_user("steamcmd", "username"),
+                    pbconfig.get_user("steamcmd", "password"),
+                    True,
+                )
+
+                def wait_for_drm_download():
+                    resp = steamclient.steam.send_um_and_wait(
+                        "PartnerApps.Download#1",
+                        {"file_id": drm_id, "app_id": drm_app_id},
+                    )
+                    print(dir(resp))
+                    url = resp.body.download_url
+                    print(url)
+                    with urllib.request.urlopen(url) as response, open(
+                        str(drm_output), "wb"
+                    ) as out_file:
+                        shutil.copyfileobj(response, out_file)
+                    steamclient.close()
+                    pass
+
+                if steamclient.logged_on_once:
+                    wait_for_drm_download()
+                else:
+                    steamclient.steam.once("logged_on", wait_for_drm_download)
+            else:
+                if drm_output.exists():
+                    pbtools.remove_file(str(drm_output))
+                pbtools.error_state(
+                    f"DRM wrapping failed: exit code {drm_proc.returncode}",
+                    hush=True,
+                    term=True,
+                )
+                return False
+        else:
+            handle_drm_file()
     else:
         drm_exe_path = None
-
-    script_path = (Path() / app_script.format(branch_type)).resolve()
-    build_cmd = base_steamcmd_command.copy()
-    build_cmd.extend(["+run_app_build", script_path, "+quit"])
-    proc = pbtools.run_stream(build_cmd, logfunc=steam_log)
-    result = proc.returncode
-
-    if drm_exe_path and drm_exe_path.is_file():
-        # remove drm wrapped file and write the original file, so that a subsequent build will re-build a non-wrapped executable
-        pbtools.remove_file(drm_exe_path)
-        with open(drm_exe_path, "wb") as orig_file:
-            orig_file.write(nondrm_bytes)
+        push_app()
 
     return result
