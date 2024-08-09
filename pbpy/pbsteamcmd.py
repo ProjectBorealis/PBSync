@@ -1,10 +1,12 @@
 import os
 import re
 import shutil
+import time
 import traceback
 import urllib.request
 from pathlib import Path
 
+import steam.protobufs.steammessages_partnerapps_pb2  # don't remove
 from steam.client import SteamClient
 
 from pbpy import pbconfig, pblog, pbtools
@@ -19,7 +21,9 @@ class SteamWorker:
         self.logged_on_once = False
 
         self.steam = worker = SteamClient()
-        worker.set_credential_location("./Saved/SteamCreds")
+        worker.set_credential_location(
+            str((Path(pbconfig.config_filepath).parent / "Saved").resolve())
+        )
 
         @worker.on("error")
         def handle_error(result):
@@ -167,7 +171,7 @@ def publish_build(
 
         def handle_drm_file():
             nonlocal nondrm_bytes
-            with open(drm_exe_path, "wb") as orig_file:
+            with open(drm_exe_path, "rb") as orig_file:
                 nondrm_bytes = orig_file.read()
             pbtools.remove_file(str(drm_exe_path))  # remove original file on success
             shutil.move(
@@ -185,25 +189,40 @@ def publish_build(
                 )
 
                 def wait_for_drm_download():
+                    time.sleep(1)
                     resp = steamclient.steam.send_um_and_wait(
                         "PartnerApps.Download#1",
-                        {"file_id": drm_id, "app_id": drm_app_id},
+                        {
+                            "file_id": f"/{drm_app_id}/{drm_id}/{drm_exe_path.name}_{drm_id}",
+                            "app_id": int(drm_app_id),
+                        },
                     )
-                    print(dir(resp))
                     url = resp.body.download_url
-                    print(url)
-                    with urllib.request.urlopen(url) as response, open(
-                        str(drm_output), "wb"
-                    ) as out_file:
-                        shutil.copyfileobj(response, out_file)
+                    if url:
+                        with urllib.request.urlopen(url) as response, open(
+                            str(drm_output), "wb"
+                        ) as out_file:
+                            shutil.copyfileobj(response, out_file)
                     steamclient.close()
-                    pass
 
                 if steamclient.logged_on_once:
                     wait_for_drm_download()
                 else:
                     steamclient.steam.once("logged_on", wait_for_drm_download)
-            else:
+            if not drm_output.exists() and drm_download_failed:
+                input(
+                    f"DRM download failed, download the file from https://partner.steamgames.com/apps/drm/{drm_app_id} and place it at {drm_output}, then press enter"
+                )
+            handled_drm = False
+            if drm_output.exists():
+                handle_drm_file()
+                handled_drm = True
+            if (
+                drm_proc.returncode != 0
+                and not drm_download_failed
+                or drm_download_failed
+                and not handled_drm
+            ):
                 if drm_output.exists():
                     pbtools.remove_file(str(drm_output))
                 pbtools.error_state(

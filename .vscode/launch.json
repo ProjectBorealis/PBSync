@@ -170,12 +170,13 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "Publish Dispatch Build",
-            "args": ["--publish", "${input:publishSelection}", "--dispatch", "${input:dispatchPath}", "--debugpath", "${input:debugPath}"],
+            "name": "Publish",
+            "args": ["--publish", "--debugpath", "${input:debugPath}"],
             "type": "python",
             "request": "launch",
             "module": "pbsync",
-            "console": "integratedTerminal"
+            "console": "integratedTerminal",
+            "justMyCode": false
         },
         {
             "name": "Migrate Assets",
