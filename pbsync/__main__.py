@@ -666,6 +666,7 @@ def sync_handler(sync_val: str, repository_val=None):
 build_hooks = {
     "sln": pbunreal.generate_project_files,
     "source": pbunreal.build_source,
+    "local": partial(pbunreal.build_source, False),
     "debuggame": partial(pbunreal.build_game, "DebugGame"),
     "development": partial(pbunreal.build_game, "Development"),
     "internal": partial(pbunreal.build_game, "Test"),
