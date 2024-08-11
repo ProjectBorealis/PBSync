@@ -1,3 +1,7 @@
+from gevent import monkey
+
+monkey.patch_all()
+
 import argparse
 import multiprocessing
 import os

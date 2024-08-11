@@ -6,6 +6,7 @@ import traceback
 import urllib.request
 from pathlib import Path
 
+import gevent
 import steam.protobufs.steammessages_partnerapps_pb2  # don't remove
 from steam.client import SteamClient
 
@@ -181,29 +182,6 @@ def publish_build(
 
         if drm_proc.returncode != 0:
 
-            def finish_handling_drm_fail():
-                if not drm_output.exists() and drm_download_failed:
-                    input(
-                        f"DRM download failed, download the file from https://partner.steamgames.com/apps/drm/{drm_app_id} and place it at {drm_output}, then press enter"
-                    )
-                handled_drm = False
-                if drm_output.exists():
-                    handle_drm_file()
-                    handled_drm = True
-                if (
-                    drm_proc.returncode != 0
-                    and not drm_download_failed
-                    or drm_download_failed
-                    and not handled_drm
-                ):
-                    if drm_output.exists():
-                        pbtools.remove_file(str(drm_output))
-                    pbtools.error_state(
-                        f"DRM wrapping failed: exit code {drm_proc.returncode}",
-                        hush=True,
-                        term=True,
-                    )
-
             if drm_download_failed and drm_id:
                 steamclient = SteamWorker()
                 steamclient.login(
@@ -212,30 +190,47 @@ def publish_build(
                     True,
                 )
 
-                def wait_for_drm_download():
-                    time.sleep(5)
-                    resp = steamclient.steam.send_um_and_wait(
-                        "PartnerApps.Download#1",
-                        {
-                            "file_id": f"/{drm_app_id}/{drm_id}/{drm_exe_path.name}_{drm_id}",
-                            "app_id": int(drm_app_id),
-                        },
-                    )
-                    url = resp.body.download_url
-                    if url:
-                        with urllib.request.urlopen(url) as response, open(
-                            str(drm_output), "wb"
-                        ) as out_file:
-                            shutil.copyfileobj(response, out_file)
-                    steamclient.close()
-                    finish_handling_drm_fail()
+                while not steamclient.logged_on_once:
+                    # TODO: doesn't work, "this operation would block forever"
+                    # steamclient.steam.wait_event("logged_on")
+                    gevent.sleep(1)
 
-                if steamclient.logged_on_once:
-                    wait_for_drm_download()
-                else:
-                    steamclient.steam.once("logged_on", wait_for_drm_download)
-            else:
-                finish_handling_drm_fail()
+                resp = steamclient.steam.send_um_and_wait(
+                    "PartnerApps.Download#1",
+                    {
+                        "file_id": f"/{drm_app_id}/{drm_id}/{drm_exe_path.name}_{drm_id}",
+                        "app_id": int(drm_app_id),
+                    },
+                )
+                url = resp.body.download_url
+                if url:
+                    with urllib.request.urlopen(url) as response, open(
+                        str(drm_output), "wb"
+                    ) as out_file:
+                        shutil.copyfileobj(response, out_file)
+                steamclient.close()
+
+            if not drm_output.exists() and drm_download_failed:
+                input(
+                    f"DRM download failed, download the file from https://partner.steamgames.com/apps/drm/{drm_app_id} and place it at {drm_output}, then press enter"
+                )
+            handled_drm = False
+            if drm_output.exists():
+                handle_drm_file()
+                handled_drm = True
+            if (
+                drm_proc.returncode != 0
+                and not drm_download_failed
+                or drm_download_failed
+                and not handled_drm
+            ):
+                if drm_output.exists():
+                    pbtools.remove_file(str(drm_output))
+                pbtools.error_state(
+                    f"DRM wrapping failed: exit code {drm_proc.returncode}",
+                    hush=True,
+                    term=True,
+                )
         else:
             handle_drm_file()
     else:

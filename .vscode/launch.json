@@ -1,5 +1,5 @@
 {
-    "version": "0.2.0",
+    "version": "0.7.0",
     "inputs": [
         {
             "id": "debugPath",
@@ -176,7 +176,10 @@
             "request": "launch",
             "module": "pbsync",
             "console": "integratedTerminal",
-            "justMyCode": false
+            "justMyCode": false,
+            "env": {
+                "GEVENT_SUPPORT": "True"
+            },
         },
         {
             "name": "Migrate Assets",
