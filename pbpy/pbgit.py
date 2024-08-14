@@ -159,7 +159,13 @@ def get_locked(key="ours", include_new=True):
     # also check untracked and added files
     if key == "ours" and include_new:
         proc = pbtools.run_with_combined_output(
-            [get_git_executable(), "status", "--porcelain", "-uall"]
+            [
+                get_git_executable(),
+                "--no-optional-locks",
+                "status",
+                "--porcelain",
+                "-uall",
+            ]
         )
         if not proc.returncode:
             for line in proc.stdout.splitlines():
@@ -394,7 +400,9 @@ def get_credentials(repo_str=None):
 
 
 def get_modified_files(paths=True):
-    proc = pbtools.run_with_output([get_git_executable(), "status", "--porcelain"])
+    proc = pbtools.run_with_output(
+        [get_git_executable(), "--no-optional-locks", "status", "--porcelain"]
+    )
     if paths:
         return {Path(line[3:]) for line in proc.stdout.splitlines()}
     return {line[3:] for line in proc.stdout.splitlines()}

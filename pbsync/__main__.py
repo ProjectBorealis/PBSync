@@ -517,15 +517,6 @@ def sync_handler(sync_val: str, repository_val=None):
         symbols_needed = pbunreal.is_versionator_symbols_enabled()
         pbunreal.clean_binaries_folder(not symbols_needed)
 
-        configured_branches = pbconfig.get("branches")
-        should_unlock_unmodified = (
-            pbgit.get_current_branch_name() in configured_branches
-        )
-        fix_attr_thread = threading.Thread(
-            target=pbgit.fix_lfs_ro_attr, args=(should_unlock_unmodified,)
-        )
-        fix_attr_thread.start()
-
         pblog.info("------------------")
 
         pblog.info("Checking for engine updates...")
@@ -534,6 +525,15 @@ def sync_handler(sync_val: str, repository_val=None):
             error_state(
                 f"Something went wrong while updating the uproject file. Please request help in {pbconfig.get('support_channel')}."
             )
+
+        configured_branches = pbconfig.get("branches")
+        should_unlock_unmodified = (
+            pbgit.get_current_branch_name() in configured_branches
+        )
+        fix_attr_thread = threading.Thread(
+            target=pbgit.fix_lfs_ro_attr, args=(should_unlock_unmodified,)
+        )
+        fix_attr_thread.start()
 
         engine_version = pbunreal.get_engine_version_with_prefix()
         if engine_version is not None:
