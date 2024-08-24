@@ -302,6 +302,9 @@ def check_remote_connection():
         [get_git_executable(), "remote", "get-url", "origin"]
     )
     recent_url = pbconfig.get("git_url")
+    git_user = pbconfig.get_user("project", "git_user")
+    if git_user:
+        recent_url.replace("https://", f"https://{git_user}@")
 
     if current_url != recent_url:
         output = pbtools.get_combined_output(
