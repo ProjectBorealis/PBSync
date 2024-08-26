@@ -1164,7 +1164,6 @@ def build_game(configuration="Shipping"):
         "-prereqs",
         "-iterate",
         "-iterativecooking",
-        "-SkipCookingEditorContent",
         "-distribution",
         "-manifests",
         "-package",
