@@ -855,6 +855,7 @@ def download_engine(bundle_name=None, download_symbols=False):
                 str(base_path),
                 "--cache-path",
                 f"Saved/longtail/cache/{bundle_name}",
+                "--no-cache-target-index",
                 "--validate",
                 "--enable-file-mapping",
             ],
