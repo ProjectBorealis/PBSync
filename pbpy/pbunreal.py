@@ -845,23 +845,49 @@ def download_engine(bundle_name=None, download_symbols=False):
         # TODO: maybe cache out Saved and Intermediate folders?
         # current legacy archive behavior obviously doesn't keep them for new installs, but we could now
         # have to copy them out and then copy them back in
-        proc = pbtools.run_stream(
-            [
-                pbinfo.format_repo_folder(longtail_path),
-                "get",
-                "--source-path",
-                f"{gcs_bucket}lt/{bundle_name}/{version}.json",
-                "--target-path",
-                str(base_path),
-                "--cache-path",
-                f"Saved/longtail/cache/{bundle_name}",
-                "--no-cache-target-index",
-                "--validate",
-                "--enable-file-mapping",
-            ],
-            env={"GOOGLE_APPLICATION_CREDENTIALS": "Build/credentials.json"},
-            logfunc=pbtools.progress_stream_log,
-        )
+
+        # query build version so we can bump it up
+        build_version_path = base_path / "Engine" / "Build" / "Build.version"
+
+        with open(build_version_path) as f:
+            build_version = json.load(f)
+
+        if get_engine_version_with_prefix() == build_version["BranchName"]:
+            # fast version
+            proc = pbtools.run_stream(
+                [
+                    pbinfo.format_repo_folder(longtail_path),
+                    "get",
+                    "--source-path",
+                    f"{gcs_bucket}lt/{bundle_name}/{version}.json",
+                    "--target-path",
+                    str(base_path),
+                    "--cache-path",
+                    f"Saved/longtail/cache/{bundle_name}",
+                    "--enable-file-mapping",
+                ],
+                env={"GOOGLE_APPLICATION_CREDENTIALS": "Build/credentials.json"},
+                logfunc=pbtools.progress_stream_log,
+            )
+        else:
+            # verify a new install
+            proc = pbtools.run_stream(
+                [
+                    pbinfo.format_repo_folder(longtail_path),
+                    "get",
+                    "--source-path",
+                    f"{gcs_bucket}lt/{bundle_name}/{version}.json",
+                    "--target-path",
+                    str(base_path),
+                    "--cache-path",
+                    f"Saved/longtail/cache/{bundle_name}",
+                    "--no-cache-target-index",
+                    "--validate",
+                    "--enable-file-mapping",
+                ],
+                env={"GOOGLE_APPLICATION_CREDENTIALS": "Build/credentials.json"},
+                logfunc=pbtools.progress_stream_log,
+            )
         # print out a newline
         print("")
         if proc.returncode:
