@@ -212,6 +212,11 @@ def fix_lfs_ro_attr(should_unlock_unmodified):
                 pblog.warning(message)
 
 
+def chunks(lst, n):
+    for i in range(0, len(lst), n):
+        yield lst[i : i + n]
+
+
 def unlock_unmodified():
     modified = get_modified_files(paths=False)
     pending = pbtools.get_combined_output(
@@ -239,9 +244,13 @@ def unlock_unmodified():
     unlock = list(unlock)
     if not unlock:
         return True
-    args = [get_lfs_executable(), "unlock"]
-    args.extend(unlock)
-    return pbtools.run(args).returncode == 0
+    for chunk in chunks(unlock, 50):
+        args = [get_lfs_executable(), "unlock"]
+        args.extend(chunk)
+        proc = pbtools.run(args)
+        if proc.returncode:
+            return False
+    return True
 
 
 @lru_cache()
