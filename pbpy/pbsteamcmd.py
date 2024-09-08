@@ -148,6 +148,8 @@ def publish_build(
         if not drm_exe_path.is_file():
             pblog.error("steamcmd/drm/targetbinary does not exist.")
             return False
+        with open(drm_exe_path.parent / "steam_appid.txt", "w") as appid_file:
+            appid_file.write(drm_app_id)
         drm_command = base_steamcmd_command.copy()
         drm_output = (
             Path(pbconfig.config_filepath).parent
