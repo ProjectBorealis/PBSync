@@ -852,7 +852,12 @@ def download_engine(bundle_name=None, download_symbols=False):
         with open(build_version_path) as f:
             build_version = json.load(f)
 
-        if get_engine_version_with_prefix() == build_version["BranchName"]:
+        branch_version = build_version["BranchName"]
+        pblog.info(
+            f"Comparing target engine version {get_engine_version_with_prefix()} with local engine version {branch_version}"
+        )
+
+        if get_engine_version_with_prefix() == branch_version:
             # fast version
             proc = pbtools.run_stream(
                 [
@@ -1187,8 +1192,6 @@ def build_game(configuration="Shipping"):
         "-stage",
         "-pak",
         "-iostore",
-        "-encryptinifiles",
-        "-makebinaryconfig",
         "-compressed",
         "-prereqs",
         "-iterate",
