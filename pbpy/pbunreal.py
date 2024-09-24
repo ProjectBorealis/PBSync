@@ -1193,7 +1193,6 @@ def build_game(configuration="Shipping"):
         "-pak",
         "-iostore",
         "-compressed",
-        "-prereqs",
         "-iterate",
         "-iterativecooking",
         "-distribution",
