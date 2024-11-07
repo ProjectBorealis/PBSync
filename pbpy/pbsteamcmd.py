@@ -10,7 +10,7 @@ import gevent
 import steam.protobufs.steammessages_partnerapps_pb2  # don't remove
 from steam.client import SteamClient
 
-from pbpy import pbconfig, pblog, pbtools
+from pbpy import pbconfig, pbinfo, pblog, pbtools
 
 drm_upload_regex = re.compile(
     r"https:\/\/partnerupload\.steampowered\.com\/upload\/(\d+)"
@@ -148,8 +148,14 @@ def publish_build(
         if not drm_exe_path.is_file():
             pblog.error("steamcmd/drm/targetbinary does not exist.")
             return False
-        with open(drm_exe_path.parent / "steam_appid.txt", "w") as appid_file:
-            appid_file.write(drm_app_id)
+        thirdparty_path = Path(pbinfo.format_repo_folder("/thirdpartylegalnotices.txt"))
+        thirdparty_dst = publish_stagedir
+        if thirdparty_path.exists():
+            for dst in thirdparty_dst.glob("*/"):
+                shutil.copy(thirdparty_path, dst)
+        if False:
+            with open(drm_exe_path.parent / "steam_appid.txt", "w") as appid_file:
+                appid_file.write(drm_app_id)
         drm_command = base_steamcmd_command.copy()
         drm_output = (
             Path(pbconfig.config_filepath).parent
