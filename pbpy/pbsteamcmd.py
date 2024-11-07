@@ -149,7 +149,7 @@ def publish_build(
             pblog.error("steamcmd/drm/targetbinary does not exist.")
             return False
         thirdparty_path = Path(pbinfo.format_repo_folder("/thirdpartylegalnotices.txt"))
-        thirdparty_dst = publish_stagedir
+        thirdparty_dst = Path(publish_stagedir)
         if thirdparty_path.exists():
             for dst in thirdparty_dst.glob("*/"):
                 shutil.copy(thirdparty_path, dst)
