@@ -1174,13 +1174,19 @@ def build_shaders(platform: str = "PCD3D_SM6"):
     uproject_path = get_uproject_path()
     project_name = uproject_path.stem
     project_path = uproject_path.parent
-    pbtools.run(
-        get_editor_path(),
-        "-run=ShaderPipelineCacheTools",
-        "expand",
-        f"{project_path}/Saved/StagedBuilds/Windows/{project_name}/Saved/CollectedPSOs/*.rec.upipelinecache"
-        f"{project_path}/Saved/Shaders/{platform}/*.shk",
-        f"{project_path}/Build/Windows/PipelineCaches/PSO_{project_name}_{platform}.spc",
+    pbtools.run_stream(
+        [
+            get_editor_path(),
+            get_uproject_path(),
+            "-run=ShaderPipelineCacheTools",
+            "expand",
+            f"{project_path}/Saved/StagedBuilds/Windows/{project_name}/Saved/CollectedPSOs/*.rec.upipelinecache"
+            f"{project_path}/Saved/Shaders/{platform}/*.shk",
+            f"{project_path}/Build/Windows/PipelineCaches/PSO_{project_name}_{platform}.spc",
+        ],
+        logfunc=lambda x: pbtools.checked_stream_log(
+            x, error="Error: ", warning="Warning: "
+        ),
     )
 
 
