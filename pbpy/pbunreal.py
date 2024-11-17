@@ -1170,6 +1170,20 @@ def clear_cook_cache():
     shutil.rmtree("Saved/Cooked", ignore_errors=True)
 
 
+def build_shaders(platform: str = "PCD3D_SM6"):
+    uproject_path = get_uproject_path()
+    project_name = uproject_path.stem
+    project_path = uproject_path.parent
+    pbtools.run(
+        get_editor_path(),
+        "-run=ShaderPipelineCacheTools",
+        "expand",
+        f"{project_path}/Saved/StagedBuilds/Windows/{project_name}/Saved/CollectedPSOs/*.rec.upipelinecache"
+        f"{project_path}/Saved/Shaders/{platform}/*.shk",
+        f"{project_path}/Build/Windows/PipelineCaches/PSO_{project_name}_{platform}.spc",
+    )
+
+
 def build_game(configuration="Shipping"):
     uat_path = get_uat_path()
     if uat_path is None:

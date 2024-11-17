@@ -671,6 +671,8 @@ build_hooks = {
     "development": partial(pbunreal.build_game, "Development"),
     "internal": partial(pbunreal.build_game, "Test"),
     "game": pbunreal.build_game,
+    "shaders": pbunreal.build_shaders,
+    "shaders_vulkan": partial(pbunreal.build_shaders, "SF_VULKAN_SM6"),
     "installedbuild": pbunreal.build_installed_build,
     "package": pbunreal.package_binaries,
     "release": pbgh.generate_release,
