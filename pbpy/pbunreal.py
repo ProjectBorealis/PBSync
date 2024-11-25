@@ -708,7 +708,16 @@ def download_engine(bundle_name=None, download_symbols=False):
             pbtools.run(
                 [pbgit.get_git_executable(), "-C", str(root), "switch", base_branch]
             )
-        pbtools.run([pbgit.get_git_executable(), "-C", str(root), "pull"])
+        pbtools.run(
+            [
+                pbgit.get_git_executable(),
+                "-C",
+                str(root),
+                "pull",
+                "--rebase",
+                "--autostash",
+            ]
+        )
         pbtools.run(
             [
                 pbgit.get_git_executable(),
