@@ -2,14 +2,16 @@ import argparse
 import multiprocessing
 import os
 import os.path
+import platform
+import requests
 import sys
+import shutil
+import subprocess
 import threading
 import time
 import webbrowser
 from functools import partial
 from pathlib import Path
-import subprocess
-import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util import Retry
 
@@ -54,38 +56,41 @@ def check_gh_cli():
         return False
 
 def install_gh_cli():
-    # This is a simplified version. In practice, you'd need to handle different OS cases
     pblog.info("GitHub CLI not found. Installing...")
-
+    gh_ver="2.63.0"
     # Download GitHub CLI
+    match sys.platform:
+        case "win32":
+            url = f"https://github.com/cli/cli/releases/download/v{gh_ver}/gh_{gh_ver}_windows_amd64.msi"
+            downloaded_file = 'gh.msi'
+        case "darwin":
+            url = f"https://github.com/cli/cli/releases/download/v{gh_ver}/gh_{gh_ver}_macOS_universal.pkg"
+            downloaded_file = 'gh.pkg'
+        case _:
+            pblog.error("Your operation system is not supported")
+            return None
+
+    response = http.get(url, stream=True)
+
     try:
-        match sys.platform:
-            case "win32":
-                url = "https://github.com/cli/cli/releases/download/v2.60.0/gh_2.60.0_windows_amd64.msi"
-                downloaded_file = 'gh.msi'
-            case _:
-                pblog.error("Your operation system is not supported")
-                return None
-
-        response = http.get(url, stream=True)
-
         with open(downloaded_file, 'wb') as file:
             for chunk in response.iter_content(chunk_size=10 * 1024):
                 file.write(chunk)
     except OSError as e:  # For file I/O errors (e.g., disk full, permission denied)
         pblog.error(f"File I/O error: {e}")
 
-    # Install silently
+    # Install GitHub CLI
     try:
         match sys.platform:
             case "win32": subprocess.run(['msiexec', '/i', downloaded_file, '/passive'], check=True)
+            case "darwin": subprocess.run(['sudo', 'installer', '-pkg', downloaded_file, '-target', '/'], check=True)
     except subprocess.CalledProcessError as e:
         pblog.error(f"Command failed with return code {e.returncode}")
     
     pblog.info("GitHub CLI installed.")
     result = subprocess.run(['gh', '--version'], capture_output=True, text=True, check=True)
     pblog.info(result.stdout.strip())
-    
+    # Delete installation file
     os.remove(downloaded_file)
 
     try:
@@ -119,27 +124,29 @@ def sync_handler(sync_val: str, repository_val=None):
 
         detected_git_version = pbgit.get_git_version()
         supported_git_version = pbconfig.get("supported_git_version")
-        needs_git_update = False
         if detected_git_version == supported_git_version:
             pblog.info(f"Current Git version: {detected_git_version}")
         else:
             try:
                 match sys.platform:
                     case "win32": subprocess.run(['gh', 'release', 'download', supported_git_version, '-p', 'Git*.exe', '-R', 'microsoft/git'], check=True)
+                    case "darwin": subprocess.run(['gh', 'release', 'download', supported_git_version, '-p', 'git*.pkg', '-R', 'microsoft/git'], check=True)
             except subprocess.CalledProcessError as e:
                 pblog.error(f"Command failed with return code {e.returncode}")
 
-            git_installer = [file for file in os.listdir() if file.startswith("Git")][0]
+            git_installer = [file for file in os.listdir() if file.startswith("Git") or file.startswith("git")][0]
 
             # Install Git
             try:
                 match sys.platform:
-                    case "win32":  subprocess.run([git_installer], check=True)
+                    case "win32":  subprocess.run([git_installer], '/VERYSILENT', check=True)
+                    case "darwin": subprocess.run(['sudo', 'installer', '-pkg', git_installer, '-target', '/'], check=True)
                 pblog.info(f'Installing Git {supported_git_version}...')
             except subprocess.CalledProcessError as e:
                 pblog.error(f"Command failed with return code {e.returncode}")
 
             pblog.info(f'Git {supported_git_version} installed successfully.')
+            # Delete installation file
             os.remove(git_installer)
 
         if (
@@ -211,25 +218,38 @@ def sync_handler(sync_val: str, repository_val=None):
         if detected_lfs_version == supported_lfs_version:
             pblog.info(f"Current Git LFS version: {detected_lfs_version}")
         else:
-            # Download
+            # Download Git LFS
             try:
                 match sys.platform:
                     case "win32": subprocess.run(['gh', 'release', 'download', supported_lfs_version, '-p', '*.exe', '-R', 'git-lfs/git-lfs'], check=True)
+                    case "darwin":
+                        if platform.machine() == "AMD64":
+                            subprocess.run(['gh', 'release', 'download', supported_lfs_version, '-p', '*darwin-amd64*', '-R', 'git-lfs/git-lfs'], check=True)
+                        else:
+                            subprocess.run(['gh', 'release', 'download', supported_lfs_version, '-p', '*darwin-arm64*', '-R', 'git-lfs/git-lfs'], check=True)
             except subprocess.CalledProcessError as e:
                 pblog.error(f"Command failed with return code {e.returncode}")
     
-            # Find the downloaded .exe
+            # Find the downloaded .exe (Windows) or folder (Mac OS)
             lfs_installer = [file for file in os.listdir() if file.startswith("git-lfs")][0]
 
             try:
                 match sys.platform:
-                    case "win32": subprocess.run([lfs_installer], check=True)
-                pblog.info(f'Installing Git LFS {supported_lfs_version}...')
+                    case "win32": subprocess.run([lfs_installer], '/VERYSILENT', check=True)
+                    case "darwin":
+                        subprocess.run(['unzip', lfs_installer], check=True)
+                        subprocess.run([f"./{lfs_installer}/install.sh"], check=True)
+                pblog.info(f"Installing Git LFS {supported_lfs_version}...")
             except subprocess.CalledProcessError as e:
                 pblog.error(f"Command failed with return code {e.returncode}")
 
             pblog.info(f'Git LFS {supported_lfs_version} installed successfully.')
-            os.remove(lfs_installer)
+
+            # Delete installation file/folder
+            if path.isfile(lfs_installer):
+                os.remove(lfs_installer)
+            elif path.isdir(lfs_installer):
+                shutil.rmtree(lfs_installer)
 
         # check if Git LFS was installed to a different path
         if os.name == "nt" and pbgit.get_lfs_executable() == "git-lfs":
