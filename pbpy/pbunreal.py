@@ -858,13 +858,16 @@ def download_engine(bundle_name=None, download_symbols=False):
         # query build version so we can bump it up
         build_version_path = base_path / "Engine" / "Build" / "Build.version"
 
-        with open(build_version_path) as f:
-            build_version = json.load(f)
+        branch_version = None
+        if build_version_path.exists():
+            with open(build_version_path) as f:
+                build_version = json.load(f)
+                branch_version = build_version.get("BranchName")
 
-        branch_version = build_version["BranchName"]
-        pblog.info(
-            f"Comparing target engine version {get_engine_version_with_prefix()} with local engine version {branch_version}"
-        )
+        if branch_version:
+            pblog.info(
+                f"Comparing target engine version {get_engine_version_with_prefix()} with local engine version {branch_version}"
+            )
 
         if get_engine_version_with_prefix() == branch_version:
             # fast version
