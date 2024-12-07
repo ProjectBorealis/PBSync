@@ -604,6 +604,11 @@ def sync_handler(sync_val: str, repository_val=None):
                     pbtools.run_non_blocking_ex(launch_args)
                 else:
                     launched_editor = False
+                    if not pbunreal.check_ue_file_association():
+                        pblog.warning(
+                            "PBSync failed to find a valid file association to launch the editor, attempting to resolve..."
+                        )
+                        pbunreal.run_unreal_setup()
                     if pbunreal.check_ue_file_association():
                         uproject_file = pbconfig.get("uproject_name")
                         path = str(Path(uproject_file).resolve())
